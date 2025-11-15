@@ -1,46 +1,69 @@
-# Astro Starter Kit: Basics
+# KAKAPO_2.0
+
+Krótki opis
+
+KAKAPO_2.0 to projekt oparty na Astro — prosty szablon strony statycznej/web app, przeznaczony jako punkt startowy do dalszego rozwoju.
+
+## Wymagania
+
+- Node.js >= 18
+- npm (lub yarn/pnpm)
+
+## Szybki start
+
+W katalogu projektu:
 
 ```sh
-npm create astro@latest -- --template basics
+# Zainstaluj zależności
+npm install
+
+# Uruchom serwer deweloperski
+npm run dev
+
+# Zbuduj wersję produkcyjną
+npm run build
+
+# Podejrzyj zbudowaną stronę lokalnie
+npm run preview
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Domyślny serwer deweloperski uruchamia się na `http://localhost:4321` (jeśli port nie został zmieniony w konfiguracji).
 
-## 🚀 Project Structure
+## Struktura projektu
 
-Inside of your Astro project, you'll see the following folders and files:
+Przykładowa struktura (istotne pliki/foldery):
 
 ```text
 /
 ├── public/
 │   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
+├── src/
+│   ├── assets/
+│   │   └── astro.svg
+│   ├── components/
+│   │   └── Welcome.astro
+│   ├── layouts/
+│   │   └── Layout.astro
+│   └── pages/
+│       └── index.astro
 └── package.json
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+## Skonfiguruj i rozwijaj
 
-## 🧞 Commands
+- Edytuj pliki w `src/pages` aby dodawać nowe strony.
+- Twórz wielokrotnego użytku komponenty w `src/components`.
+- Dodaj zasoby statyczne do `public/`.
 
-All commands are run from the root of the project, from a terminal:
+## Przydatne linki
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+- Dokumentacja Astro: `https://docs.astro.build`
+- Konfiguracja projektu: `astro.config.mjs`
 
-## 👀 Want to learn more?
+## Kontakt / Wkład
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Jeśli chcesz współtworzyć projekt — otwórz issue lub PR. Dodaj opis zmian i kroki do reprodukcji/uruchomienia.
+
+---
+
+Plik README zaktualizowany lokalnie — dopasuj treść do specyfiki projektu według potrzeb.
