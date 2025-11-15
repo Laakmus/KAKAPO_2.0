@@ -3,15 +3,19 @@
 ## 1. Przegląd produktu
 
 ### Nazwa produktu
+
 KAKAPO
 
 ### Opis ogólny
+
 KAKAPO to platforma wymiany (barter) opartą na bazie danych, która umożliwia użytkownikom wymianę produktów i usług między sobą. Aplikacja łączy osoby z komplementarnymi potrzebami i umożliwia bezpośrednią komunikację poprzez wbudowany system czatu.
 
 ### Wizja
+
 Stworzyć prosty, intuicyjny system wymiany, który eliminuje potrzebę pieniędzy i wspomaga lokalną wymianę towarów między mieszkańcami miast.
 
 ### Wartość dla użytkownika
+
 - Możliwość otrzymania potrzebnych produktów bez wydawania pieniędzy
 - Przejrzysty proces poszukiwaniao i oferowania produktów
 - Bezpośrednia komunikacja z innymi wymieniającymi się
@@ -19,9 +23,11 @@ Stworzyć prosty, intuicyjny system wymiany, który eliminuje potrzebę pienięd
 - Bezpieczeństwo i weryfikacja za pośrednictwem emaila
 
 ### Platforma docelowa
+
 Desktop tylko (brak aplikacji mobilnej w MVP)
 
 ### Stack techniczny
+
 - Frontend: Astro + React + TypeScript + Tailwind
 - Backend: Supabase (PostgreSQL)
 - Autentykacja: Supabase Auth z weryfikacją emaila
@@ -40,12 +46,14 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 5. Brak pewności, czy druga osoba jest zainteresowana przed włożeniem wysiłku w komunikację
 
 ### Segment docelowy
+
 - Użytkownicy zainteresowani ekonomią współdzielenia
 - Osoby szukające alternatywnych form wymiany
 - Mieszkańcy miast polskich (początkowy zasięg)
 - Wiek: 18+, aktywni online
 
 ### Problemy rozwiązywane przez KAKAPO
+
 - Centralizacja procesu odkrywania produktów do wymiany
 - Automatyczne łączenie osób z wzajemnym zainteresowaniem
 - Bezpieczna wymiana danych kontaktowych poprzez chat w aplikacji
@@ -58,6 +66,7 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 ### 3.1 Core Features (Muszą być w MVP)
 
 #### Autentykacja i zarządzanie kontem
+
 - Rejestracja nowych użytkowników (email, hasło, imię, nazwisko)
 - Weryfikacja adresu email
 - Logowanie przy użyciu email i hasła
@@ -66,6 +75,7 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 - Sesje użytkownika z JWT tokenami
 
 #### Zarządzanie ofertami
+
 - Dodawanie nowych ofert (tytuł, opis, opcjonalne zdjęcie, miasto)
 - Przeglądanie wszystkich aktywnych ofert z wszystkich miast
 - Przeglądanie szczegółów oferty (oferent, wszystkie dane)
@@ -74,6 +84,7 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 - Edycja własnej oferty (tytuł, opis, zdjęcie, miasto)
 
 #### System zainteresowania
+
 - Kliknięcie przycisku "Jestem zainteresowany" na ofercie
 - Status zainteresowania: PROPOSED (przed potwierdzeniem oferenta)
 - Oferent widzi listę osób zainteresowanych jego ofertą
@@ -82,11 +93,13 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 - Anulowanie zainteresowania przez zainteresowanego użytkownika
 
 #### System dopasowania (Matching)
+
 - Automatyczne wykrywanie wzajemnego zainteresowania (mutual match)
 - Gdy User A jest zainteresowany ofertą User B i vice versa → status zmienia się na ACCEPTED
 - Po wykryciu wzajemnego zainteresowania (mutual match) czat dla obydwu użytkowników staje się dostępny (pojawia się w rozdziale "czaty" na profilach obu użytkowników)
 
 #### System czatu
+
 - Chat pojawia się TYLKO gdy istnieje wzajemne zainteresowanie (status ACCEPTED)
 - Wysyłanie wiadomości tekstowych
 - Historia wiadomości
@@ -95,11 +108,13 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 - Po obu potwierdzeniach → status REALIZED i chat się zamyka
 
 #### Profil użytkownika
+
 - Wyświetlanie imienia i nazwiska
 - Wyświetlanie liczby aktywnych ofert
 - Wyświetlanie daty rejestracji
 
 #### Przeglądanie moich ofert
+
 - Lista wszystkich moich ofert (aktywnych)
 - Liczba zainteresowanych na każdą ofertę
 - Przycisk edytowania oferty
@@ -108,26 +123,31 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 ### 3.2 Ograniczenia i walidacje
 
 #### Pola oferty
+
 - Tytuł: 5-100 znaków, obowiązkowe
 - Opis: 10-5000 znaków, obowiązkowe
 - Zdjęcie: URL (JPG, PNG, WebP), opcjonalne, walidacja URL frontend
 - Miasto: Wybór z 10 miast z dropdown'u, obowiązkowe
 
 #### Wiadomości
+
 - Maksymalnie 2000 znaków
 - Nie może być pusta
 - Frontend i backend validation
 
 #### Email
+
 - Format email
 - Unikalność w bazie danych
 - Weryfikacja przez Supabase Auth
 
 #### Hasło
+
 - Minimum wymagania Supabase Auth
 - Bezpieczne haszowanie
 
 ### 3.3 Miasta dostępne (MVP)
+
 1. Warszawa
 2. Kraków
 3. Wrocław
@@ -185,6 +205,7 @@ chcę się zarejestrować podając email, hasło, imię i nazwisko,
 aby móc korzystać z platformy KAKAPO.
 
 Kryteria akceptacji:
+
 - Użytkownik widzi formularz rejestracji z polami: Email, Hasło, Imię, Nazwisko
 - Walidacja frontend: email w prawidłowym formacie, hasło wymagane, imię i nazwisko wymagane
 - Po kliknięciu "Zarejestruj" dane wysyłane do Supabase Auth
@@ -204,6 +225,7 @@ chcę się zalogować używając emailu i hasła,
 aby uzyskać dostęp do mojego konta i aplikacji.
 
 Kryteria akceptacji:
+
 - Użytkownik widzi formularz logowania z polami: Email, Hasło
 - Walidacja frontend: email i hasło wymagane
 - Po kliknięciu "Zaloguj" dane weryfikowane przez Supabase
@@ -222,6 +244,7 @@ chcę zobaczyć listę wszystkich aktywnych ofert od wszystkich użytkowników,
 aby znaleźć produkty, które mogą mnie zainteresować.
 
 Kryteria akceptacji:
+
 - Strona główna wyświetla listę ofert w formacie karty/grid
 - Każda karta zawiera: tytuł, opis (skrócony), zdjęcie (jeśli dostępne), miasto, imię oferenta
 - Karty są sortowalne: od najnowszych lub alfabetycznie
@@ -241,6 +264,7 @@ chcę zobaczyć pełne szczegóły oferty,
 aby podjąć decyzję czy mnie interesuje.
 
 Kryteria akceptacji:
+
 - Strona szczegółów wyświetla: tytuł, pełny opis, zdjęcie (jeśli dostępne), miasto, imię i nazwisko oferenta
 - Data dodania oferty jest widoczna
 - Przycisk "Jestem zainteresowany" jest dostępny (jeśli nie jesteś oferentem)
@@ -258,6 +282,7 @@ chcę kliknąć "Jestem zainteresowany" na ofercie,
 aby wyrazić zainteresowanie produktem oferenta.
 
 Kryteria akceptacji:
+
 - Przycisk "Jestem zainteresowany" jest klikowany
 - Status zainteresowania zmienia się na PROPOSED w bazie danych
 - Przycisk zmienia się na "Anuluj zainteresowanie"
@@ -276,6 +301,7 @@ chcę anulować moje zainteresowanie na ofercie,
 aby wycofać się z potencjalnej wymiany.
 
 Kryteria akceptacji:
+
 - Przycisk zmienia się na "Anuluj zainteresowanie"
 - Po kliknięciu zainteresowanie jest usuwane z bazy danych
 - Przycisk wraca do "Jestem zainteresowany"
@@ -291,6 +317,7 @@ chcę zobaczyć listę moich wszystkich aktywnych ofert,
 aby zarządzać nimi.
 
 Kryteria akceptacji:
+
 - Strona "Moje Oferty" wyświetla listę wszystkich moich aktywnych ofert
 - Każda oferta zawiera: tytuł, opis (skrócony), liczbę zainteresowanych
 - Dla każdej oferty dostępne są przyciski: Edycja, Usunięcie
@@ -308,6 +335,7 @@ chcę dodać nową ofertę (tytuł, opis, opcjonalne zdjęcie, miasto),
 aby inni użytkownicy mogli widzieć co chciałbym wymienić.
 
 Kryteria akceptacji:
+
 - Formularz zawiera pola: Tytuł (5-100 znaków), Opis (10-5000 znaków), URL Zdjęcia (opcjonalne), Miasto (dropdown)
 - Walidacja frontend dla każdego pola
 - URL zdjęcia jest walidowany (JPG, PNG, WebP)
@@ -327,6 +355,7 @@ chcę edytować moją ofertę (tytuł, opis, zdjęcie, miasto),
 aby zaktualizować informacje.
 
 Kryteria akceptacji:
+
 - Przycisk "Edycja" na ofercie lub stronie szczegółów
 - Formularz edycji zawiera aktualne dane oferty
 - Użytkownik może zmienić tytuł, opis, URL zdjęcia, miasto
@@ -345,6 +374,7 @@ chcę usunąć moją ofertę,
 aby wycofać ją z obrotu.
 
 Kryteria akceptacji:
+
 - Przycisk "Usuń" na ofercie lub stronie szczegółów
 - Pojawia się dialog potwierdzenia "Czy na pewno chcesz usunąć tę ofertę?"
 - Po potwierdzeniu oferta jest usuwana z bazy danych
@@ -362,6 +392,7 @@ chcę zobaczyć wystawione oferty innego użytkownika,
 aby poznać dostępne produkty, które oferuje.
 
 Kryteria akceptacji:
+
 - Po kliknięciu na profil innego użytkownika wyświetla się lista wszystkich jego aktywnych ofert
 - Żadne inne dane (imię, nazwisko, data rejestracji) nie są widoczne
 - Liczba aktywnych ofert jest wyświetlana
@@ -377,6 +408,7 @@ chcę zobaczyć mój profil,
 aby sprawdzić swoje dane i oferty.
 
 Kryteria akceptacji:
+
 - Strona "Profil" wyświetla moje imię i nazwisko
 - Wyświetlana jest data rejestracji
 - Liczba moich aktywnych ofert
@@ -392,6 +424,7 @@ chcę zobaczyć listę osób zainteresowanych moją ofertą,
 aby móc wybrać osobę do wymiany.
 
 Kryteria akceptacji:
+
 - Na stronie "Moje Oferty" przycisk "Liczba zainteresowanych" jest klikablewny
 - Po kliknięciu wyświetlana jest lista osób zainteresowanych
 - Każda osoba zawiera: imię, nazwisko, datę zainteresowania
@@ -407,6 +440,7 @@ chcę kliknąć "Jestem zainteresowany" na jego ofercie,
 aby wyrazić wzajemne zainteresowanie.
 
 Kryteria akceptacji:
+
 - Oferent może przeglądać profile zainteresowanych użytkowników
 - Oferent widzi ich oferty
 - Oferent może kliknąć "Jestem zainteresowany" na ich ofercie
@@ -425,6 +459,7 @@ chcę zobaczyć czat,
 aby komunikować się z drugą osobą.
 
 Kryteria akceptacji:
+
 - Czat otwiera się TYLKO gdy istnieje wzajemne zainteresowanie (status ACCEPTED)
 - Strona "Chat" wyświetla listę aktywnych czatów
 - Każdy czat zawiera: imię i nazwisko drugiej osoby, ostatnia wiadomość, data
@@ -441,6 +476,7 @@ chcę wysłać wiadomość do drugiej osoby,
 aby komunikować się na temat wymiany.
 
 Kryteria akceptacji:
+
 - Pole tekstowe na dole czatu do wpisania wiadomości
 - Przycisk "Wyślij" obok pola tekstowego
 - Wiadomość musi mieć 1-2000 znaków
@@ -459,6 +495,7 @@ chcę zobaczyć całą historię wiadomości,
 aby przypomnieć sobie poprzednią komunikację.
 
 Kryteria akceptacji:
+
 - Historia czatu zawiera wszystkie wiadomości od początku
 - Wiadomości są posortowane chronologicznie
 - Każda wiadomość zawiera: imię wysyłającego, treść, datę i godzinę
@@ -474,6 +511,7 @@ chcę kliknąć "Zrealizowana" aby potwierdzić że wymiana się odbyła,
 aby zamknąć wymianę i czat.
 
 Kryteria akceptacji:
+
 - Przycisk "Zrealizowana" dostępny w czacie
 - Po kliknięciu moje zainteresowanie zmienia status na "REALIZOWANI" (pending)
 - Druga osoba widzi komunikat "Druga osoba potwierdza że wymiana się odbyła"
@@ -492,6 +530,7 @@ chcę anulować moje potwierdzenie "Zrealizowana" jeśli się pomyliłem,
 aby powrócić do aktywnego czatu.
 
 Kryteria akceptacji:
+
 - Jeśli kliknąłem "Zrealizowana" ale druga osoba jeszcze nie - mogę anulować
 - Po kliknięciu "Anuluj" mój status wraca do ACCEPTED
 - Chat pozostaje otwarty
@@ -506,6 +545,7 @@ chcę usunąć moje konto,
 aby całkowicie wycofać się z aplikacji.
 
 Kryteria akceptacji:
+
 - Przycisk "Usuń konto" dostępny na stronie profilu
 - Pojawia się dialog potwierdzenia z ostrzeżeniem "Ta akcja jest nieodwracalna"
 - Muszę wpisać moje hasło aby potwierdzić
@@ -526,6 +566,7 @@ chcę się wylogować,
 aby opuścić aplikację.
 
 Kryteria akceptacji:
+
 - Przycisk "Wyloguj" dostępny z każdej strony (górny pasek nawigacji)
 - Po kliknięciu JWT token jest usuwany z sesji
 - Użytkownik jest przenoszony na stronę logowania
@@ -540,6 +581,7 @@ chcę łatwo poruszać się między różnymi stronami aplikacji,
 aby efektywnie korzystać z jej funkcji.
 
 Kryteria akceptacji:
+
 - Górny pasek nawigacji zawiera: Home | Moje Oferty | Profil | Chat | Wyloguj
 - Każdy link w nawigacji prowadzi do właściwej strony
 - Aktywna strona jest wyróżniona w nawigacji
@@ -556,6 +598,7 @@ chcę zapewnić że każdy użytkownik może dostęp tylko do swoich danych,
 aby chronić prywatność użytkowników.
 
 Kryteria akceptacji:
+
 - RLS (Row Level Security) policies są skonfigurowane w bazie danych
 - Użytkownik nie może edytować/usuwać ofert innego użytkownika
 - Użytkownik nie może czytać prywatnych danych innego użytkownika
@@ -572,6 +615,7 @@ chcę aby lista była paginowana,
 aby aplikacja ładowała się szybko.
 
 Kryteria akceptacji:
+
 - Strona główna wyświetla 15 ofert na stronę
 - Przyciski Previous/Next do nawigacji między stronami
 - Informacja "Strona X z Y" jest wyświetlana
@@ -586,6 +630,7 @@ chcę aby aplikacja gracefully obsługiwała błędy sieciowe,
 aby wiedzieć co się stało.
 
 Kryteria akceptacji:
+
 - Gdy request się nie powiedzie wyświetlany jest komunikat błędu
 - Przycisk "Ponów" pozwala spróbować jeszcze raz
 - Aplikacja nie zwisa ani nie czaruje informacji
@@ -596,36 +641,42 @@ Kryteria akceptacji:
 ## 6. Metryki sukcesu
 
 ### Metryki funkcjonalności
+
 - Wszystkie 25 historii użytkownika zaimplementowane i testowalne: 100%
 - API endpoints działające dla CRUD operacji: 20/20
 - RLS policies skonfigurowane i działające: 5/5 tabel
 - Autentykacja i weryfikacja emaila funkcjonalne: 100%
 
 ### Metryki techniczne
+
 - Time to First Paint (TTL): < 2 sekundy
 - Load time strony głównej: < 3 sekundy
 - Brak critical linter errors w Production build
 - Code coverage: min 80% dla core funkcji
 
 ### Metryki UX
+
 - Każde akcja użytkownika potwierdzana komunikatem (success/error): 100%
 - Validacja na frontend przed wysłaniem (UX): 100%
 - Validacja na backend (bezpieczeństwo): 100%
 - Nawigacja intuitywna i znalezienie wszystkich głównych funkcji < 2 minuty dla nowego użytkownika
 
 ### Metryki bezpieczeństwa
+
 - Wszystkie hasła haszowane przez Supabase: 100%
 - JWT tokens są przechowywane bezpiecznie: Secure cookies
 - Brak hardcoded sensitywnych danych w kodzie frontend
 - GDPR compliance: hard delete konta i danych: Funkcjonalne
 
 ### Metryki wydajności
+
 - Rejestracja i logowanie: < 2 sekundy
 - Dodanie oferty: < 1 sekunda
 - Wysłanie wiadomości: < 500ms
 - Ładowanie listy ofert: < 2 sekundy
 
 ### Metryki biznesowe
+
 - Liczba scen testowych: 30+
 - Dokumentacja: Kompletna i czytelna
 - Timeline: 4 tygodni (5-10 godzin/tydzień)
@@ -636,23 +687,28 @@ Kryteria akceptacji:
 ## Dodatek: Mapowanie stron i funkcji
 
 ### Strona 1: Rejestracja
+
 - Formularz rejestracji (US-001)
 - Weryfikacja emaila
 
 ### Strona 2: Logowanie
+
 - Formularz logowania (US-002)
 
 ### Strona 3: Home
+
 - Lista wszystkich ofert (US-003)
 - Paginacja (US-024)
 - Kliknięcie "Jestem zainteresowany" (US-005)
 
 ### Strona 4: Szczegóły oferty
+
 - Wyświetlenie szczegółów (US-004)
 - Przycisk "Jestem zainteresowany" (US-005)
 - Link do profilu oferenta
 
 ### Strona 5: Moje Oferty
+
 - Lista moich ofert (US-007)
 - Edycja oferty (US-009)
 - Usunięcie oferty (US-010)
@@ -660,22 +716,25 @@ Kryteria akceptacji:
 - Przycisk "Dodaj ofertę" (US-008)
 
 ### Strona 6: Profil
+
 - Mój profil (US-012)
 - Przycisk "Usuń konto" (US-020)
 
 ### Strona 7: Chat
+
 - Lista czatów (US-015)
 - Historia wiadomości (US-017)
 - Wysyłanie wiadomości (US-016)
 - Przycisk "Zrealizowana" (US-018)
 
 ### Strona 8: Dodawanie oferty
+
 - Formularz dodawania oferty (US-008)
 - Walidacja pól
 
 ### Komponenty
+
 - Górny pasek nawigacji (US-022, US-021)
 - Karta oferty
 - Dialog potwierdzenia
 - Komunikaty błędów (US-025)
-
