@@ -176,10 +176,17 @@ SECURITY DEFINER -- Executed with function owner's permissions
 AS $$
 DECLARE
   v_email text;
-  v_result jsonb;
+  v_first_name text;
+  v_last_name text;
 BEGIN
-  -- Check if user exists
-  SELECT email INTO v_email FROM auth.users WHERE id = target_user_id;
+  -- Check if user exists and get metadata
+  SELECT
+    email,
+    raw_user_meta_data->>'first_name',
+    raw_user_meta_data->>'last_name'
+  INTO v_email, v_first_name, v_last_name
+  FROM auth.users
+  WHERE id = target_user_id;
 
   IF v_email IS NULL THEN
     RETURN jsonb_build_object(
@@ -188,13 +195,7 @@ BEGIN
     );
   END IF;
 
-  -- Delete user profile (cascades to offers, interests, messages)
-  DELETE FROM users WHERE id = target_user_id;
-
-  -- Delete from Supabase Auth (requires admin API or service_role)
-  -- This will be executed by backend/edge function with service_role
-
-  -- Log operation
+  -- Log operation before deletion
   INSERT INTO audit_logs (actor_id, action, payload)
   VALUES (
     auth.uid(),
@@ -202,9 +203,15 @@ BEGIN
     jsonb_build_object(
       'target_user_id', target_user_id,
       'email', v_email,
+      'first_name', v_first_name,
+      'last_name', v_last_name,
       'timestamp', now()
     )
   );
+
+  -- Delete from Supabase Auth
+  -- This cascades to offers, interests, messages through FK constraints
+  DELETE FROM auth.users WHERE id = target_user_id;
 
   RETURN jsonb_build_object(
     'success', true,

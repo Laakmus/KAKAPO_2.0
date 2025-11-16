@@ -2,29 +2,14 @@
 -- Migration: 20240101000003_rls_policies
 
 -- =============================================================================
--- USERS TABLE - RLS
+-- NOTE: NO RLS FOR auth.users
 -- =============================================================================
-
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-
--- Users can only read their own profile
-CREATE POLICY users_select_own
-  ON users FOR SELECT
-  USING (auth.uid() = id);
-
--- Users can only update their own profile
-CREATE POLICY users_update_own
-  ON users FOR UPDATE
-  USING (auth.uid() = id);
-
--- Profile creation only for newly registered users (via Supabase trigger)
-CREATE POLICY users_insert_own
-  ON users FOR INSERT
-  WITH CHECK (auth.uid() = id);
-
-COMMENT ON POLICY users_select_own ON users IS 'Users can read only their own profile';
-COMMENT ON POLICY users_update_own ON users IS 'Users can update only their own profile';
-COMMENT ON POLICY users_insert_own ON users IS 'Users can create only their own profile';
+-- We use Supabase Auth's auth.users table which has its own built-in security.
+-- User data access is controlled through auth.uid() in other table policies.
+-- To access user metadata (first_name, last_name):
+--   - auth.uid() returns current user's ID
+--   - auth.email() returns current user's email
+--   - auth.jwt() -> 'user_metadata' ->> 'first_name' returns first_name from metadata
 
 -- =============================================================================
 -- OFFERS TABLE - RLS

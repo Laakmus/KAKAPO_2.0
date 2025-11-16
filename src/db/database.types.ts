@@ -61,14 +61,14 @@ export type Database = {
             foreignKeyName: 'archived_messages_receiver_id_fkey';
             columns: ['receiver_id'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'archived_messages_sender_id_fkey';
             columns: ['sender_id'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
         ];
@@ -100,7 +100,7 @@ export type Database = {
             foreignKeyName: 'audit_logs_actor_id_fkey';
             columns: ['actor_id'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
         ];
@@ -132,14 +132,14 @@ export type Database = {
             foreignKeyName: 'chats_user_a_fkey';
             columns: ['user_a'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'chats_user_b_fkey';
             columns: ['user_b'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
         ];
@@ -190,14 +190,14 @@ export type Database = {
             foreignKeyName: 'exchange_history_user_a_fkey';
             columns: ['user_a'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'exchange_history_user_b_fkey';
             columns: ['user_b'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
         ];
@@ -239,7 +239,7 @@ export type Database = {
             foreignKeyName: 'interests_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
         ];
@@ -278,7 +278,7 @@ export type Database = {
             foreignKeyName: 'messages_sender_id_fkey';
             columns: ['sender_id'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
         ];
@@ -322,31 +322,10 @@ export type Database = {
             foreignKeyName: 'offers_owner_id_fkey';
             columns: ['owner_id'];
             isOneToOne: false;
-            referencedRelation: 'users';
+            referencedRelation: 'auth.users';
             referencedColumns: ['id'];
           },
         ];
-      };
-      users: {
-        Row: {
-          created_at: string;
-          first_name: string;
-          id: string;
-          last_name: string;
-        };
-        Insert: {
-          created_at?: string;
-          first_name: string;
-          id: string;
-          last_name: string;
-        };
-        Update: {
-          created_at?: string;
-          first_name?: string;
-          id?: string;
-          last_name?: string;
-        };
-        Relationships: [];
       };
     };
     Views: {
