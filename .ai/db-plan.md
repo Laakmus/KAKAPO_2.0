@@ -2,36 +2,43 @@
 
 ## 1. Tabele z kolumnami, typami danych i ograniczeniami
 
-### users
-Tabela profili użytkowników zsynchronizowana z Supabase Auth.
+### users (auth.users)
+Tabela użytkowników zarządzana w pełni przez Supabase Auth. **Nie tworzymy własnej tabeli users w schemacie publicznym.**
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|--------------|------|
-| id | uuid | PRIMARY KEY | Mapowane do auth.uid() z Supabase Auth |
-| first_name | varchar(100) | NOT NULL | Imię użytkownika |
-| last_name | varchar(100) | NOT NULL | Nazwisko użytkownika |
-| created_at | timestamptz | NOT NULL DEFAULT now() | Data rejestracji |
+**Wykorzystywane pola z auth.users:**
+- id UUID PRIMARY KEY
+- email VARCHAR
+- created_at TIMESTAMPTZ
+- raw_user_meta_data JSONB - używane do przechowywania first_name i last_name
+
+**Struktura raw_user_meta_data:**
+```json
+{
+  "first_name": "Jan",
+  "last_name": "Kowalski"
+}
+```
 
 **Uwagi:**
-- `id` synchronizowane z `auth.users.id` poprzez trigger/funkcję w Supabase
-- Brak pola email i password w tej tabeli - zarządzane przez Supabase Auth
-- Usuwanie konta odbywa się przez admin RPC który usuwa konto z Auth i anonimizuje/usuwa profil
+- Wszystkie dane użytkownika przechowywane w schemacie `auth.users` (Supabase Auth)
+- Imię i nazwisko przechowywane w `raw_user_meta_data` jako JSON
+- Email i hasło zarządzane automatycznie przez Supabase Auth
+- Usuwanie konta odbywa się przez admin RPC który usuwa konto z Auth (kaskadowo usuwa powiązane dane)
+- Nie ma potrzeby synchronizacji - odwołujemy się bezpośrednio do `auth.uid()`
 
 ---
 
 ### offers
 Tabela ofert wymiany produktów/usług.
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|--------------|------|
-| id | uuid | PRIMARY KEY DEFAULT gen_random_uuid() | Identyfikator oferty |
-| owner_id | uuid | NOT NULL REFERENCES users(id) ON DELETE CASCADE | Właściciel oferty |
-| title | varchar(100) | NOT NULL CHECK (length(title) >= 5 AND length(title) <= 100) | Tytuł oferty |
-| description | text | NOT NULL CHECK (length(description) >= 10 AND length(description) <= 5000) | Opis oferty |
-| image_url | varchar(2048) | NULL | URL zdjęcia z Supabase Storage |
-| city | varchar(100) | NOT NULL CHECK (city IN ('Warszawa','Kraków','Wrocław','Poznań','Gdańsk','Szczecin','Łódź','Lublin','Białystok','Olsztyn','Rzeszów','Opole','Zielona Góra','Gorzów Wielkopolski','Kielce','Katowice')) | Miasto oferty |
-| status | varchar(20) | NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','REMOVED')) | Status oferty |
-| created_at | timestamptz | NOT NULL DEFAULT now() | Data utworzenia |
+- id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+- owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+- title VARCHAR(100) NOT NULL CHECK (length(title) >= 5 AND length(title) <= 100)
+- description TEXT NOT NULL CHECK (length(description) >= 10 AND length(description) <= 5000)
+- image_url VARCHAR(2048) NULL
+- city VARCHAR(100) NOT NULL CHECK (city IN ('Warszawa','Kraków','Wrocław','Poznań','Gdańsk','Szczecin','Łódź','Lublin','Białystok','Olsztyn','Rzeszów','Opole','Zielona Góra','Gorzów Wielkopolski','Kielce','Katowice'))
+- status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','REMOVED'))
+- created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
 - `image_url` przechowuje tylko URL do obrazka w Supabase Storage
@@ -43,15 +50,13 @@ Tabela ofert wymiany produktów/usług.
 ### interests
 Tabela zainteresowań użytkowników ofertami.
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|--------------|------|
-| id | uuid | PRIMARY KEY DEFAULT gen_random_uuid() | Identyfikator zainteresowania |
-| offer_id | uuid | NOT NULL REFERENCES offers(id) ON DELETE CASCADE | Oferta będąca przedmiotem zainteresowania |
-| user_id | uuid | NOT NULL REFERENCES users(id) ON DELETE CASCADE | Użytkownik zainteresowany ofertą |
-| status | varchar(20) | NOT NULL DEFAULT 'PROPOSED' CHECK (status IN ('PROPOSED','ACCEPTED','REALIZED')) | Status zainteresowania |
-| realized_at | timestamptz | NULL | Data potwierdzenia realizacji przez użytkownika |
-| created_at | timestamptz | NOT NULL DEFAULT now() | Data wyrażenia zainteresowania |
-| UNIQUE(offer_id, user_id) | | | Użytkownik może być zainteresowany ofertą tylko raz |
+- id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+- offer_id UUID NOT NULL REFERENCES offers(id) ON DELETE CASCADE
+- user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+- status VARCHAR(20) NOT NULL DEFAULT 'PROPOSED' CHECK (status IN ('PROPOSED','ACCEPTED','REALIZED'))
+- realized_at TIMESTAMPTZ NULL
+- created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+- UNIQUE(offer_id, user_id)
 
 **Uwagi:**
 - `UNIQUE(offer_id, user_id)` zapewnia że użytkownik może oznaczyć zainteresowanie tylko raz
@@ -65,14 +70,12 @@ Tabela zainteresowań użytkowników ofertami.
 ### chats
 Tabela rozmów między użytkownikami przy mutual match. Czat jest reużywany dla kolejnych wymian między tymi samymi użytkownikami.
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|--------------|------|
-| id | uuid | PRIMARY KEY DEFAULT gen_random_uuid() | Identyfikator czatu |
-| user_a | uuid | NOT NULL REFERENCES users(id) ON DELETE CASCADE CHECK (user_a < user_b) | Pierwszy użytkownik (mniejszy UUID) |
-| user_b | uuid | NOT NULL REFERENCES users(id) ON DELETE CASCADE | Drugi użytkownik (większy UUID) |
-| status | varchar(20) | NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','ARCHIVED')) | Status czatu |
-| created_at | timestamptz | NOT NULL DEFAULT now() | Data utworzenia czatu |
-| UNIQUE(user_a, user_b) | | | Tylko jeden czat między dwoma użytkownikami |
+- id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+- user_a UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE CHECK (user_a::text < user_b::text)
+- user_b UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+- status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','ARCHIVED'))
+- created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+- UNIQUE(user_a, user_b)
 
 **Uwagi:**
 - `user_a < user_b` wymusza kolejność zapisywania par użytkowników (zapobiega duplikatom)
@@ -86,13 +89,11 @@ Tabela rozmów między użytkownikami przy mutual match. Czat jest reużywany dl
 ### messages
 Tabela wiadomości w czatach.
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|--------------|------|
-| id | uuid | PRIMARY KEY DEFAULT gen_random_uuid() | Identyfikator wiadomości |
-| chat_id | uuid | NOT NULL REFERENCES chats(id) ON DELETE CASCADE | Czat do którego należy wiadomość |
-| sender_id | uuid | NOT NULL REFERENCES users(id) ON DELETE CASCADE | Nadawca wiadomości |
-| body | text | NOT NULL CHECK (length(body) >= 1 AND length(body) <= 2000) | Treść wiadomości |
-| created_at | timestamptz | NOT NULL DEFAULT now() | Data wysłania |
+- id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+- chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE
+- sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+- body TEXT NOT NULL CHECK (length(body) >= 1 AND length(body) <= 2000)
+- created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
 - `body` ograniczone do 2000 znaków zgodnie z PRD
@@ -104,15 +105,13 @@ Tabela wiadomości w czatach.
 ### archived_messages
 Tabela archiwum starych wiadomości przypisanych do użytkowników.
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|--------------|------|
-| id | uuid | PRIMARY KEY | Oryginalny identyfikator wiadomości |
-| chat_id | uuid | NOT NULL | Identyfikator czatu (bez FK - czat może już nie istnieć) |
-| sender_id | uuid | NOT NULL REFERENCES users(id) ON DELETE CASCADE | Nadawca wiadomości |
-| receiver_id | uuid | NOT NULL REFERENCES users(id) ON DELETE CASCADE | Odbiorca wiadomości |
-| body | text | NOT NULL | Treść wiadomości |
-| sent_at | timestamptz | NOT NULL | Oryginalna data wysłania |
-| archived_at | timestamptz | NOT NULL DEFAULT now() | Data archiwizacji |
+- id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+- chat_id UUID NOT NULL
+- sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+- receiver_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+- body TEXT NOT NULL
+- sent_at TIMESTAMPTZ NOT NULL
+- archived_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
 - Wiadomości archiwizowane są po określonym czasie (np. 6 miesięcy) lub gdy czat staje się nieaktywny
@@ -126,17 +125,15 @@ Tabela archiwum starych wiadomości przypisanych do użytkowników.
 ### exchange_history
 Tabela historii zrealizowanych wymian między użytkownikami.
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|--------------|------|
-| id | uuid | PRIMARY KEY DEFAULT gen_random_uuid() | Identyfikator wymiany |
-| user_a | uuid | NOT NULL REFERENCES users(id) ON DELETE CASCADE | Pierwszy uczestnik |
-| user_b | uuid | NOT NULL REFERENCES users(id) ON DELETE CASCADE | Drugi uczestnik |
-| offer_a_id | uuid | NULL | Oferta użytkownika A (może być usunięta) |
-| offer_b_id | uuid | NULL | Oferta użytkownika B (może być usunięta) |
-| offer_a_title | varchar(100) | NOT NULL | Tytuł oferty A (kopia z offers.title) |
-| offer_b_title | varchar(100) | NOT NULL | Tytuł oferty B (kopia z offers.title) |
-| chat_id | uuid | NOT NULL REFERENCES chats(id) ON DELETE CASCADE | Czat w którym wymiana była negocjowana |
-| realized_at | timestamptz | NOT NULL DEFAULT now() | Data potwierdzenia przez obu użytkowników |
+- id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+- user_a UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL
+- user_b UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL
+- offer_a_id UUID NULL
+- offer_b_id UUID NULL
+- offer_a_title VARCHAR(100) NOT NULL
+- offer_b_title VARCHAR(100) NOT NULL
+ - chat_id UUID NULL REFERENCES chats(id) ON DELETE SET NULL
+- realized_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
 - Rekord tworzony automatycznie gdy oba zainteresowania osiągną status REALIZED
@@ -144,19 +141,18 @@ Tabela historii zrealizowanych wymian między użytkownikami.
 - `offer_a_id` i `offer_b_id` mogą być NULL jeśli oferty zostały już usunięte
 - Pozwala użytkownikom przeglądać historię swoich zrealizowanych wymian
 - Może być użyte w przyszłości do statystyk i rekomendacji
+ - `user_a`, `user_b` oraz `chat_id` są NULLable i mają `ON DELETE SET NULL` aby zachować wpisy historii nawet po usunięciu kont lub czatów
 
 ---
 
 ### audit_logs
 Tabela audytu operacji administracyjnych.
 
-| Kolumna | Typ | Ograniczenia | Opis |
-|---------|-----|--------------|------|
-| id | uuid | PRIMARY KEY DEFAULT gen_random_uuid() | Identyfikator wpisu audytu |
-| actor_id | uuid | NULL REFERENCES users(id) ON DELETE SET NULL | Użytkownik wykonujący akcję (NULL dla operacji systemowych) |
-| action | varchar(100) | NOT NULL | Typ akcji (np. 'DELETE_USER', 'ANONYMIZE_PROFILE') |
-| payload | jsonb | NULL | Dodatkowe dane związane z akcją |
-| created_at | timestamptz | NOT NULL DEFAULT now() | Data operacji |
+- id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+- actor_id UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL
+- action VARCHAR(100) NOT NULL
+- payload JSONB NULL
+- created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
 - Używana do logowania operacji administracyjnych (usuwanie kont, moderacja)
@@ -167,16 +163,16 @@ Tabela audytu operacji administracyjnych.
 
 ## 2. Relacje między tabelami
 
-### users → offers
+### auth.users → offers
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jeden użytkownik może mieć wiele ofert
-- **Klucz obcy:** `offers.owner_id → users.id`
+- **Klucz obcy:** `offers.owner_id → auth.users.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
-### users → interests
+### auth.users → interests
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jeden użytkownik może wyrazić wiele zainteresowań
-- **Klucz obcy:** `interests.user_id → users.id`
+- **Klucz obcy:** `interests.user_id → auth.users.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
 ### offers → interests
@@ -185,12 +181,12 @@ Tabela audytu operacji administracyjnych.
 - **Klucz obcy:** `interests.offer_id → offers.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
-### users ↔ chats
+### auth.users ↔ chats
 - **Typ:** Wiele-do-wielu (z ograniczeniem)
 - **Relacja:** Użytkownicy uczestniczą w czatach; jeden czat zawsze łączy dokładnie dwóch użytkowników
 - **Klucze obce:**
-  - `chats.user_a → users.id`
-  - `chats.user_b → users.id`
+  - `chats.user_a → auth.users.id`
+  - `chats.user_b → auth.users.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 - **Uwaga:** Para (user_a, user_b) jest unikalna i uporządkowana (user_a < user_b); czat jest reużywany dla kolejnych wymian
 
@@ -200,33 +196,33 @@ Tabela audytu operacji administracyjnych.
 - **Klucz obcy:** `messages.chat_id → chats.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
-### users → messages
+### auth.users → messages
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jeden użytkownik może wysłać wiele wiadomości
-- **Klucz obcy:** `messages.sender_id → users.id`
+- **Klucz obcy:** `messages.sender_id → auth.users.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
-### users → archived_messages
+### auth.users → archived_messages
 - **Typ:** Jeden-do-wielu (dla sender_id i receiver_id)
 - **Relacja:** Użytkownicy mogą mieć wiele zarchiwizowanych wiadomości jako nadawcy lub odbiorcy
 - **Klucze obce:**
-  - `archived_messages.sender_id → users.id`
-  - `archived_messages.receiver_id → users.id`
+  - `archived_messages.sender_id → auth.users.id`
+  - `archived_messages.receiver_id → auth.users.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
-### users → exchange_history
+### auth.users → exchange_history
 - **Typ:** Jeden-do-wielu (dla user_a i user_b)
 - **Relacja:** Użytkownicy mogą mieć wiele zrealizowanych wymian
 - **Klucze obce:**
-  - `exchange_history.user_a → users.id`
-  - `exchange_history.user_b → users.id`
+  - `exchange_history.user_a → auth.users.id`
+  - `exchange_history.user_b → auth.users.id`
   - `exchange_history.chat_id → chats.id`
-- **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
+- **Kaskadowe usuwanie:** Zachowujemy wpisy historii przy usunięciu użytkownika/czatu (ON DELETE SET NULL)
 
-### users → audit_logs
+### auth.users → audit_logs
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jeden użytkownik może wykonać wiele akcji audytowanych
-- **Klucz obcy:** `audit_logs.actor_id → users.id`
+- **Klucz obcy:** `audit_logs.actor_id → auth.users.id`
 - **Kaskadowe usuwanie:** SET NULL (zachowujemy logi nawet po usunięciu użytkownika)
 
 ---
@@ -235,7 +231,7 @@ Tabela audytu operacji administracyjnych.
 
 ### Indeksy podstawowe (Primary Keys)
 Wszystkie tabele mają automatyczne indeksy na kluczach głównych:
-- `users(id)`
+- `auth.users(id)` - zarządzane przez Supabase Auth
 - `offers(id)`
 - `interests(id)`
 - `chats(id)`
@@ -270,6 +266,14 @@ CREATE INDEX idx_archived_messages_chat_id ON archived_messages(chat_id);
 CREATE INDEX idx_exchange_history_user_a ON exchange_history(user_a);
 CREATE INDEX idx_exchange_history_user_b ON exchange_history(user_b);
 CREATE INDEX idx_exchange_history_chat_id ON exchange_history(chat_id);
+  
+-- Unikalny constraint zapobiegający duplikatom przy jednoczesnych triggerach
+-- Uwaga: `offer_a_id` i `offer_b_id` mogą być NULL (np. po usunięciu ofert).
+-- Zwykły UNIQUE z NULL pozwala na duplikaty, dlatego tworzymy partial unique index,
+-- który obowiązuje tylko gdy obie kolumny ofertowe są NOT NULL.
+CREATE UNIQUE INDEX ux_exchange_history_users_offers
+  ON exchange_history(user_a, user_b, chat_id, offer_a_id, offer_b_id)
+  WHERE offer_a_id IS NOT NULL AND offer_b_id IS NOT NULL;
 
 -- audit_logs
 CREATE INDEX idx_audit_logs_actor_id ON audit_logs(actor_id);
@@ -499,17 +503,25 @@ CREATE TRIGGER create_exchange_history_trigger
 ### Admin RPC: Usuwanie konta i anonimizacja
 
 ```sql
--- Funkcja dostępna tylko dla service_role
+-- Funkcja dostępna tylko dla service_role (wykonywana przez backend/Edge Function)
+-- Usuwa konto użytkownika z Supabase Auth, co kaskadowo usuwa powiązane dane przez FK
 CREATE FUNCTION admin_delete_user_account(target_user_id uuid)
 RETURNS jsonb
 SECURITY DEFINER -- Wykonywana z prawami właściciela funkcji
 AS $$
 DECLARE
   v_email text;
-  v_result jsonb;
+  v_first_name text;
+  v_last_name text;
 BEGIN
-  -- Sprawdź czy użytkownik istnieje
-  SELECT email INTO v_email FROM auth.users WHERE id = target_user_id;
+  -- Sprawdź czy użytkownik istnieje i pobierz dane
+  SELECT
+    email,
+    raw_user_meta_data->>'first_name',
+    raw_user_meta_data->>'last_name'
+  INTO v_email, v_first_name, v_last_name
+  FROM auth.users
+  WHERE id = target_user_id;
 
   IF v_email IS NULL THEN
     RETURN jsonb_build_object(
@@ -518,13 +530,7 @@ BEGIN
     );
   END IF;
 
-  -- Usuń profil użytkownika (kaskadowo usuwa offers, interests, messages)
-  DELETE FROM users WHERE id = target_user_id;
-
-  -- Usuń konto z Supabase Auth (wymaga admin API lub service_role)
-  -- To będzie wykonane przez backend/edge function z service_role
-
-  -- Log operacji
+  -- Log operacji przed usunięciem
   INSERT INTO audit_logs (actor_id, action, payload)
   VALUES (
     auth.uid(),
@@ -532,9 +538,15 @@ BEGIN
     jsonb_build_object(
       'target_user_id', target_user_id,
       'email', v_email,
+      'first_name', v_first_name,
+      'last_name', v_last_name,
       'timestamp', now()
     )
   );
+
+  -- Usuń konto z Supabase Auth
+  -- Kaskadowo usuwa offers, interests, messages przez ON DELETE CASCADE w FK
+  DELETE FROM auth.users WHERE id = target_user_id;
 
   RETURN jsonb_build_object(
     'success', true,
@@ -592,26 +604,15 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ## 5. Zasady Row Level Security (RLS)
 
-### users
+### auth.users
 
-```sql
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+**Uwaga:** Tabela `auth.users` jest zarządzana przez Supabase Auth i ma swoje własne wbudowane zasady bezpieczeństwa. Nie definiujemy RLS dla tej tabeli - używamy tylko `auth.uid()` do sprawdzania uprawnień w innych tabelach.
 
--- Użytkownicy mogą czytać tylko swój własny profil
-CREATE POLICY users_select_own
-  ON users FOR SELECT
-  USING (auth.uid() = id);
-
--- Użytkownicy mogą aktualizować tylko swój własny profil
-CREATE POLICY users_update_own
-  ON users FOR UPDATE
-  USING (auth.uid() = id);
-
--- Tworzenie profilu tylko dla nowo zarejestrowanych (przez trigger Supabase)
-CREATE POLICY users_insert_own
-  ON users FOR INSERT
-  WITH CHECK (auth.uid() = id);
-```
+Dostęp do danych użytkownika:
+- `auth.uid()` zwraca ID zalogowanego użytkownika
+- `auth.email()` zwraca email zalogowanego użytkownika
+- `auth.jwt()` zwraca cały JWT token z metadata
+- Do odczytu imienia i nazwiska: `(auth.jwt() -> 'user_metadata' ->> 'first_name')`
 
 ### offers
 
@@ -764,15 +765,16 @@ CREATE POLICY audit_logs_admin_only
 
 ## 6. Dodatkowe uwagi i decyzje projektowe
 
-### Mapowanie auth.uid()
-- Tabela `users.id` jest bezpośrednio mapowana do `auth.uid()` z Supabase Auth
-- Email i hasło zarządzane wyłącznie przez Supabase Auth, nie duplikowane w lokalnej tabeli
-- Trigger Supabase automatycznie tworzy rekord w `users` po rejestracji w `auth.users`
+### Brak dedykowanej tabeli users w schemacie publicznym
+- Wszystkie dane użytkowników przechowywane w `auth.users` (schemat auth)
+- Imię i nazwisko przechowywane w `raw_user_meta_data` (JSON)
+- Email i hasło zarządzane automatycznie przez Supabase Auth
+- Brak synchronizacji - odwołujemy się bezpośrednio do `auth.uid()` w RLS policies
+- `auth.uid()` zwraca ID zalogowanego użytkownika z JWT tokena
 
 ### Usuwanie konta (GDPR compliance)
 - Admin RPC `admin_delete_user_account()` wykonywane z service_role
-- Kasuje profil z `users` (kaskadowo usuwa offers, interests, messages)
-- Usuwa konto z Supabase Auth (wykonywane przez backend z service_role)
+- Usuwa konto z Supabase Auth (kaskadowo usuwa offers, interests, messages przez FK)
 - Loguje operację w `audit_logs`
 - Po usunięciu możliwa ponowna rejestracja tym samym emailem (nowe konto, nowe UUID)
 
