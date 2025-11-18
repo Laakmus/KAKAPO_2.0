@@ -33,6 +33,7 @@ Użyj istniejących typów z `src/types.ts`:
 ## 4. Szczegóły odpowiedzi
 
 ### 200 OK
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -50,6 +51,7 @@ Użyj istniejących typów z `src/types.ts`:
 ```
 
 **Opis pól**:
+
 - `id` — UUID oferty
 - `owner_id` — UUID właściciela
 - `owner_name` — imię i nazwisko właściciela (konkatenacja `first_name` + `last_name` z tabeli `users`)
@@ -92,10 +94,12 @@ Użyj istniejących typów z `src/types.ts`:
 // Główne query z owner_name
 const { data: offer, error } = await supabase
   .from('offers')
-  .select(`
+  .select(
+    `
     id, owner_id, title, description, image_url, city, status, created_at,
     users!owner_id (first_name, last_name)
-  `)
+  `,
+  )
   .eq('id', offer_id)
   .single();
 
@@ -132,7 +136,7 @@ const isInterested = !!userInterest;
   - Użytkownik widzi swoje własne oferty (niezależnie od statusu)
 - **UUID Validation**: Zod schema zapobiega nieprawidłowym formatom
 - **Enumeration Attack**: Nie ujawniamy różnicy między "oferta nie istnieje" a "oferta REMOVED" (zawsze 404)
-- **Prywatność**: 
+- **Prywatność**:
   - `owner_id` ujawniony (potrzebny dla UI)
   - `is_interested` zawsze relative do aktualnego użytkownika (nie ujawnia innych)
 - **SQL Injection**: Supabase client automatycznie zabezpiecza parametry
@@ -149,25 +153,27 @@ CREATE POLICY offers_select_active
 
 ## 7. Obsługa błędów
 
-| Scenariusz | Kod | Error Code | Komunikat |
-|-----------|-----|------------|-----------|
-| Oferta nie istnieje | 404 | NOT_FOUND | "Oferta nie istnieje" |
-| Oferta REMOVED (nie właściciel) | 404 | NOT_FOUND | "Oferta nie istnieje" |
+| Scenariusz                      | Kod | Error Code | Komunikat             |
+| ------------------------------- | --- | ---------- | --------------------- |
+| Oferta nie istnieje             | 404 | NOT_FOUND  | "Oferta nie istnieje" |
+| Oferta REMOVED (nie właściciel) | 404 | NOT_FOUND  | "Oferta nie istnieje" |
 
 **Uwaga**: Ten sam komunikat dla ofert nieistniejących i REMOVED (nie ujawniamy różnicy).
 
 ## 8. Wydajność
 
 ### Oczekiwany czas odpowiedzi
+
 - P50: < 150ms
 - P95: < 400ms
 - P99: < 800ms
 
 ### Zapytania do DB
+
 1. **Główne query**: SELECT oferty z JOIN do `users` (1 query)
 2. **Interests count**: COUNT z `interests` (1 query)
 3. **Is interested**: SELECT z `interests` (1 query)
-**Razem: 3 queries** (akceptowalne dla endpoint szczegółów)
+   **Razem: 3 queries** (akceptowalne dla endpoint szczegółów)
 
 ### Wykorzystanie indeksów (z db-plan.md)
 
@@ -190,6 +196,7 @@ CREATE INDEX idx_interests_offer_user ON interests(offer_id, user_id);
 ### Optymalizacje Post-MVP
 
 **Priorytet 1**: Agregacja interests_count w ofercie (denormalizacja)
+
 ```sql
 -- Dodaj kolumnę interests_count do offers
 ALTER TABLE offers ADD COLUMN interests_count INTEGER DEFAULT 0;
@@ -215,6 +222,7 @@ CREATE TRIGGER update_offer_interests_count_trigger
 **Priorytet 2**: Cache na poziomie Supabase (dla popularnych ofert)
 
 ### Monitoring
+
 - Request rate, response time (P50/P95/P99)
 - Error rate (szczególnie 404 vs 500)
 - DB query time per query
@@ -223,6 +231,7 @@ CREATE TRIGGER update_offer_interests_count_trigger
 ## 9. Kroki implementacji
 
 ### Struktura plików
+
 ```
 src/
 ├── pages/api/offers/[offer_id].ts   # API route
@@ -249,10 +258,12 @@ export class OfferService {
     // Główne query z owner_name (RLS automatycznie filtruje)
     const { data: offer, error } = await this.supabase
       .from('offers')
-      .select(`
+      .select(
+        `
         id, owner_id, title, description, image_url, city, status, created_at,
         users!owner_id (first_name, last_name)
-      `)
+      `,
+      )
       .eq('id', offerId)
       .maybeSingle();
 
@@ -291,9 +302,7 @@ export class OfferService {
     }
 
     // Map to DTO
-    const ownerName = offer.users 
-      ? `${offer.users.first_name} ${offer.users.last_name}`.trim()
-      : undefined;
+    const ownerName = offer.users ? `${offer.users.first_name} ${offer.users.last_name}`.trim() : undefined;
 
     return {
       id: offer.id,
@@ -306,7 +315,7 @@ export class OfferService {
       status: offer.status,
       interests_count: interestsCount || 0,
       is_interested: !!userInterest,
-      created_at: offer.created_at
+      created_at: offer.created_at,
     };
   }
 }
@@ -321,7 +330,9 @@ import { OfferService } from '../../../services/offer.service';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const supabase = locals.supabase;
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const userId = session.user.id;
 
   // Call service
@@ -334,7 +345,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
   return new Response(JSON.stringify(offer), {
     status: 200,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
   });
 };
 ```
@@ -404,15 +415,18 @@ curl -H "Authorization: Bearer TOKEN" \
 ### Post-MVP optymalizacje
 
 **Priorytet 1**: Denormalizacja `interests_count` w tabeli `offers`
+
 - Trigger INCREMENT/DECREMENT przy operacjach na `interests`
 - Eliminuje jedno query (z 3 do 2)
 
 **Priorytet 2**: Composite index dla `is_interested`
+
 ```sql
 CREATE INDEX idx_interests_offer_user ON interests(offer_id, user_id);
 ```
 
 **Priorytet 3**: Cache dla popularnych ofert
+
 - Redis/Upstash z TTL 5 minut
 - Invalidacja przy UPDATE oferty lub zmianie interests
 
@@ -433,4 +447,3 @@ CREATE INDEX idx_interests_offer_user ON interests(offer_id, user_id);
 ---
 
 Plan zakłada implementację zgodną z db-plan.md, types.ts i backend.mdc. Endpoint wykorzystuje RLS policies dla bezpieczeństwa i nie duplikuje logiki autoryzacji w kodzie.
-

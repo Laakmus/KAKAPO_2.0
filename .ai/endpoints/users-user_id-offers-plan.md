@@ -20,8 +20,7 @@ Endpoint `GET /api/users/{user_id}/offers` zwraca listę aktywnych ofert innego 
 import { z } from 'zod';
 
 export const userIdParamSchema = z.object({
-  user_id: z.string()
-    .uuid({ message: 'Nieprawidłowy format ID użytkownika' })
+  user_id: z.string().uuid({ message: 'Nieprawidłowy format ID użytkownika' }),
 });
 ```
 
@@ -36,9 +35,7 @@ Użyj typów z `src/types.ts`:
 
 ```typescript
 type UserOffersResponse = {
-  data: Array<Pick<OfferListItemDTO, 
-    'id' | 'title' | 'description' | 'image_url' | 'city' | 'created_at'
-  >>;
+  data: Array<Pick<OfferListItemDTO, 'id' | 'title' | 'description' | 'image_url' | 'city' | 'created_at'>>;
 };
 ```
 
@@ -93,11 +90,7 @@ type UserOffersResponse = {
 
 ```typescript
 // 1. Sprawdź czy użytkownik istnieje
-const { data: user, error: userError } = await supabase
-  .from('users')
-  .select('id')
-  .eq('id', userId)
-  .single();
+const { data: user, error: userError } = await supabase.from('users').select('id').eq('id', userId).single();
 
 if (userError || !user) {
   throw new Error('USER_NOT_FOUND');
@@ -123,15 +116,16 @@ const { data: offers, error } = await supabase
 
 ## 7. Obsługa błędów
 
-| Scenariusz | Kod | Error Code | Komunikat |
-|-----------|-----|------------|-----------|
-| user_id nieprawidłowy UUID | 400 | VALIDATION_ERROR | "Nieprawidłowy format ID użytkownika" |
-| Brak tokena | 401 | UNAUTHORIZED | "Brak autoryzacji" |
-| Nieprawidłowy token | 401 | UNAUTHORIZED | "Nieprawidłowy lub wygasły token" |
-| Użytkownik nie istnieje | 404 | USER_NOT_FOUND | "Użytkownik nie został znaleziony" |
-| Błąd DB | 500 | INTERNAL_ERROR | "Wystąpił błąd podczas pobierania ofert. Spróbuj ponownie później" |
+| Scenariusz                 | Kod | Error Code       | Komunikat                                                          |
+| -------------------------- | --- | ---------------- | ------------------------------------------------------------------ |
+| user_id nieprawidłowy UUID | 400 | VALIDATION_ERROR | "Nieprawidłowy format ID użytkownika"                              |
+| Brak tokena                | 401 | UNAUTHORIZED     | "Brak autoryzacji"                                                 |
+| Nieprawidłowy token        | 401 | UNAUTHORIZED     | "Nieprawidłowy lub wygasły token"                                  |
+| Użytkownik nie istnieje    | 404 | USER_NOT_FOUND   | "Użytkownik nie został znaleziony"                                 |
+| Błąd DB                    | 500 | INTERNAL_ERROR   | "Wystąpił błąd podczas pobierania ofert. Spróbuj ponownie później" |
 
-**Logowanie**: 
+**Logowanie**:
+
 - Błędy 404: INFO level (normalne sytuacje)
 - Błędy 500 i nieoczekiwane wyjątki: ERROR level
 - Nie logować tokenów ani danych użytkownika
@@ -139,6 +133,7 @@ const { data: offers, error } = await supabase
 ## 8. Wydajność
 
 ### Oczekiwany czas odpowiedzi
+
 - P50: < 150ms
 - P95: < 400ms
 - P99: < 800ms
@@ -146,6 +141,7 @@ const { data: offers, error } = await supabase
 ### Optymalizacje
 
 **Zalety tego endpointu**:
+
 - Brak N+1 problem (nie liczymy interests_count)
 - Proste query bez JOIN i agregacji
 - Szybsze niż `/api/offers/my`
@@ -173,6 +169,7 @@ await redis.setex(cacheKey, 300, JSON.stringify(offers)); // 5 min TTL
 ```
 
 ### Monitoring
+
 - Request rate per user_id (wykrywanie abuse)
 - Response time P50/P95/P99
 - Error rate 404 vs 500
@@ -181,6 +178,7 @@ await redis.setex(cacheKey, 300, JSON.stringify(offers)); // 5 min TTL
 ## 9. Kroki implementacji
 
 ### Struktura plików
+
 ```
 src/
 ├── pages/api/users/[user_id]/offers.ts   # API route (nowy plik + folder)
@@ -199,9 +197,7 @@ import { z } from 'zod';
 // ... istniejące schematy ...
 
 export const userIdParamSchema = z.object({
-  user_id: z.string()
-    .uuid({ message: 'Nieprawidłowy format ID użytkownika' })
-    .describe('UUID użytkownika')
+  user_id: z.string().uuid({ message: 'Nieprawidłowy format ID użytkownika' }).describe('UUID użytkownika'),
 });
 ```
 
@@ -224,20 +220,18 @@ export class OfferService {
    * @returns Lista aktywnych ofert (bez interests_count dla prywatności)
    * @throws Error z kodem 'USER_NOT_FOUND' jeśli użytkownik nie istnieje
    */
-  async getUserOffers(userId: string): Promise<Array<{
-    id: string;
-    title: string;
-    description: string;
-    image_url: string | null;
-    city: string;
-    created_at: string;
-  }>> {
+  async getUserOffers(userId: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      description: string;
+      image_url: string | null;
+      city: string;
+      created_at: string;
+    }>
+  > {
     // 1. Sprawdź czy użytkownik istnieje
-    const { data: user, error: userError } = await this.supabase
-      .from('users')
-      .select('id')
-      .eq('id', userId)
-      .single();
+    const { data: user, error: userError } = await this.supabase.from('users').select('id').eq('id', userId).single();
 
     if (userError || !user) {
       const error = new Error('Użytkownik nie został znaleziony');
@@ -282,7 +276,10 @@ export const GET: APIRoute = async ({ params, locals }) => {
     }
 
     // Auth check
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error: authError,
+    } = await supabase.auth.getSession();
     if (authError || !session) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
@@ -294,12 +291,9 @@ export const GET: APIRoute = async ({ params, locals }) => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0];
-        return createErrorResponse(
-          'VALIDATION_ERROR',
-          firstError.message,
-          400,
-          { field: String(firstError.path[0] || 'user_id') }
-        );
+        return createErrorResponse('VALIDATION_ERROR', firstError.message, 400, {
+          field: String(firstError.path[0] || 'user_id'),
+        });
       }
       throw error;
     }
@@ -308,33 +302,27 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
     // Call service
     const offerService = new OfferService(supabase);
-    
+
     try {
       const offers = await offerService.getUserOffers(user_id);
 
       return new Response(JSON.stringify({ data: offers }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
-
     } catch (error: any) {
       // Handle USER_NOT_FOUND specifically
       if (error.code === 'USER_NOT_FOUND' || error.message?.includes('nie został znaleziony')) {
-        return createErrorResponse(
-          'USER_NOT_FOUND',
-          'Użytkownik nie został znaleziony',
-          404
-        );
+        return createErrorResponse('USER_NOT_FOUND', 'Użytkownik nie został znaleziony', 404);
       }
       throw error; // Re-throw dla globalnego error handlera
     }
-
   } catch (error) {
     console.error('[USER_OFFERS_EXCEPTION]', error);
     return createErrorResponse(
       'INTERNAL_ERROR',
       'Wystąpił błąd podczas pobierania ofert. Spróbuj ponownie później',
-      500
+      500,
     );
   }
 };
@@ -392,14 +380,14 @@ curl "http://localhost:4321/api/users/$USER_ID/offers"
 
 ### Różnice względem `/api/offers/my`
 
-| Aspekt | /api/offers/my | /api/users/{user_id}/offers |
-|--------|---------------|----------------------------|
-| Właściciel | auth.uid() | {user_id} (path param) |
-| Statusy | ACTIVE, REMOVED | tylko ACTIVE |
-| interests_count | TAK | NIE (prywatność) |
-| owner_name | TAK | NIE (znany z kontekstu) |
-| Paginacja | NIE (MVP) | NIE |
-| Sprawdzenie user | NIE (zawsze istnieje) | TAK (404 jeśli brak) |
+| Aspekt           | /api/offers/my        | /api/users/{user_id}/offers |
+| ---------------- | --------------------- | --------------------------- |
+| Właściciel       | auth.uid()            | {user_id} (path param)      |
+| Statusy          | ACTIVE, REMOVED       | tylko ACTIVE                |
+| interests_count  | TAK                   | NIE (prywatność)            |
+| owner_name       | TAK                   | NIE (znany z kontekstu)     |
+| Paginacja        | NIE (MVP)             | NIE                         |
+| Sprawdzenie user | NIE (zawsze istnieje) | TAK (404 jeśli brak)        |
 
 ### Post-MVP optymalizacje
 
@@ -429,6 +417,7 @@ Dodać query param `?include_stats=true` dla frontendów które potrzebują tej 
 ### Zgodność z PRD
 
 Endpoint realizuje:
+
 - **US-024**: Przeglądanie ofert innego użytkownika (z profilu użytkownika)
 - Wyświetlanie tylko aktywnych ofert
 - Prywatność: ukrycie usunięch ofert i statystyk zainteresowań
@@ -436,11 +425,13 @@ Endpoint realizuje:
 ### Security Considerations
 
 **Dlaczego sprawdzamy istnienie użytkownika?**
+
 1. Lepsze UX (404 vs 200 z pustą listą)
 2. Security przez obscurity (nie ujawniamy czy UUID jest w systemie przy braku ofert)
 3. Zapobiega enumeration attacks (rate limit na 404)
 
 **Rate limiting (Post-MVP)**:
+
 ```typescript
 // Ogranicz do 100 req/min per IP dla tego endpointu
 // Zapobiega enumeration attacks na user_id
@@ -449,4 +440,3 @@ Endpoint realizuje:
 ---
 
 Plan zakłada implementację zgodną z db-plan.md, types.ts i backend.mdc. Uproszczona wersja bez interests_count dla ochrony prywatności użytkowników.
-

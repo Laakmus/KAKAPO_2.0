@@ -1,6 +1,5 @@
 # Schemat bazy danych KAKAPO
 
-
 ## 1. Tabele z kolumnami, typami danych i ograniczeniami
 
 ### users
@@ -15,6 +14,7 @@ Tabela profili użytkowników zsynchronizowana z Supabase Auth.
 - created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
+
 - `id` synchronizowane z `auth.users.id` poprzez trigger/funkcję w Supabase
 - Brak pola email i password w tej tabeli - zarządzane przez Supabase Auth
 - Usuwanie konta odbywa się przez admin RPC który usuwa konto z Auth i anonimizuje/usuwa profil
@@ -22,6 +22,7 @@ Tabela profili użytkowników zsynchronizowana z Supabase Auth.
 ---
 
 ### offers
+
 Tabela ofert wymiany produktów/usług.
 
 - id UUID PRIMARY KEY DEFAULT gen_random_uuid()
@@ -34,6 +35,7 @@ Tabela ofert wymiany produktów/usług.
 - created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
+
 - `image_url` przechowuje tylko URL do obrazka w Supabase Storage
 - `city` ograniczone do 16 miast z PRD poprzez CHECK constraint
 - `ON DELETE CASCADE` usuwa oferty gdy użytkownik jest usuwany
@@ -41,6 +43,7 @@ Tabela ofert wymiany produktów/usług.
 ---
 
 ### interests
+
 Tabela zainteresowań użytkowników ofertami.
 
 - id UUID PRIMARY KEY DEFAULT gen_random_uuid()
@@ -52,6 +55,7 @@ Tabela zainteresowań użytkowników ofertami.
 - UNIQUE(offer_id, user_id)
 
 **Uwagi:**
+
 - `UNIQUE(offer_id, user_id)` zapewnia że użytkownik może oznaczyć zainteresowanie tylko raz
 - Trigger/constraint blokuje możliwość zainteresowania własną ofertą (user_id != offers.owner_id)
 - Statusy: `PROPOSED` (początkowy), `ACCEPTED` (mutual match), `REALIZED` (użytkownik potwierdził odbiór towaru)
@@ -61,16 +65,18 @@ Tabela zainteresowań użytkowników ofertami.
 ---
 
 ### chats
+
 Tabela rozmów między użytkownikami przy mutual match. Czat jest reużywany dla kolejnych wymian między tymi samymi użytkownikami.
 
 - id UUID PRIMARY KEY DEFAULT gen_random_uuid()
- - user_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE CHECK (user_a::text < user_b::text)
+- user_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE CHECK (user_a::text < user_b::text)
 - user_b UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE
 - status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','ARCHIVED'))
 - created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 - UNIQUE(user_a, user_b)
 
 **Uwagi:**
+
 - `user_a < user_b` wymusza kolejność zapisywania par użytkowników (zapobiega duplikatom)
 - `UNIQUE(user_a, user_b)` zapewnia tylko jeden czat między użytkownikami - reużywany dla kolejnych wymian
 - Czat tworzony automatycznie przez trigger przy mutual match (dwa zainteresowania ACCEPTED)
@@ -80,6 +86,7 @@ Tabela rozmów między użytkownikami przy mutual match. Czat jest reużywany dl
 ---
 
 ### messages
+
 Tabela wiadomości w czatach.
 
 - id UUID PRIMARY KEY DEFAULT gen_random_uuid()
@@ -89,6 +96,7 @@ Tabela wiadomości w czatach.
 - created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
+
 - `body` ograniczone do 2000 znaków zgodnie z PRD
 - `created_at` używane dla sortowania chronologicznego (US-017)
 - Sender_id musi być uczestnikiem czatu (user_a lub user_b) - wymuszane przez RLS
@@ -96,6 +104,7 @@ Tabela wiadomości w czatach.
 ---
 
 ### archived_messages
+
 Tabela archiwum starych wiadomości przypisanych do użytkowników.
 
 - id UUID PRIMARY KEY
@@ -107,6 +116,7 @@ Tabela archiwum starych wiadomości przypisanych do użytkowników.
 - archived_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
+
 - Wiadomości archiwizowane są po określonym czasie (np. 6 miesięcy) lub gdy czat staje się nieaktywny
 - `receiver_id` dodany aby zachować pełny kontekst rozmowy po archiwizacji
 - Brak FK na `chat_id` - pozwala zachować archiwum nawet po usunięciu czatu
@@ -116,29 +126,32 @@ Tabela archiwum starych wiadomości przypisanych do użytkowników.
 ---
 
 ### exchange_history
+
 Tabela historii zrealizowanych wymian między użytkownikami.
 
 - id UUID PRIMARY KEY DEFAULT gen_random_uuid()
- - user_a UUID NULL REFERENCES users(id) ON DELETE SET NULL
- - user_b UUID NULL REFERENCES users(id) ON DELETE SET NULL
+- user_a UUID NULL REFERENCES users(id) ON DELETE SET NULL
+- user_b UUID NULL REFERENCES users(id) ON DELETE SET NULL
 - offer_a_id UUID NULL
 - offer_b_id UUID NULL
 - offer_a_title VARCHAR(100) NOT NULL
 - offer_b_title VARCHAR(100) NOT NULL
- - chat_id UUID NULL REFERENCES chats(id) ON DELETE SET NULL
+- chat_id UUID NULL REFERENCES chats(id) ON DELETE SET NULL
 - realized_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
+
 - Rekord tworzony automatycznie gdy oba zainteresowania osiągną status REALIZED
 - Przechowuje tytuły ofert jako kopie - zachowuje historię nawet gdy oferty zostaną usunięte
 - `offer_a_id` i `offer_b_id` mogą być NULL jeśli oferty zostały już usunięte
 - Pozwala użytkownikom przeglądać historię swoich zrealizowanych wymian
 - Może być użyte w przyszłości do statystyk i rekomendacji
- - `user_a`, `user_b` oraz `chat_id` są NULLable i mają `ON DELETE SET NULL` aby zachować wpisy historii nawet po usunięciu kont lub czatów
+- `user_a`, `user_b` oraz `chat_id` są NULLable i mają `ON DELETE SET NULL` aby zachować wpisy historii nawet po usunięciu kont lub czatów
 
 ---
 
 ### audit_logs
+
 Tabela audytu operacji administracyjnych.
 
 - id UUID PRIMARY KEY DEFAULT gen_random_uuid()
@@ -148,6 +161,7 @@ Tabela audytu operacji administracyjnych.
 - created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 **Uwagi:**
+
 - Używana do logowania operacji administracyjnych (usuwanie kont, moderacja)
 - `payload` zawiera szczegóły operacji w formacie JSON
 - `actor_id` NULL dla operacji systemowych/automatycznych
@@ -157,24 +171,28 @@ Tabela audytu operacji administracyjnych.
 ## 2. Relacje między tabelami
 
 ### users → offers
+
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jeden użytkownik może mieć wiele ofert
 - **Klucz obcy:** `offers.owner_id → users.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
 ### users → interests
+
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jeden użytkownik może wyrazić wiele zainteresowań
 - **Klucz obcy:** `interests.user_id → users.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
 ### offers → interests
+
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jedna oferta może mieć wiele zainteresowań
 - **Klucz obcy:** `interests.offer_id → offers.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
 ### users ↔ chats
+
 - **Typ:** Wiele-do-wielu (z ograniczeniem)
 - **Relacja:** Użytkownicy uczestniczą w czatach; jeden czat zawsze łączy dokładnie dwóch użytkowników
 - **Klucze obce:**
@@ -184,18 +202,21 @@ Tabela audytu operacji administracyjnych.
 - **Uwaga:** Para (user_a, user_b) jest unikalna i uporządkowana (user_a < user_b); czat jest reużywany dla kolejnych wymian
 
 ### chats → messages
+
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jeden czat może mieć wiele wiadomości
 - **Klucz obcy:** `messages.chat_id → chats.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
 ### users → messages
+
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jeden użytkownik może wysłać wiele wiadomości
 - **Klucz obcy:** `messages.sender_id → users.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
 ### users → archived_messages
+
 - **Typ:** Jeden-do-wielu (dla sender_id i receiver_id)
 - **Relacja:** Użytkownicy mogą mieć wiele zarchiwizowanych wiadomości jako nadawcy lub odbiorcy
 - **Klucze obce:**
@@ -204,6 +225,7 @@ Tabela audytu operacji administracyjnych.
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
 
 ### users → exchange_history
+
 - **Typ:** Jeden-do-wielu (dla user_a i user_b)
 - **Relacja:** Użytkownicy mogą mieć wiele zrealizowanych wymian
 - **Klucze obce:**
@@ -213,6 +235,7 @@ Tabela audytu operacji administracyjnych.
 - **Kaskadowe usuwanie:** Zachowujemy wpisy historii przy usunięciu użytkownika/czatu (ON DELETE SET NULL)
 
 ### users → audit_logs
+
 - **Typ:** Jeden-do-wielu
 - **Relacja:** Jeden użytkownik może wykonać wiele akcji audytowanych
 - **Klucz obcy:** `audit_logs.actor_id → users.id`
@@ -223,7 +246,9 @@ Tabela audytu operacji administracyjnych.
 ## 3. Indeksy
 
 ### Indeksy podstawowe (Primary Keys)
+
 Wszystkie tabele mają automatyczne indeksy na kluczach głównych:
+
 - `users(id)`
 - `offers(id)`
 - `interests(id)`
@@ -234,6 +259,7 @@ Wszystkie tabele mają automatyczne indeksy na kluczach głównych:
 - `audit_logs(id)`
 
 ### Indeksy na kluczach obcych
+
 ```sql
 -- offers
 CREATE INDEX idx_offers_owner_id ON offers(owner_id);
@@ -259,7 +285,7 @@ CREATE INDEX idx_archived_messages_chat_id ON archived_messages(chat_id);
 CREATE INDEX idx_exchange_history_user_a ON exchange_history(user_a);
 CREATE INDEX idx_exchange_history_user_b ON exchange_history(user_b);
 CREATE INDEX idx_exchange_history_chat_id ON exchange_history(chat_id);
-  
+
 -- Unikalny constraint zapobiegający duplikatom przy jednoczesnych triggerach
 ALTER TABLE exchange_history
   ADD CONSTRAINT ux_exchange_history_users_offers UNIQUE (user_a, user_b, chat_id, offer_a_id, offer_b_id);
@@ -336,6 +362,7 @@ CREATE INDEX idx_offers_search_vector ON offers USING GIN(search_vector);
 ## 4. Triggery i funkcje biznesowe
 
 ### Blokada self-interest
+
 Użytkownik nie może być zainteresowany własną ofertą.
 
 ```sql
@@ -358,6 +385,7 @@ CREATE TRIGGER prevent_self_interest
 ```
 
 ### Automatyczne tworzenie czatu przy mutual match
+
 Gdy dwa zainteresowania są wzajemne (ACCEPTED), automatycznie tworzy lub reaktywuje czat.
 
 ```sql
@@ -416,6 +444,7 @@ CREATE TRIGGER create_chat_on_mutual_interest
 ```
 
 ### Automatyczne tworzenie wpisu w historii wymian
+
 Gdy oba zainteresowania osiągną status REALIZED, tworzy wpis w exchange_history.
 
 ```sql
@@ -758,11 +787,13 @@ CREATE POLICY audit_logs_admin_only
 ## 6. Dodatkowe uwagi i decyzje projektowe
 
 ### Mapowanie auth.uid()
+
 - Tabela `users.id` jest bezpośrednio mapowana do `auth.uid()` z Supabase Auth
 - Email i hasło zarządzane wyłącznie przez Supabase Auth, nie duplikowane w lokalnej tabeli
 - Trigger Supabase automatycznie tworzy rekord w `users` po rejestracji w `auth.users`
 
 ### Usuwanie konta (GDPR compliance)
+
 - Admin RPC `admin_delete_user_account()` wykonywane z service_role
 - Kasuje profil z `users` (kaskadowo usuwa offers, interests, messages)
 - Usuwa konto z Supabase Auth (wykonywane przez backend z service_role)
@@ -770,46 +801,54 @@ CREATE POLICY audit_logs_admin_only
 - Po usunięciu możliwa ponowna rejestracja tym samym emailem (nowe konto, nowe UUID)
 
 ### Reużywanie czatów
+
 - Czat między dwoma użytkownikami jest tworzony raz i używany dla wszystkich ich wymian (zgodnie z PRD US-015)
 - `UNIQUE(user_a, user_b)` zapewnia jeden czat na parę użytkowników
 - Czat pozostaje ACTIVE nawet po zrealizowaniu wymiany - pozwala na kolejne wymiany
 - Trigger przy mutual match reaktywuje czat jeśli był zarchiwizowany (`ON CONFLICT DO UPDATE`)
 
 ### Potwierdzanie realizacji wymiany (US-018, US-019)
+
 - Użytkownik potwierdza odbiór towaru klikając "Zrealizowana" - ustawia swoje `interests.status = REALIZED` i `interests.realized_at`
 - Wymiana uznana za zrealizowaną gdy OBA zainteresowania mają status REALIZED
 - Trigger automatycznie tworzy wpis w `exchange_history` gdy oba zainteresowania osiągną REALIZED
 - Użytkownik może anulować potwierdzenie zmieniając status z REALIZED na ACCEPTED (jeśli druga strona jeszcze nie potwierdziła)
 
 ### Archiwizacja wiadomości
+
 - Funkcja `archive_old_messages()` wykonywana przez zaplanowane zadanie (np. cron job co miesiąc)
 - Przenosi wiadomości starsze niż 6 miesięcy do `archived_messages`
 - Zachowuje pełny kontekst (sender_id, receiver_id, chat_id) dla dostępu użytkowników
 - Użytkownicy mogą przeglądać swoje archiwalne wiadomości przez RLS policy
 
 ### Historia wymian
+
 - Automatyczne tworzenie wpisu w `exchange_history` gdy wymiana zostanie potwierdzona przez obu użytkowników
 - Przechowuje kopie tytułów ofert - zachowuje historię nawet gdy oferty zostaną usunięte
 - Użytkownicy mogą przeglądać swoją historię zrealizowanych wymian
 - Może być wykorzystane w przyszłości do statystyk, rekomendacji, weryfikacji użytkowników
 
 ### Liczba zainteresowanych
+
 - Na start dynamicznie liczona przez `COUNT(*)` na tabeli `interests`
 - W przyszłości rozważyć dodanie kolumny `interests_count` w `offers` + trigger INCREMENT/DECREMENT
 
 ### Walidacja danych
+
 - CHECK constraints w bazie dla długości pól (title, description, body)
 - CHECK IN dla listy 16 miast z PRD
 - Blokada self-interest przez trigger `prevent_self_interest`
 - Walidacja image_url odbywa się na frontendzie (format JPG/PNG/WebP)
 
 ### Wydajność i skalowalność
+
 - Indeksy composite (city, status, created_at) dla częstych zapytań
 - Full-text search (tsvector + GIN) dla wyszukiwania ofert
 - Keyset pagination zalecane zamiast OFFSET dla dużych zbiorów
 - Archiwizacja starych wiadomości zmniejsza rozmiar tabeli `messages` i poprawia wydajność
 
 ### Bezpieczeństwo
+
 - RLS włączone na wszystkich tabelach użytkownika
 - Admin RPC z `SECURITY DEFINER` dla operacji wymagających podwyższonych uprawnień
 - Service_role key NIGDY nie jest przechowywany na frontendzie

@@ -5,6 +5,7 @@
 Endpoint `GET /api/users/{user_id}` umożliwia pobranie publicznego profilu dowolnego użytkownika w systemie. Zwraca podstawowe informacje: imię, nazwisko oraz liczbę aktywnych ofert użytkownika. Jest to endpoint do przeglądania profili innych użytkowników (np. przy wyświetlaniu szczegółów oferty lub czatu). Wymaga autoryzacji aby upewnić się, że żądanie pochodzi od zalogowanego użytkownika.
 
 **Główne wymagania:**
+
 - Metoda: `GET`
 - Ścieżka: `/api/users/{user_id}`
 - Zwraca 200 z danymi publicznymi użytkownika lub 404 gdy użytkownik nie istnieje
@@ -32,13 +33,14 @@ Endpoint `GET /api/users/{user_id}` umożliwia pobranie publicznego profilu dowo
 import { z } from 'zod';
 
 export const userIdParamSchema = z.object({
-  user_id: z.string().uuid('Nieprawidłowy format ID użytkownika')
+  user_id: z.string().uuid('Nieprawidłowy format ID użytkownika'),
 });
 ```
 
 ## 3. Wykorzystywane typy (DTOs i Command Modele)
 
 - **`PublicUserDTO`** (już istnieje w `src/types.ts`):
+
 ```typescript
 type PublicUserDTO = {
   id: string;
@@ -49,6 +51,7 @@ type PublicUserDTO = {
 ```
 
 - **`GetUserByIdQuery`** (wewnętrzny typ dla service):
+
 ```typescript
 type GetUserByIdQuery = {
   userId: string;
@@ -70,6 +73,7 @@ type GetUserByIdQuery = {
 ```
 
 **Opis pól:**
+
 - `id` — UUID użytkownika
 - `first_name` — Imię użytkownika (VARCHAR(100))
 - `last_name` — Nazwisko użytkownika (VARCHAR(100))
@@ -78,6 +82,7 @@ type GetUserByIdQuery = {
 ### Błędy
 
 - **400 Bad Request** — nieprawidłowy format `user_id`
+
 ```json
 {
   "error": {
@@ -89,6 +94,7 @@ type GetUserByIdQuery = {
 ```
 
 - **401 Unauthorized** — brak lub nieprawidłowy token
+
 ```json
 {
   "error": {
@@ -99,6 +105,7 @@ type GetUserByIdQuery = {
 ```
 
 - **404 Not Found** — użytkownik nie istnieje
+
 ```json
 {
   "error": {
@@ -109,6 +116,7 @@ type GetUserByIdQuery = {
 ```
 
 - **500 Internal Server Error** — błąd serwera
+
 ```json
 {
   "error": {
@@ -133,15 +141,16 @@ type GetUserByIdQuery = {
    - **Jeśli błąd**: Zwrot 400 Bad Request
 
 4. **Wywołanie UserService**:
+
    ```typescript
    const profile = await userService.getPublicProfile(user_id);
    ```
-   
+
    **UserService.getPublicProfile wykonuje:**
    - Zapytanie do tabeli `users` z JOIN do zliczenia ofert:
-   
+
    ```sql
-   SELECT 
+   SELECT
      u.id,
      u.first_name,
      u.last_name,
@@ -151,7 +160,7 @@ type GetUserByIdQuery = {
    WHERE u.id = $1
    GROUP BY u.id, u.first_name, u.last_name;
    ```
-   
+
    - Mapowanie wyniku na `PublicUserDTO`
    - Zwrot DTO lub `null` jeśli użytkownik nie istnieje
 
@@ -164,27 +173,32 @@ type GetUserByIdQuery = {
 ## 6. Względy bezpieczeństwa
 
 ### Autoryzacja
+
 - **Wymagaj tokena**: Endpoint wymaga autoryzacji mimo że zwraca dane publiczne
 - **Cel**: Zapobiec scrapingowi danych przez boty, rate limiting per user
 - **Nie weryfikuj uprawnień**: Każdy zalogowany użytkownik może zobaczyć profil innych
 
 ### User Enumeration
+
 - **Potencjalne ryzyko**: Zwracanie 404 ujawnia czy użytkownik istnieje w systemie
 - **Akceptowalne**: Dane są publiczne (profil widoczny dla zalogowanych), więc to nie jest problem
 - **Rate limiting**: Ogranicz częstotliwość zapytań aby uniknąć zbiorczego scrapowania
 
 ### Ochrona danych
-- **Zwracaj TYLKO dane publiczne**: 
+
+- **Zwracaj TYLKO dane publiczne**:
   - ✅ id, first_name, last_name, active_offers_count
   - ❌ email, created_at, last_login, password_hash
 - **RLS**: Endpoint nie wymaga RLS (pobiera dane bezpośrednio z query, nie przez RLS policies)
 
 ### Rate Limiting
+
 - **Limit**: 100 żądań / 5 minut / użytkownik
 - **Cel**: Zapobiec masowemu pobieraniu profili wszystkich użytkowników
 - **Implementacja**: Middleware Astro lub Supabase Edge Functions
 
 ### Token Security
+
 - **Weryfikacja**: Supabase automatycznie weryfikuje JWT token
 - **Nie logować tokenów**: W logach zapisywać tylko `requesterId` (UUID)
 
@@ -192,17 +206,18 @@ type GetUserByIdQuery = {
 
 ### Tabela scenariuszy
 
-| Scenariusz | Kod HTTP | Error Code | Komunikat | Akcja klienta |
-|-----------|----------|------------|-----------|---------------|
-| Brak Authorization header | 401 | UNAUTHORIZED | "Brak autoryzacji" | Zalogować się ponownie |
-| Token nieprawidłowy/wygasły | 401 | UNAUTHORIZED | "Brak autoryzacji" | Odświeżyć token |
-| user_id nie jest UUID | 400 | VALIDATION_ERROR | "Nieprawidłowy format ID użytkownika" | Poprawić URL |
-| Użytkownik nie istnieje | 404 | NOT_FOUND | "Użytkownik nie istnieje" | Sprawdzić ID |
-| Błąd bazy danych | 500 | INTERNAL_ERROR | "Wystąpił błąd..." | Ponowić później |
+| Scenariusz                  | Kod HTTP | Error Code       | Komunikat                             | Akcja klienta          |
+| --------------------------- | -------- | ---------------- | ------------------------------------- | ---------------------- |
+| Brak Authorization header   | 401      | UNAUTHORIZED     | "Brak autoryzacji"                    | Zalogować się ponownie |
+| Token nieprawidłowy/wygasły | 401      | UNAUTHORIZED     | "Brak autoryzacji"                    | Odświeżyć token        |
+| user_id nie jest UUID       | 400      | VALIDATION_ERROR | "Nieprawidłowy format ID użytkownika" | Poprawić URL           |
+| Użytkownik nie istnieje     | 404      | NOT_FOUND        | "Użytkownik nie istnieje"             | Sprawdzić ID           |
+| Błąd bazy danych            | 500      | INTERNAL_ERROR   | "Wystąpił błąd..."                    | Ponowić później        |
 
 ### Logowanie błędów
 
 **Co logować:**
+
 - ✅ Zapytania o nieistniejących użytkowników (requesterId + requested user_id) — opcjonalne
 - ✅ Błędy bazy danych (z stack trace)
 - ✅ Nieoczekiwane wyjątki
@@ -210,25 +225,27 @@ type GetUserByIdQuery = {
 - ❌ **NIE** logować nadmiernie 404 (mogą być legitne)
 
 **Format logów:**
+
 ```typescript
 console.error('[USER_PROFILE_ERROR]', {
   timestamp: new Date().toISOString(),
   requesterId: locals.userId,
   requestedUserId: user_id,
-  error: error.message
+  error: error.message,
 });
 ```
 
 ## 8. Wydajność
 
 ### Oczekiwany czas odpowiedzi
+
 - **P50 (median)**: < 100ms
 - **P95**: < 200ms
 - **P99**: < 300ms
 
 ### Potencjalne wąskie gardła
 
-1. **Query z COUNT i JOIN**: 
+1. **Query z COUNT i JOIN**:
    - LEFT JOIN na `offers` może być kosztowny dla użytkowników z dużą liczbą ofert
    - Rozwiązanie: Indeks `idx_offers_owner_status` już istnieje (z db-plan.md)
 
@@ -239,15 +256,19 @@ console.error('[USER_PROFILE_ERROR]', {
 ### Strategie optymalizacji
 
 #### 1. Wykorzystanie istniejących indeksów
+
 Z `db-plan.md`:
+
 ```sql
 CREATE INDEX idx_offers_owner_status ON offers(owner_id, status);
 ```
+
 Ten indeks przyspiesza COUNT dla aktywnych ofert użytkownika.
 
 #### 2. Cache'owanie (opcjonalne w MVP)
 
 **Strategia cache:**
+
 ```typescript
 // Redis lub in-memory cache
 const cacheKey = `user_profile:${user_id}`;
@@ -263,6 +284,7 @@ return profile;
 ```
 
 **Kiedy invalidować cache:**
+
 - Po aktualizacji profilu (first_name, last_name)
 - Po utworzeniu/usunięciu oferty (zmiana `active_offers_count`)
 
@@ -271,12 +293,14 @@ return profile;
 #### 3. Optymalizacja query (zaawansowana)
 
 Jeśli endpoint staje się bottleneckiem, rozważyć:
+
 - Dodanie kolumny `active_offers_count` w tabeli `users` + trigger
 - Materialized view dla profili z licznikami
 
 ### Monitoring
 
 **Metryki do śledzenia:**
+
 - Request rate (żądań/minutę)
 - Response time (P50, P95, P99)
 - Error rate (% 404, 500)
@@ -284,6 +308,7 @@ Jeśli endpoint staje się bottleneckiem, rozważyć:
 - Query execution time (DB level)
 
 **Narzędzia:**
+
 - Supabase Dashboard (query performance)
 - Sentry / LogRocket
 - Custom metrics w aplikacji
@@ -313,9 +338,7 @@ src/
 import { z } from 'zod';
 
 export const userIdParamSchema = z.object({
-  user_id: z
-    .string({ required_error: 'ID użytkownika jest wymagane' })
-    .uuid('Nieprawidłowy format ID użytkownika')
+  user_id: z.string({ required_error: 'ID użytkownika jest wymagane' }).uuid('Nieprawidłowy format ID użytkownika'),
 });
 
 export type UserIdParam = z.infer<typeof userIdParamSchema>;
@@ -370,7 +393,7 @@ export class UserService {
         id: user.id,
         first_name: user.first_name,
         last_name: user.last_name,
-        active_offers_count: count ?? 0
+        active_offers_count: count ?? 0,
       };
     } catch (error) {
       console.error('[UserService.getPublicProfile] Error:', error);
@@ -396,14 +419,17 @@ export const GET: APIRoute = async ({ params, locals }) => {
   try {
     // 1. Autoryzacja (sprawdzenie czy użytkownik jest zalogowany)
     const supabase = locals.supabase;
-    
+
     if (!supabase) {
       console.error('[GET_USER_PROFILE] Supabase client not found');
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
     // Sprawdź czy użytkownik jest zalogowany
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
@@ -416,12 +442,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0];
-        return createErrorResponse(
-          'VALIDATION_ERROR',
-          firstError.message,
-          400,
-          { field: 'user_id' }
-        );
+        return createErrorResponse('VALIDATION_ERROR', firstError.message, 400, { field: 'user_id' });
       }
       throw error;
     }
@@ -440,21 +461,16 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
     return new Response(JSON.stringify(responseBody), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('[GET_USER_PROFILE_EXCEPTION]', {
       timestamp: new Date().toISOString(),
       requestedUserId: params.user_id,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     });
 
-    return createErrorResponse(
-      'INTERNAL_ERROR',
-      'Wystąpił błąd podczas pobierania profilu użytkownika',
-      500
-    );
+    return createErrorResponse('INTERNAL_ERROR', 'Wystąpił błąd podczas pobierania profilu użytkownika', 500);
   }
 };
 ```
@@ -479,9 +495,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
       cookies: {
         get: (key) => context.cookies.get(key)?.value,
         set: (key, value, options) => context.cookies.set(key, value, options),
-        remove: (key, options) => context.cookies.delete(key, options)
-      }
-    }
+        remove: (key, options) => context.cookies.delete(key, options),
+      },
+    },
   );
 
   context.locals.supabase = supabase;
@@ -510,6 +526,7 @@ declare namespace App {
 ### 7. Testowanie endpointu
 
 **Test 1**: Pobranie istniejącego użytkownika (sukces)
+
 ```bash
 curl -X GET http://localhost:4321/api/users/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
@@ -517,12 +534,14 @@ curl -X GET http://localhost:4321/api/users/550e8400-e29b-41d4-a716-446655440000
 ```
 
 **Test 2**: Brak autoryzacji
+
 ```bash
 curl -X GET http://localhost:4321/api/users/550e8400-e29b-41d4-a716-446655440000
 # Oczekiwane: 401 Unauthorized
 ```
 
 **Test 3**: Nieprawidłowy format user_id (nie UUID)
+
 ```bash
 curl -X GET http://localhost:4321/api/users/invalid-uuid \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
@@ -530,6 +549,7 @@ curl -X GET http://localhost:4321/api/users/invalid-uuid \
 ```
 
 **Test 4**: Użytkownik nie istnieje
+
 ```bash
 curl -X GET http://localhost:4321/api/users/00000000-0000-0000-0000-000000000000 \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
@@ -537,6 +557,7 @@ curl -X GET http://localhost:4321/api/users/00000000-0000-0000-0000-000000000000
 ```
 
 **Test 5**: Użytkownik z wieloma aktywnymi ofertami
+
 ```bash
 # Utwórz testowego użytkownika z 5 aktywnymi ofertami
 # Sprawdź czy active_offers_count = 5
@@ -546,6 +567,7 @@ curl -X GET http://localhost:4321/api/users/{user_with_offers_id} \
 ```
 
 **Test 6**: Użytkownik bez ofert
+
 ```bash
 # Sprawdź użytkownika bez żadnych ofert
 curl -X GET http://localhost:4321/api/users/{user_without_offers_id} \
@@ -584,7 +606,7 @@ export class UserService {
 
   constructor(
     private supabase: SupabaseClient<Database>,
-    cache?: Redis
+    cache?: Redis,
   ) {
     this.cache = cache;
   }
@@ -614,6 +636,7 @@ export class UserService {
 ```
 
 **Invalidacja cache:**
+
 ```typescript
 // Po aktualizacji profilu użytkownika
 await cache.del(`user:${userId}`);
@@ -625,11 +648,13 @@ await cache.del(`user:${ownerId}`); // invaliduj profil właściciela oferty
 ### 10. Monitoring i alerty
 
 **Metryki w Supabase Dashboard:**
+
 - Query performance dla `getPublicProfile`
 - Request rate na `/api/users/{user_id}`
 - Error rate (404 vs 500)
 
 **Sentry / Error tracking:**
+
 ```typescript
 import * as Sentry from '@sentry/astro';
 
@@ -639,19 +664,20 @@ try {
   Sentry.captureException(error, {
     tags: {
       endpoint: 'get_user_profile',
-      requested_user_id: params.user_id
-    }
+      requested_user_id: params.user_id,
+    },
   });
   return createErrorResponse('INTERNAL_ERROR', '...', 500);
 }
 ```
 
 **Custom metrics (opcjonalnie):**
+
 ```typescript
 // Tracking popularnych użytkowników (najczęściej wyświetlane profile)
 await analytics.track('user_profile_viewed', {
   viewed_user_id: params.user_id,
-  viewer_user_id: session.user.id
+  viewer_user_id: session.user.id,
 });
 ```
 
@@ -664,6 +690,7 @@ await analytics.track('user_profile_viewed', {
 - **PATCH /api/users/me**: Aktualizacja własnego profilu
 
 **Różnice:**
+
 - `/me` może zwracać więcej danych (email, created_at)
 - `/{user_id}` zwraca tylko dane publiczne
 
@@ -694,6 +721,7 @@ await analytics.track('user_profile_viewed', {
 ### Bezpieczeństwo danych
 
 **Co NIE powinno być zwracane:**
+
 - Email użytkownika
 - Data rejestracji (created_at)
 - Ostatnie logowanie
@@ -701,19 +729,20 @@ await analytics.track('user_profile_viewed', {
 - Nieaktywne/usunięte oferty
 
 **Weryfikacja implementacji:**
+
 ```typescript
 // ✅ Poprawne
 return {
   id: user.id,
   first_name: user.first_name,
   last_name: user.last_name,
-  active_offers_count: count
+  active_offers_count: count,
 };
 
 // ❌ BŁĄD - NIE zwracać email
 return {
   ...profile,
-  email: user.email // ← USUNĄĆ!
+  email: user.email, // ← USUNĄĆ!
 };
 ```
 
@@ -775,6 +804,7 @@ return {
 ## 12. Checklist wdrożenia produkcyjnego
 
 ### Pre-deployment
+
 - [ ] Wszystkie testy manualne przeszły pomyślnie
 - [ ] Code review wykonane i zatwierdzone
 - [ ] Dokumentacja API zaktualizowana
@@ -783,6 +813,7 @@ return {
 - [ ] Rate limiting zaimplementowane
 
 ### Deployment
+
 - [ ] Deploy na staging environment
 - [ ] Smoke tests na staging
 - [ ] Performance testing (load test)
@@ -791,6 +822,7 @@ return {
 - [ ] Verify w production (curl tests)
 
 ### Post-deployment
+
 - [ ] Monitor Supabase Dashboard (query performance)
 - [ ] Monitor error rates (Sentry)
 - [ ] Monitor response times (P95/P99)
@@ -808,8 +840,8 @@ return {
 **Priorytet**: Średni (potrzebny dla wyświetlania profili przy ofertach/czatach)
 
 **Zależności**:
+
 - Supabase Auth skonfigurowane
 - Middleware (`src/middleware/index.ts`) działający
 - Tabele `users` i `offers` w bazie danych
 - Typy `PublicUserDTO` w `src/types.ts` (✅ już istnieje)
-

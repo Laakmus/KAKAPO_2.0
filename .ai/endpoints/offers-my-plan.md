@@ -19,9 +19,7 @@ Endpoint `GET /api/offers/my` zwraca listę ofert należących do zalogowanego u
 import { z } from 'zod';
 
 export const myOffersQuerySchema = z.object({
-  status: z.enum(['ACTIVE', 'REMOVED'])
-    .optional()
-    .default('ACTIVE')
+  status: z.enum(['ACTIVE', 'REMOVED']).optional().default('ACTIVE'),
 });
 ```
 
@@ -93,7 +91,8 @@ type MyOffersResponse = {
 // Query dla ofert użytkownika z agregacją interests_count
 const { data: offers, error } = await supabase
   .from('offers')
-  .select(`
+  .select(
+    `
     id,
     owner_id,
     title,
@@ -103,7 +102,8 @@ const { data: offers, error } = await supabase
     status,
     created_at,
     interests:interests(count)
-  `)
+  `,
+  )
   .eq('owner_id', userId)
   .eq('status', status)
   .order('created_at', { ascending: false });
@@ -128,25 +128,27 @@ for (const offer of offers) {
 
 ## 7. Obsługa błędów
 
-| Scenariusz | Kod | Error Code | Komunikat |
-|-----------|-----|------------|-----------|
-| Status invalid | 400 | VALIDATION_ERROR | "Nieprawidłowa wartość parametru status. Dozwolone: ACTIVE, REMOVED" |
-| Brak tokena | 401 | UNAUTHORIZED | "Brak autoryzacji" |
-| Nieprawidłowy token | 401 | UNAUTHORIZED | "Nieprawidłowy lub wygasły token" |
-| Błąd DB | 500 | INTERNAL_ERROR | "Wystąpił błąd podczas pobierania ofert. Spróbuj ponownie później" |
+| Scenariusz          | Kod | Error Code       | Komunikat                                                            |
+| ------------------- | --- | ---------------- | -------------------------------------------------------------------- |
+| Status invalid      | 400 | VALIDATION_ERROR | "Nieprawidłowa wartość parametru status. Dozwolone: ACTIVE, REMOVED" |
+| Brak tokena         | 401 | UNAUTHORIZED     | "Brak autoryzacji"                                                   |
+| Nieprawidłowy token | 401 | UNAUTHORIZED     | "Nieprawidłowy lub wygasły token"                                    |
+| Błąd DB             | 500 | INTERNAL_ERROR   | "Wystąpił błąd podczas pobierania ofert. Spróbuj ponownie później"   |
 
 **Logowanie**: Tylko błędy 500 i nieoczekiwane wyjątki. Nie logować tokenów ani danych użytkownika.
 
 ## 8. Wydajność
 
 ### Oczekiwany czas odpowiedzi
+
 - P50: < 200ms
 - P95: < 500ms
 - P99: < 1000ms
 
 ### Wąskie gardła
 
-**N+1 Problem dla interests_count**: 
+**N+1 Problem dla interests_count**:
+
 - MVP: Osobne query per oferta (zazwyczaj < 20 ofert per user)
 - Post-MVP: Agregacja w jednym query z LEFT JOIN lub subquery
 
@@ -160,6 +162,7 @@ idx_offers_owner_status ON offers(owner_id, status)
 ```
 
 ### Monitoring
+
 - Request rate, response time (P50/P95/P99)
 - Error rate 4xx/5xx
 - DB query time
@@ -168,6 +171,7 @@ idx_offers_owner_status ON offers(owner_id, status)
 ## 9. Kroki implementacji
 
 ### Struktura plików
+
 ```
 src/
 ├── pages/api/offers/my.ts          # API route (nowy plik)
@@ -186,10 +190,7 @@ import { z } from 'zod';
 // ... istniejące schematy ...
 
 export const myOffersQuerySchema = z.object({
-  status: z.enum(['ACTIVE', 'REMOVED'])
-    .optional()
-    .default('ACTIVE')
-    .describe('Status oferty do filtrowania')
+  status: z.enum(['ACTIVE', 'REMOVED']).optional().default('ACTIVE').describe('Status oferty do filtrowania'),
 });
 ```
 
@@ -213,14 +214,12 @@ export class OfferService {
    * @param status - Status oferty do filtrowania (ACTIVE lub REMOVED)
    * @returns Lista ofert użytkownika z interests_count
    */
-  async getMyOffers(
-    userId: string,
-    status: 'ACTIVE' | 'REMOVED' = 'ACTIVE'
-  ): Promise<OfferListItemDTO[]> {
+  async getMyOffers(userId: string, status: 'ACTIVE' | 'REMOVED' = 'ACTIVE'): Promise<OfferListItemDTO[]> {
     // Główne query
     const { data: offers, error } = await this.supabase
       .from('offers')
-      .select(`
+      .select(
+        `
         id,
         owner_id,
         title,
@@ -230,7 +229,8 @@ export class OfferService {
         status,
         created_at,
         users!owner_id(first_name, last_name)
-      `)
+      `,
+      )
       .eq('owner_id', userId)
       .eq('status', status)
       .order('created_at', { ascending: false });
@@ -258,25 +258,23 @@ export class OfferService {
 
         return {
           ...offer,
-          interests_count: count || 0
+          interests_count: count || 0,
         };
-      })
+      }),
     );
 
     // Map to DTO
-    const items: OfferListItemDTO[] = offersWithCounts.map(offer => ({
+    const items: OfferListItemDTO[] = offersWithCounts.map((offer) => ({
       id: offer.id,
       owner_id: offer.owner_id,
-      owner_name: offer.users 
-        ? `${offer.users.first_name} ${offer.users.last_name}`.trim() 
-        : undefined,
+      owner_name: offer.users ? `${offer.users.first_name} ${offer.users.last_name}`.trim() : undefined,
       title: offer.title,
       description: offer.description,
       image_url: offer.image_url,
       city: offer.city,
       status: offer.status,
       created_at: offer.created_at,
-      interests_count: offer.interests_count
+      interests_count: offer.interests_count,
     }));
 
     return items;
@@ -303,7 +301,10 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     }
 
     // Auth check
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error: authError,
+    } = await supabase.auth.getSession();
     if (authError || !session) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
@@ -313,7 +314,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     // Parse & validate query params
     const searchParams = Object.fromEntries(url.searchParams.entries());
     let validatedQuery;
-    
+
     try {
       validatedQuery = myOffersQuerySchema.parse(searchParams);
     } catch (error) {
@@ -323,7 +324,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
           'VALIDATION_ERROR',
           'Nieprawidłowa wartość parametru status. Dozwolone: ACTIVE, REMOVED',
           400,
-          { field: String(firstError.path[0] || 'status') }
+          { field: String(firstError.path[0] || 'status') },
         );
       }
       throw error;
@@ -335,15 +336,14 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
 
     return new Response(JSON.stringify({ data: offers }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('[MY_OFFERS_EXCEPTION]', error);
     return createErrorResponse(
       'INTERNAL_ERROR',
       'Wystąpił błąd podczas pobierania ofert. Spróbuj ponownie później',
-      500
+      500,
     );
   }
 };
@@ -392,14 +392,14 @@ curl -H "Authorization: Bearer INVALID_TOKEN" http://localhost:4321/api/offers/m
 
 ```sql
 -- Opcja 1: Subquery w SELECT (Postgres)
-SELECT 
+SELECT
   o.*,
   (SELECT COUNT(*) FROM interests i WHERE i.offer_id = o.id) as interests_count
 FROM offers o
 WHERE o.owner_id = $1 AND o.status = $2;
 
 -- Opcja 2: LEFT JOIN z GROUP BY
-SELECT 
+SELECT
   o.*,
   COUNT(i.id) as interests_count
 FROM offers o
@@ -409,10 +409,11 @@ GROUP BY o.id;
 ```
 
 W Supabase:
+
 ```typescript
 const { data } = await supabase.rpc('get_my_offers_with_counts', {
   p_user_id: userId,
-  p_status: status
+  p_status: status,
 });
 ```
 
@@ -431,6 +432,7 @@ Dodać parametry `page` i `limit` (podobnie jak w `/api/offers`).
 ### Zgodność z PRD
 
 Endpoint realizuje:
+
 - **US-007**: Użytkownik może przeglądać swoje oferty
 - Filtrowanie po statusie: aktywne vs usunięte
 - Liczba zainteresowań per oferta (interests_count)
@@ -438,4 +440,3 @@ Endpoint realizuje:
 ---
 
 Plan zakłada implementację zgodną z db-plan.md, types.ts i backend.mdc. Post-MVP: optymalizacja interests_count przez agregację w DB.
-

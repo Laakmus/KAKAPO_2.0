@@ -5,6 +5,7 @@
 Cel: Bezpieczne i atomowe usunięcie (hard delete) konta aktualnie zalogowanego użytkownika. Endpoint wymaga uwierzytelnienia Bearer tokenem i dodatkowej weryfikacji hasła podanego w treści żądania, aby zapobiec przypadkowym lub złośliwym usunięciom.
 
 Główne wymagania:
+
 - Metoda: `DELETE`
 - Ścieżka: `/api/users/me`
 - Zwraca 200 przy sukcesie z komunikatem potwierdzającym usunięcie.
@@ -31,6 +32,7 @@ Główne wymagania:
 ```
 
 Wymagania dodatkowe dla pola `password`:
+
 - Obecne w specyfikacji: wymagane.
 - Zalecane dodatkowe założenia walidacyjne (ustawione w serwisie): typ `string`, długość >= 8 znaków. Jednak endpoint powinien akceptować hasła zgodnie z regułami istniejącego systemu (nie wymuszać nowych reguł).
 
@@ -95,6 +97,7 @@ Zależności: `src/db/supabase.client.ts` (lub inny DB client), `src/services/us
 ## 6. Obsługa błędów
 
 Mapowanie scenariuszy na statusy i komunikaty:
+
 - 200 OK
   - Treść: `{"message":"Konto zostało usunięte"}`
 
@@ -112,6 +115,7 @@ Mapowanie scenariuszy na statusy i komunikaty:
   - Błędy serwera (DB, zewnętrzne API). Komunikat: `"Błąd podczas usuwania konta"`.
 
 Mechanika logowania błędów:
+
 - Krytyczne błędy i nieudane próby weryfikacji (podejrzana aktywność) → zapisz w `audit_logs` lub dedykowanej tabeli `error_logs` z polami: `user_id`, `route`, `error_message`, `stack`, `ip`, `created_at`.
 - Logi aplikacyjne → użyj istniejącego loggera (np. `pino`, `winston`) z poziomami `info`, `warn`, `error`. Nie zapisuj haseł w logach.
 
@@ -183,6 +187,7 @@ Mechanika logowania błędów:
 ---
 
 Plików i lokalizacji implementacyjnych sugerowane przez plan:
+
 - `src/pages/api/users/me.ts` — endpoint HTTP
 - `src/services/user.service.ts` — logika usuwania
 - `src/middleware/index.ts` — autoryzacja/wyciągnięcie userId
@@ -191,6 +196,7 @@ Plików i lokalizacji implementacyjnych sugerowane przez plan:
 - `supabase/migrations/` — (opcjonalnie) migracje zmieniające FK cascade lub dodające `audit_logs`
 
 Zgodność z kodem projektu:
+
 - Upewnij się, że implementacja używa istniejącego klienta DB (`src/db/supabase.client.ts`) i istniejących typów (`src/db/database.types.ts`) gdzie to możliwe.
 
 Koniec planu.
@@ -198,6 +204,7 @@ Koniec planu.
 # API Endpoint Implementation Plan: GET /api/users/me
 
 ## <analysis>
+
 1. Podsumowanie kluczowych punktów specyfikacji:
    - Endpoint: `GET /api/users/me` — zwraca profil zalogowanego użytkownika.
    - Autoryzacja: nagłówek `Authorization: Bearer {token}` wymagany; jeśli brak/niepoprawny token → 401.
@@ -241,12 +248,14 @@ Koniec planu.
    - 404 Not Found — użytkownik nie istnieje (opcjonalne; można zamiast tego zwracać 401 jeśli sesja nieważna).
    - 400 Bad Request — niepoprawny format nagłówka Authorization (np. brak prefiksu Bearer).
    - 500 Internal Server Error — nieoczekiwane błędy serwera / DB.
-</analysis>
+     </analysis>
 
 ## 1. Przegląd punktu końcowego
+
 Endpoint `GET /api/users/me` zwraca profil aktualnie zalogowanego użytkownika identyfikowanego za pomocą tokena przesłanego w nagłówku `Authorization: Bearer {token}`. Celem jest prosty, bezpieczny dostęp do podstawowych pól profilu użytkownika potrzebnych w kliencie (UI).
 
 ## 2. Szczegóły żądania
+
 - Metoda HTTP: GET
 - Struktura URL: `/api/users/me`
 - Nagłówki:
@@ -257,7 +266,9 @@ Endpoint `GET /api/users/me` zwraca profil aktualnie zalogowanego użytkownika i
 - Request Body: brak (GET)
 
 ## 3. Wykorzystywane typy
+
 - `UserProfileDTO` (response):
+
 ```ts
 type UserProfileDTO = {
   id: string;
@@ -266,7 +277,9 @@ type UserProfileDTO = {
   created_at: string; // ISO 8601
 };
 ```
+
 - `AuthToken` (wewnętrzny typ po parsowaniu tokena):
+
 ```ts
 type AuthToken = {
   userId: string;
@@ -277,7 +290,9 @@ type AuthToken = {
 ```
 
 ## 4. Szczegóły odpowiedzi
+
 - 200 OK
+
 ```json
 {
   "id": "uuid",
@@ -286,12 +301,14 @@ type AuthToken = {
   "created_at": "2024-01-01T10:00:00Z"
 }
 ```
+
 - 400 Bad Request — niepoprawny format nagłówka Authorization
 - 401 Unauthorized — brak/niepoprawny/wygasły token
 - 404 Not Found — użytkownik nie istnieje (opcjonalne)
 - 500 Internal Server Error — błąd serwera
 
 ## 5. Przepływ danych
+
 1. Request trafia do routingu serwera (np. `src/pages/api/users/me.ts` lub ekwiwalent w frameworku).
 2. Middleware/shared util:
    - Sprawdza obecność nagłówka `Authorization`.
@@ -303,6 +320,7 @@ type AuthToken = {
 4. Handler zwraca 200 z DTO lub odpowiedni błąd (401/404/500).
 
 Przykładowe zapytanie DB (pseudo):
+
 ```sql
 SELECT id, first_name, last_name, created_at
 FROM users
@@ -311,6 +329,7 @@ LIMIT 1;
 ```
 
 ## 6. Względy bezpieczeństwa
+
 - Autoryzacja:
   - Wymagaj nagłówka `Authorization: Bearer {token}`.
   - Weryfikuj token (signature + exp) używając bezpiecznych bibliotek (np. `@supabase/supabase-js` lub `jsonwebtoken` z publicznym kluczem).
@@ -325,6 +344,7 @@ LIMIT 1;
   - Na endpointach auth-sensitive zastosować limit na poziomie API/gateway.
 
 ## 7. Obsługa błędów
+
 - Brak Authorization header:
   - Response: 401 Unauthorized
   - Body: { "error": "Brak autoryzacji" }
@@ -343,6 +363,7 @@ LIMIT 1;
   - Dodatkowo: logowanie błędu do Sentry i (opcjonalnie) tabela `error_logs`.
 
 ## 8. Wydajność
+
 - Zapytanie DB jest proste — pojedyncze SELECT po PK (id), więc powinno być szybkie przy prawidłowo zindeksowanym polu `id`.
 - Cache (opcjonalne):
   - Można cache'ować krótkotrwale profile w Redis/Memory (TTL krótki, np. 30s) jeśli endpoint jest bardzo często wywoływany.
@@ -350,6 +371,7 @@ LIMIT 1;
   - Upewnić się, że połączenia do DB są poolowane i że klient Supabase jest singletonem lub konfigurowany zgodnie z zaleceniami frameworka.
 
 ## 9. Kroki implementacji
+
 1. (Kod) Dodaj/upewnij się, że `UserProfileDTO` jest zdefiniowany w `src/types.ts` lub `src/db/database.types.ts`.
 2. (Kod) Utwórz/zmodyfikuj `src/services/user.service.ts`:
    - Eksportuj `getProfileById(userId: string): Promise<UserProfileDTO | null>`.
@@ -369,11 +391,11 @@ LIMIT 1;
 8. (Dokumentacja) Zaktualizuj dokumentację API (OpenAPI/README) z przykładem request/response i opisem kodów statusu.
 
 ## 10. Dodatkowe uwagi i rekomendacje
+
 - Jeżeli projekt używa Supabase Auth, preferować jego metody weryfikacji sesji zamiast ręcznego dekodowania JWT (mniej podatne na błędy).
 - Zachować separację odpowiedzialności: handler endpointu jedynie orkiestruje autoryzację i wywołanie serwisu; logika dostępu do DB w `UserService`.
 - Jeśli istnieje globalny middleware uwierzytelniający, wykorzystać go i tylko czytać `req.context.userId`.
 
 ---
+
 Plik planu zapisany jako `.ai/endpoints/users-me-plan.md`. Postępuj zgodnie z kroki implementacji; w razie pytań mogę przygotować przykładową implementację (service + handler + testy).
-
-
