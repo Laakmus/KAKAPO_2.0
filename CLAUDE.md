@@ -44,6 +44,7 @@ This project uses **Astro API routes** (not Edge Functions) for backend endpoint
 - Middleware (`src/middleware/index.ts`) extracts tokens and attaches user to `context.locals`
 
 **Important**: When creating new API endpoints, always:
+
 1. Export `prerender = false` at the top of the file
 2. Use Zod schemas for request validation (create in `src/schemas/`)
 3. Import error handling utilities from `src/utils/errors.ts`
@@ -57,6 +58,7 @@ This project uses **Astro API routes** (not Edge Functions) for backend endpoint
 - **Business logic**: Implemented as PostgreSQL triggers in Supabase (see `.ai/db-plan.md`)
 
 Key database patterns:
+
 - Mutual match detection creates chats automatically (trigger-based)
 - Exchange history created when both users confirm exchange (trigger-based)
 - Self-interest prevention enforced by database trigger
@@ -134,6 +136,7 @@ src/
 ### Planning Documentation
 
 The `.ai/` directory contains comprehensive planning documents:
+
 - `api-plan.md`: Complete REST API specification with all endpoints
 - `db-plan.md`: Database schema, RLS policies, triggers, and indexes
 - `endpoints/*.md`: Detailed implementation plans for each endpoint
@@ -143,6 +146,7 @@ Refer to these documents when implementing new features or understanding existin
 ## Environment Variables
 
 Required environment variables (set in `.env`):
+
 - `SUPABASE_URL`: Supabase project URL
 - `SUPABASE_KEY`: Supabase anonymous key (public, used client-side)
 
@@ -157,12 +161,14 @@ import { supabaseClient } from '../db/supabase.client';
 ```
 
 The client is pre-configured and available:
+
 - In API routes via `context.locals.supabase`
 - In frontend components via direct import
 
 ### RLS Policy Dependency
 
 All data access is filtered by Supabase RLS policies based on the authenticated user's JWT token. This means:
+
 - Users can only see/modify their own data
 - No additional authorization checks needed in API routes (handled by Supabase)
 - Direct database queries via Supabase client are safe
@@ -170,6 +176,7 @@ All data access is filtered by Supabase RLS policies based on the authenticated 
 ### File Uploads (Future)
 
 Images for offers will be stored in Supabase Storage:
+
 1. Frontend uploads to `/storage/offers`
 2. Receives public URL
 3. Saves URL in `offers.image_url` column

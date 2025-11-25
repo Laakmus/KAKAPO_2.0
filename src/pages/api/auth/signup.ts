@@ -45,16 +45,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const field = String(firstError.path[0] ?? 'unknown');
         // Jeśli problem dotyczy hasła, zgodnie ze spec -> 422
         const status = field === 'password' ? 422 : 400;
-        return createErrorResponse(
-          'VALIDATION_ERROR',
-          firstError.message,
-          status,
-          {
-            field,
-            // Nie ujawniamy wartości hasła
-            value: field === 'password' ? undefined : (requestBody as Record<string, unknown>)?.[field],
-          },
-        );
+        return createErrorResponse('VALIDATION_ERROR', firstError.message, status, {
+          field,
+          // Nie ujawniamy wartości hasła
+          value: field === 'password' ? undefined : (requestBody as Record<string, unknown>)?.[field],
+        });
       }
       throw error;
     }
@@ -75,9 +70,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     } catch (err: unknown) {
       // Mapowanie błędów serwisowych na odpowiedzi API
-      const e = err as any;
-      const code = e.message ?? 'INTERNAL_ERROR';
-      const status = typeof e.status === 'number' ? e.status : 500;
+      const svcError = err as { message?: string; status?: number; original?: unknown };
+      const code = svcError.message ?? 'INTERNAL_ERROR';
+      const status = typeof svcError.status === 'number' ? svcError.status : 500;
 
       if (code === 'EMAIL_EXISTS' || status === 400) {
         return createErrorResponse('BAD_REQUEST', 'Email już istnieje', 400);
@@ -86,7 +81,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         return createErrorResponse('VALIDATION_FAILED', 'Hasło za krótkie', 422);
       }
 
-      console.error('[AUTH_SIGNUP_SERVICE_ERROR]', e);
+      console.error('[AUTH_SIGNUP_SERVICE_ERROR]', svcError);
       return createErrorResponse('INTERNAL_ERROR', 'Wystąpił błąd podczas tworzenia konta', 500);
     }
   } catch (error) {
@@ -97,5 +92,3 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return createErrorResponse('INTERNAL_ERROR', 'Wystąpił nieoczekiwany błąd', 500);
   }
 };
-
-
