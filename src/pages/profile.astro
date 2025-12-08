@@ -1,19 +1,26 @@
 ---
-import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
-import { ProfilePage } from '@/components/ProfilePage';
+import Layout from '@/layouts/Layout.astro';
+import { ProfilePageLayout } from '@/components/ProfilePageLayout';
 
 /**
  * Strona Profilu Użytkownika
  *
  * Dostępna pod /profile
  * Wymaga autoryzacji - pokazuje profil zalogowanego użytkownika
- * Osadza Reactowy komponent ProfilePage jako "island"
+ * Osadza Reactowy komponent ProfilePageLayout jako "island"
  */
 
 export const prerender = false;
+
+// Pobierz aktualną ścieżkę z URL
+const currentPath = Astro.url.pathname;
+
+// Token jest przechowywany w localStorage po stronie klienta
+// AuthContext odczyta go automatycznie podczas inicjalizacji
+const accessToken = undefined;
 ---
 
-<ProtectedLayout>
-  <ProfilePage client:only="react" />
-</ProtectedLayout>
+<Layout title="KAKAPO - Profil">
+  <ProfilePageLayout client:only="react" currentPath={currentPath} initialToken={accessToken} />
+</Layout>
 

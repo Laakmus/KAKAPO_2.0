@@ -21,17 +21,25 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
     // 2. Parsowanie query params
     const url = new URL(request.url);
-    const pageRaw = url.searchParams.get('page') ?? undefined;
-    const limitRaw = url.searchParams.get('limit') ?? undefined;
-    const statusRaw = url.searchParams.get('status') ?? undefined;
+    const pageRaw = url.searchParams.get('page');
+    const limitRaw = url.searchParams.get('limit');
+    const statusRaw = url.searchParams.get('status');
 
     // 3. Złożenie obiektu do walidacji (łączy path + query)
-    const inputForValidation = {
+    const inputForValidation: Record<string, unknown> = {
       offer_id: params.offer_id,
-      page: pageRaw,
-      limit: limitRaw,
-      status: statusRaw,
     };
+
+    // Dodaj tylko te parametry, które istnieją (dla prawidłowego działania .default())
+    if (pageRaw !== null) {
+      inputForValidation.page = pageRaw;
+    }
+    if (limitRaw !== null) {
+      inputForValidation.limit = limitRaw;
+    }
+    if (statusRaw !== null) {
+      inputForValidation.status = statusRaw;
+    }
 
     let validated: ListInterestsInput;
     try {
@@ -84,18 +92,15 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
     }
 
     // 7. Pobierz listę zainteresowań (paginacja + opcjonalny filtr status)
-    const offset = (validated.page - 1) * validated.limit;
-
-    // Build base query with relation to auth.users to fetch first_name/last_name
-    const selectCols = 'id, offer_id, user_id, status, created_at, users!user_id(first_name, last_name)';
+    const from = (validated.page - 1) * validated.limit;
+    const to = from + validated.limit - 1;
 
     let query = supabase
       .from('interests')
-      .select(selectCols, { count: 'exact' })
+      .select('id, offer_id, user_id, status, created_at', { count: 'exact' })
       .eq('offer_id', validated.offer_id)
       .order('created_at', { ascending: false })
-      .limit(validated.limit)
-      .offset(offset);
+      .range(from, to);
 
     if (validated.status) {
       query = query.eq('status', validated.status);
@@ -108,20 +113,29 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd podczas pobierania zainteresowań', 500);
     }
 
-    const items: InterestListItemDTO[] = (rows || []).map((r: Record<string, unknown>) => {
-      const users = r.users as { first_name?: string; last_name?: string } | null | undefined;
-      const userName =
-        users && (users.first_name || users.last_name)
-          ? `${String(users.first_name || '')} ${String(users.last_name || '')}`.trim()
-          : undefined;
+    // 8. Pobierz dane użytkowników dla znalezionych interests
+    const userIds = (rows || []).map((r) => r.user_id);
+    const { data: usersData } = await supabase.from('users').select('id, first_name, last_name').in('id', userIds);
 
+    // Stwórz mapę user_id -> user_name
+    const userMap = new Map<string, string>();
+    (usersData || []).forEach((u: Record<string, unknown>) => {
+      const firstName = String(u.first_name || '');
+      const lastName = String(u.last_name || '');
+      const fullName = `${firstName} ${lastName}`.trim();
+      if (fullName) {
+        userMap.set(u.id as string, fullName);
+      }
+    });
+
+    const items: InterestListItemDTO[] = (rows || []).map((r: Record<string, unknown>) => {
       return {
         id: r.id as string,
         offer_id: r.offer_id as string,
         user_id: r.user_id as string,
         status: r.status as string,
         created_at: r.created_at as string,
-        user_name: userName,
+        user_name: userMap.get(r.user_id as string),
       } as InterestListItemDTO;
     });
 
@@ -143,7 +157,11 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('[GET_OFFER_INTERESTS_EXCEPTION]', { error });
+    console.error('[GET_OFFER_INTERESTS_EXCEPTION]', {
+      error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return createErrorResponse('INTERNAL_ERROR', 'Wystąpił błąd podczas pobierania zainteresowań', 500);
   }
 };

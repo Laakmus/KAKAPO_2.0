@@ -1,29 +1,26 @@
 ---
-import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
+import Layout from '@/layouts/Layout.astro';
+import { ChatsPageLayout } from '@/components/ChatsPageLayout';
 
-// Wyłącz prerendering - strona dynamiczna
+/**
+ * Strona Czatów
+ *
+ * Dostępna pod /chats
+ * Wymaga autoryzacji - pokazuje listę czatów i ich wiadomości
+ * Osadza Reactowy komponent ChatsPageLayout jako "island"
+ */
+
 export const prerender = false;
+
+// Pobierz aktualną ścieżkę z URL
+const currentPath = Astro.url.pathname;
+
+// Token jest przechowywany w localStorage po stronie klienta
+// AuthContext odczyta go automatycznie podczas inicjalizacji
+const accessToken = undefined;
 ---
 
-<ProtectedLayout>
-  <div id="chats-view-page" class="h-[calc(100vh-10rem)]"></div>
-</ProtectedLayout>
-
-<script>
-  import { createElement } from 'react';
-  import { createRoot } from 'react-dom/client';
-  import { ChatsViewPage } from '@/components/ChatsViewPage';
-
-  // Znajdź kontener
-  const container = document.getElementById('chats-view-page');
-
-  if (container) {
-    // Sprawdź czy jest chat_id w URL (opcjonalnie)
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialChatId = urlParams.get('chat_id') || undefined;
-
-    const root = createRoot(container);
-    root.render(createElement(ChatsViewPage, { initialChatId }));
-  }
-</script>
+<Layout title="KAKAPO - Czaty">
+  <ChatsPageLayout client:only="react" currentPath={currentPath} initialToken={accessToken} />
+</Layout>
 
