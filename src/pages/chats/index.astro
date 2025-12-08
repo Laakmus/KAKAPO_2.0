@@ -1,0 +1,29 @@
+---
+import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
+
+// Wyłącz prerendering - strona dynamiczna
+export const prerender = false;
+---
+
+<ProtectedLayout>
+  <div id="chats-view-page" class="h-[calc(100vh-10rem)]"></div>
+</ProtectedLayout>
+
+<script>
+  import { createElement } from 'react';
+  import { createRoot } from 'react-dom/client';
+  import { ChatsViewPage } from '@/components/ChatsViewPage';
+
+  // Znajdź kontener
+  const container = document.getElementById('chats-view-page');
+
+  if (container) {
+    // Sprawdź czy jest chat_id w URL (opcjonalnie)
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialChatId = urlParams.get('chat_id') || undefined;
+
+    const root = createRoot(container);
+    root.render(createElement(ChatsViewPage, { initialChatId }));
+  }
+</script>
+

@@ -223,8 +223,10 @@
       "title": "Laptop Dell",
       "description": "Sprawny laptop...",
       "image_url": "https://...",
+      "thumbnail_url": "https://...",
       "city": "Warszawa",
       "interests_count": 5,
+      "images_count": 3,
       "created_at": "2024-01-01T10:00:00Z"
     }
   ],
@@ -244,7 +246,7 @@
 
 - **Metoda**: `GET`
 - **Ścieżka**: `/api/offers/{offer_id}`
-- **Opis**: Zwraca szczegóły pojedynczej oferty
+- **Opis**: Zwraca szczegóły pojedynczej oferty wraz ze wszystkimi zdjęciami
 - **Headers**: `Authorization: Bearer {token}`
 - **Response (200 OK)**:
 
@@ -260,7 +262,20 @@
   "status": "ACTIVE",
   "interests_count": 5,
   "is_interested": false,
-  "created_at": "2024-01-01T10:00:00Z"
+  "is_owner": false,
+  "current_user_interest_id": null,
+  "created_at": "2024-01-01T10:00:00Z",
+  "images": [
+    {
+      "id": "uuid",
+      "offer_id": "uuid",
+      "image_url": "https://...",
+      "thumbnail_url": "https://...",
+      "order_index": 0,
+      "created_at": "2024-01-01T10:00:00Z"
+    }
+  ],
+  "images_count": 3
 }
 ```
 
@@ -412,6 +427,130 @@
 - **Błędy**:
   - `403 Forbidden`: "Brak uprawnień do usunięcia tej oferty"
   - `404 Not Found`: "Oferta nie istnieje"
+
+---
+
+### 2.3.1 Offer Images (Zdjęcia ofert)
+
+#### Lista zdjęć oferty
+
+- **Metoda**: `GET`
+- **Ścieżka**: `/api/offers/{offer_id}/images`
+- **Opis**: Zwraca wszystkie zdjęcia oferty posortowane po kolejności
+- **Headers**: Opcjonalne (publiczny odczyt)
+- **Response (200 OK)**:
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "offer_id": "uuid",
+      "image_url": "https://...",
+      "thumbnail_url": "https://...",
+      "order_index": 0,
+      "created_at": "2024-01-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+#### Dodawanie zdjęć do oferty
+
+- **Metoda**: `POST`
+- **Ścieżka**: `/api/offers/{offer_id}/images`
+- **Opis**: Dodaje zdjęcia do oferty (tylko właściciel, max 5 zdjęć)
+- **Headers**: `Authorization: Bearer {token}`
+- **Request Body**:
+
+```json
+{
+  "images": [
+    {
+      "image_url": "https://...",
+      "thumbnail_url": "https://...",
+      "order_index": 0
+    },
+    {
+      "image_url": "https://...",
+      "thumbnail_url": "https://...",
+      "order_index": 1
+    }
+  ]
+}
+```
+
+- **Walidacja**:
+  - `images`: tablica 1-5 elementów
+  - `image_url`: prawidłowy URL, max 2048 znaków
+  - `thumbnail_url`: opcjonalne, prawidłowy URL
+  - `order_index`: 0-4, unikalny w ramach oferty
+- **Response (201 Created)**:
+
+```json
+{
+  "data": [...],
+  "message": "Dodano 2 zdjęć"
+}
+```
+
+- **Błędy**:
+  - `401 Unauthorized`: "Brak autoryzacji"
+  - `403 Forbidden`: "Nie masz uprawnień do edycji tej oferty"
+  - `404 Not Found`: "Oferta nie istnieje"
+  - `422 Unprocessable Entity`: "Przekroczono limit 5 zdjęć na ofertę"
+
+#### Zmiana kolejności zdjęć
+
+- **Metoda**: `PUT`
+- **Ścieżka**: `/api/offers/{offer_id}/images/reorder`
+- **Opis**: Zmienia kolejność zdjęć oferty (tylko właściciel)
+- **Headers**: `Authorization: Bearer {token}`
+- **Request Body**:
+
+```json
+{
+  "images": [
+    { "id": "uuid", "order_index": 0 },
+    { "id": "uuid", "order_index": 1 },
+    { "id": "uuid", "order_index": 2 }
+  ]
+}
+```
+
+- **Response (200 OK)**:
+
+```json
+{
+  "data": [...],
+  "message": "Kolejność zdjęć została zaktualizowana"
+}
+```
+
+- **Błędy**:
+  - `401 Unauthorized`: "Brak autoryzacji"
+  - `403 Forbidden`: "Nie masz uprawnień do edycji tej oferty"
+  - `404 Not Found`: "Oferta nie istnieje"
+
+#### Usunięcie zdjęcia
+
+- **Metoda**: `DELETE`
+- **Ścieżka**: `/api/offers/{offer_id}/images/{image_id}`
+- **Opis**: Usuwa pojedyncze zdjęcie z oferty (tylko właściciel)
+- **Headers**: `Authorization: Bearer {token}`
+- **Response (200 OK)**:
+
+```json
+{
+  "success": true,
+  "message": "Zdjęcie zostało usunięte"
+}
+```
+
+- **Błędy**:
+  - `401 Unauthorized`: "Brak autoryzacji"
+  - `403 Forbidden`: "Nie masz uprawnień do usunięcia tego zdjęcia"
+  - `404 Not Found`: "Zdjęcie nie istnieje"
 
 ---
 
@@ -1026,10 +1165,16 @@
 - MVP bez real-time
 - W przyszłości: Supabase Realtime dla live chat notifications
 
-### File uploads
+### File uploads (Zdjęcia ofert)
 
-- Obrazy ofert przechowywane w Supabase Storage
+- Obrazy ofert przechowywane w Supabase Storage (bucket: `offers`)
+- Maksymalnie 5 zdjęć na ofertę
 - Upload flow:
-  1. Frontend uploaduje do `/storage/offers`
-  2. Otrzymuje public URL
-  3. Zapisuje URL w tabeli `offers.image_url`
+  1. Frontend kompresuje obraz (max 1920px, 85% quality)
+  2. Frontend generuje miniaturę (max 400px)
+  3. Frontend ustawia sesję Supabase (`supabaseClient.auth.setSession()`)
+  4. Frontend uploaduje do `/storage/offers/{user_id}/` (oryginał + miniatura)
+  5. Otrzymuje public URLs
+  6. Po utworzeniu oferty wywołuje `POST /api/offers/{id}/images` z URLami
+  7. Zdjęcia zapisywane w tabeli `offer_images`, główne zdjęcie (`order_index=0`) też w `offers.image_url`
+- Szczegóły implementacji: `.ai/image-upload-implementation.md`

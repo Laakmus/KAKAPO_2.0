@@ -108,18 +108,19 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd podczas pobierania zainteresowań', 500);
     }
 
-    const items: InterestListItemDTO[] = (rows || []).map((r: any) => {
+    const items: InterestListItemDTO[] = (rows || []).map((r: Record<string, unknown>) => {
+      const users = r.users as { first_name?: string; last_name?: string } | null | undefined;
       const userName =
-        r.users && (r.users.first_name || r.users.last_name)
-          ? `${String(r.users.first_name || '')} ${String(r.users.last_name || '')}`.trim()
+        users && (users.first_name || users.last_name)
+          ? `${String(users.first_name || '')} ${String(users.last_name || '')}`.trim()
           : undefined;
 
       return {
-        id: r.id,
-        offer_id: r.offer_id,
-        user_id: r.user_id,
-        status: r.status,
-        created_at: r.created_at,
+        id: r.id as string,
+        offer_id: r.offer_id as string,
+        user_id: r.user_id as string,
+        status: r.status as string,
+        created_at: r.created_at as string,
         user_name: userName,
       } as InterestListItemDTO;
     });

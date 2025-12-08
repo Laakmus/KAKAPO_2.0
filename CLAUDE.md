@@ -9,11 +9,12 @@ KAKAPO 2.0 is a bartering/exchange platform built with Astro 5, React, TypeScrip
 ## Technology Stack
 
 - **Framework**: Astro 5.x with React integration
-- **Styling**: Tailwind CSS
+- **Styling**: Tailwind CSS + shadcn/ui (Radix UI components)
 - **Language**: TypeScript (strict mode via `astro/tsconfigs/strict`)
 - **Backend**: Supabase (Auth, Database, Storage)
 - **Validation**: Zod schemas
 - **Linting**: ESLint 9 + Prettier
+- **Path aliases**: `@/*` maps to `./src/*` (configured in tsconfig.json)
 
 ## Common Commands
 
@@ -30,6 +31,9 @@ npm run lint            # Run ESLint on .js, .ts, .astro files
 npm run lint:fix        # Auto-fix ESLint issues
 npm run format          # Format code with Prettier
 npm run format:check    # Check formatting without modifying files
+
+# UI Components (shadcn/ui)
+npm run shadcn          # Add new shadcn/ui component (auto-fixes lint after)
 ```
 
 ## Architecture Overview
@@ -49,6 +53,21 @@ This project uses **Astro API routes** (not Edge Functions) for backend endpoint
 2. Use Zod schemas for request validation (create in `src/schemas/`)
 3. Import error handling utilities from `src/utils/errors.ts`
 4. Follow existing endpoint patterns in `src/pages/api/auth/login.ts`
+5. Use service classes from `src/services/` for business logic (don't put business logic in endpoints)
+
+### Service Layer
+
+The project uses a **service-based architecture** to separate business logic from API endpoints:
+
+- **Services** (`src/services/`): Encapsulate database queries and business logic
+- **Service pattern**: Each service is a class with methods for specific operations
+- **Supabase client injection**: Services receive SupabaseClient via constructor
+- **Example**: `OfferService` handles all offer-related operations (getOfferById, createOffer, listOffers, etc.)
+
+**When to use services**:
+- Always use services for database operations in API endpoints
+- Don't write raw Supabase queries directly in endpoints
+- Services handle type transformations between database types and API DTOs
 
 ### Database & Backend
 
@@ -85,6 +104,8 @@ All API endpoints follow this pattern:
 6. User ID available in endpoints as `context.locals.user.id`
 7. RLS policies automatically filter data based on `auth.uid()`
 
+**Middleware caveat**: The middleware uses a non-blocking async approach - `context.locals.user` may not be populated immediately. Always check for authentication in individual endpoints that require it, don't rely solely on middleware.
+
 ## Code Style Rules
 
 The project enforces strict code style via eslint.config.js:
@@ -115,22 +136,41 @@ The project enforces strict code style via eslint.config.js:
 
 ```
 src/
-├── db/                  # Supabase client and database types
+├── components/
+│   ├── ui/             # shadcn/ui React components (Button, Card, Avatar, etc.)
+│   └── Welcome.astro   # Astro components
+├── db/                 # Supabase client and database types
 │   ├── supabase.client.ts
 │   └── database.types.ts
-├── middleware/          # Astro middleware (auth token extraction)
+├── layouts/            # Page layouts
+│   └── Layout.astro
+├── lib/                # Utility libraries
+│   └── utils.ts        # cn() helper for Tailwind class merging
+├── middleware/         # Astro middleware (auth token extraction)
 │   └── index.ts
 ├── pages/
-│   ├── api/            # API routes (server-side endpoints)
-│   │   └── auth/       # Authentication endpoints
-│   └── index.astro     # Frontend pages
-├── schemas/            # Zod validation schemas
-│   └── auth.schema.ts
-├── utils/              # Utility functions (error handling, etc.)
+│   ├── api/           # API routes (server-side endpoints)
+│   │   ├── auth/      # Authentication endpoints
+│   │   ├── chats/     # Chat endpoints
+│   │   ├── interests/ # Interest endpoints
+│   │   ├── offers/    # Offer endpoints
+│   │   └── users/     # User endpoints
+│   └── index.astro    # Frontend pages
+├── schemas/           # Zod validation schemas
+│   ├── auth.schema.ts
+│   ├── chats.schema.ts
+│   ├── interests.schema.ts
+│   ├── offers.schema.ts
+│   └── user.schema.ts
+├── services/          # Service layer (business logic)
+│   ├── auth.service.ts
+│   ├── chats.service.ts
+│   ├── interests.service.ts
+│   ├── offer.service.ts
+│   └── user.service.ts
+├── utils/             # Utility functions (error handling, etc.)
 │   └── errors.ts
-├── components/         # Astro components
-├── layouts/            # Page layouts
-└── types.ts            # Shared TypeScript types
+└── types.ts           # Shared TypeScript types
 ```
 
 ### Planning Documentation
@@ -147,8 +187,10 @@ Refer to these documents when implementing new features or understanding existin
 
 Required environment variables (set in `.env`):
 
-- `SUPABASE_URL`: Supabase project URL
-- `SUPABASE_KEY`: Supabase anonymous key (public, used client-side)
+- `PUBLIC_SUPABASE_URL`: Supabase project URL (PUBLIC_ prefix required for client-side access)
+- `PUBLIC_SUPABASE_KEY`: Supabase anonymous key (public, used client-side)
+
+**Important**: In Astro, environment variables must have the `PUBLIC_` prefix to be accessible in client-side code (browser). Variables without this prefix are only available in server-side code.
 
 **Never** expose `SUPABASE_SERVICE_ROLE_KEY` to the frontend.
 
@@ -181,10 +223,26 @@ Images for offers will be stored in Supabase Storage:
 2. Receives public URL
 3. Saves URL in `offers.image_url` column
 
+## UI Components
+
+The project uses **shadcn/ui** for React components:
+
+- **Component library**: shadcn/ui built on Radix UI primitives
+- **Location**: `src/components/ui/` (Button, Card, Avatar, AlertDialog, etc.)
+- **Styling**: Tailwind CSS with CSS variables for theming (see `tailwind.config.mjs`)
+- **Utility**: Use `cn()` from `src/lib/utils.ts` for conditional Tailwind class merging
+- **Adding components**: Use `npm run shadcn` to add new components from shadcn/ui
+
+**Important patterns**:
+- Import UI components from `@/components/ui/button` (uses path alias)
+- Use `client:load` directive when using React components in Astro pages
+- Theme colors defined via CSS variables in global CSS (HSL color system)
+
 ## Development Notes
 
-- **No React components yet**: Currently only Astro components exist
-- **API-first architecture**: Business logic in API routes and database triggers, not in frontend
+- **Hybrid architecture**: Astro components for pages, React components for interactive UI
+- **API-first architecture**: Business logic in services and database triggers, not in frontend
 - **Middleware is async**: Auth token validation in middleware is non-blocking
 - **Error logging**: Use `console.error()` for errors, `console.warn()` for warnings (console.log forbidden)
 - **Zod validation**: Always validate external input with Zod schemas before processing
+- **No tests yet**: Test infrastructure not set up (future consideration)

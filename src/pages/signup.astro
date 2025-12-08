@@ -1,0 +1,19 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { SignupPage } from '@/components/SignupPage';
+
+// Wymusza renderowanie po stronie serwera (potrzebne dla middleware i request headers)
+export const prerender = false;
+
+// Opcjonalnie: sprawdź czy użytkownik jest już zalogowany
+// i przekieruj na /offers (wymaga implementacji auth context/cookies)
+// const user = Astro.locals.user;
+// if (user) {
+//   return Astro.redirect('/offers');
+// }
+---
+
+<Layout title="Rejestracja - KAKAPO" description="Utwórz konto w KAKAPO i zacznij wymieniać się rzeczami z innymi użytkownikami">
+  <SignupPage client:load />
+</Layout>
+

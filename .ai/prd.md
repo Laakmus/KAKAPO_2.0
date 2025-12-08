@@ -126,7 +126,7 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 
 - Tytuł: 5-100 znaków, obowiązkowe
 - Opis: 10-5000 znaków, obowiązkowe
-- Zdjęcie: URL (JPG, PNG, WebP), opcjonalne, walidacja URL frontend
+- Zdjęcie: Plik (JPG, PNG, WebP), opcjonalne, upload do Supabase Storage
 - Miasto: Wybór z 10 miast z dropdown'u, obowiązkowe
 
 #### Wiadomości
@@ -336,9 +336,10 @@ aby inni użytkownicy mogli widzieć co chciałbym wymienić.
 
 Kryteria akceptacji:
 
-- Formularz zawiera pola: Tytuł (5-100 znaków), Opis (10-5000 znaków), URL Zdjęcia (opcjonalne), Miasto (dropdown)
+- Formularz zawiera pola: Tytuł (5-100 znaków), Opis (10-5000 znaków), Upload Zdjęcia (opcjonalne), Miasto (dropdown)
 - Walidacja frontend dla każdego pola
-- URL zdjęcia jest walidowany (JPG, PNG, WebP)
+- Upload zdjęcia: format JPG, PNG, WebP; maksymalny rozmiar 10 MB
+- Zdjęcie jest najpierw uploadowane do Supabase Storage, następnie URL zapisywany w bazie danych
 - Po kliknięciu "Dodaj ofertę" dane są wysyłane do backend
 - Backend waliduje dane ponownie
 - Oferta jest dodawana do bazy danych z statusem ACTIVE
@@ -358,7 +359,7 @@ Kryteria akceptacji:
 
 - Przycisk "Edycja" na ofercie lub stronie szczegółów
 - Formularz edycji zawiera aktualne dane oferty
-- Użytkownik może zmienić tytuł, opis, URL zdjęcia, miasto
+- Użytkownik może zmienić tytuł, opis, zdjęcie (upload nowego), miasto
 - Walidacja identyczna jak przy dodawaniu
 - Po kliknięciu "Zapisz" zmiany są wysyłane na backend
 - Oferta jest aktualizowana w bazie danych

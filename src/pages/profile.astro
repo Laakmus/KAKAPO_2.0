@@ -1,0 +1,19 @@
+---
+import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
+import { ProfilePage } from '@/components/ProfilePage';
+
+/**
+ * Strona Profilu Użytkownika
+ *
+ * Dostępna pod /profile
+ * Wymaga autoryzacji - pokazuje profil zalogowanego użytkownika
+ * Osadza Reactowy komponent ProfilePage jako "island"
+ */
+
+export const prerender = false;
+---
+
+<ProtectedLayout>
+  <ProfilePage client:only="react" />
+</ProtectedLayout>
+

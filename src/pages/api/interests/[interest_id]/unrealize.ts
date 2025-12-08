@@ -51,8 +51,8 @@ export const PATCH: APIRoute = async ({ request: _request, params, locals }) => 
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
-    } catch (err) {
-      const code = (err as any)?.code as string | undefined;
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
       if (code === 'NOT_FOUND') {
         return createErrorResponse('NOT_FOUND', 'Zainteresowanie nie istnieje', 404);
       }

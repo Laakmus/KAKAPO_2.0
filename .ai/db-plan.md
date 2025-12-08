@@ -36,9 +36,38 @@ Tabela ofert wymiany produktów/usług.
 
 **Uwagi:**
 
-- `image_url` przechowuje tylko URL do obrazka w Supabase Storage
+- `image_url` przechowuje URL do zdjęcia przechowywanego w Supabase Storage bucket'ie 'offers'
+- Użytkownik wybiera plik ze swojego komputera (komponent `ImageUpload`), system automatycznie uploaduje go do Supabase Storage
+- Format plików: JPG, PNG, WebP; maksymalny rozmiar 10 MB
+- Przetwarzanie: kompresja do max 1920px, generowanie miniatury 400px (utility: `src/utils/image.ts`)
+- Struktura ścieżek w Storage: `offers/{user_id}/{timestamp}-{filename}`
+- Storage konfiguracja: patrz migracja `20240101000007_storage_setup.sql`
 - `city` ograniczone do 16 miast z PRD poprzez CHECK constraint
 - `ON DELETE CASCADE` usuwa oferty gdy użytkownik jest usuwany
+
+---
+
+### offer_images
+
+Tabela zdjęć ofert (wiele zdjęć na ofertę, do 5).
+
+- id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+- offer_id UUID NOT NULL REFERENCES offers(id) ON DELETE CASCADE
+- image_url VARCHAR(2048) NOT NULL
+- thumbnail_url VARCHAR(2048) NULL
+- order_index INTEGER NOT NULL DEFAULT 0 CHECK (order_index >= 0 AND order_index <= 4)
+- created_at TIMESTAMPTZ NULL DEFAULT now()
+- UNIQUE(offer_id, order_index)
+
+**Uwagi:**
+
+- `order_index` określa kolejność zdjęć (0 = główne zdjęcie)
+- `UNIQUE(offer_id, order_index)` zapewnia unikalną kolejność w ramach oferty
+- `ON DELETE CASCADE` usuwa zdjęcia gdy oferta jest usuwana
+- Trigger `update_offer_main_image` automatycznie aktualizuje `offers.image_url` gdy zmienia się główne zdjęcie (order_index = 0)
+- Maksymalnie 5 zdjęć na ofertę (walidacja na poziomie API)
+- `thumbnail_url` przechowuje URL miniatury (400px) dla szybszego ładowania list
+- Szczegóły implementacji: `.ai/image-upload-implementation.md`
 
 ---
 
@@ -190,6 +219,14 @@ Tabela audytu operacji administracyjnych.
 - **Relacja:** Jedna oferta może mieć wiele zainteresowań
 - **Klucz obcy:** `interests.offer_id → offers.id`
 - **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
+
+### offers → offer_images
+
+- **Typ:** Jeden-do-wielu
+- **Relacja:** Jedna oferta może mieć do 5 zdjęć
+- **Klucz obcy:** `offer_images.offer_id → offers.id`
+- **Kaskadowe usuwanie:** Tak (ON DELETE CASCADE)
+- **Sortowanie:** Po `order_index` (0 = główne zdjęcie)
 
 ### users ↔ chats
 
@@ -854,3 +891,60 @@ CREATE POLICY audit_logs_admin_only
 - Service_role key NIGDY nie jest przechowywany na frontendzie
 - Audit logs dla wszystkich operacji administracyjnych
 - Archiwalne dane dostępne tylko dla właścicieli (sender/receiver)
+
+---
+
+## 7. Supabase Storage - Przechowywanie zdjęć
+
+### Bucket: 'offers'
+
+Bucket do przechowywania zdjęć ofert uploadowanych przez użytkowników z ich komputerów.
+
+**Konfiguracja:**
+- Publiczny dostęp do odczytu (każdy może wyświetlić zdjęcia ofert)
+- Maksymalny rozmiar pliku: 10 MB
+- Dozwolone formaty: JPG, JPEG, PNG, WebP
+- Struktura folderów: `{user_id}/{timestamp}-{filename}`
+
+**RLS Policies:**
+
+```sql
+-- Wszyscy mogą czytać (wyświetlać) zdjęcia
+CREATE POLICY "Publiczny dostęp do odczytu zdjęć ofert"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'offers');
+
+-- Tylko zalogowani użytkownicy mogą uploadować do swojego folderu
+CREATE POLICY "Użytkownicy mogą uploadować do swojego folderu"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'offers'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- Tylko właściciel może usuwać swoje pliki
+CREATE POLICY "Użytkownicy mogą usuwać swoje pliki"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'offers'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+```
+
+**Proces uploadu:**
+
+1. Użytkownik wybiera plik z komputera przez komponent `ImageUpload` (React)
+2. Frontend waliduje format (JPG/PNG/WebP) i rozmiar (max 10 MB) - `src/utils/image.ts::validateImageFile()`
+3. Frontend kompresuje obraz do max 1920px (zachowując aspect ratio) - `src/utils/image.ts::compressImage()`
+4. Frontend generuje miniaturę 400px - `src/utils/image.ts::generateThumbnail()` (opcjonalne, jeśli używamy)
+5. Frontend uploaduje skompresowany plik do Supabase Storage - `src/utils/image.ts::uploadImageToStorage()`
+   - Ścieżka: `offers/{user_id}/{timestamp}-{filename}.jpg`
+   - Zwraca publiczny URL
+6. Frontend zapisuje URL w polu `image_url` oferty przez API: `POST /api/offers` lub `PATCH /api/offers/:offer_id`
+7. Przy usuwaniu oferty, opcjonalnie można usunąć plik ze Storage (zalecane) - `src/utils/image.ts::deleteImageFromStorage()`
+
+**Powiązane pliki:**
+- Migracja: `supabase/migrations/20240101000007_storage_setup.sql`
+- Utility: `src/utils/image.ts` (kompresja, walidacja, upload, usuwanie)
+- Komponenty: `src/components/ImageUpload.tsx`, `src/components/ImagePlaceholder.tsx` (OfferImage)
+- Dokumentacja: `.ai/image-upload-implementation.md`

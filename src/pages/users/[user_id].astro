@@ -1,0 +1,33 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { UserProfileClient } from '@/components/UserProfileClient';
+import { z } from 'zod';
+
+export const prerender = false;
+
+// Walidacja parametru user_id (UUID)
+const userIdSchema = z.string().uuid('Nieprawidłowy identyfikator użytkownika');
+
+// Pobierz user_id z parametrów
+const { user_id } = Astro.params;
+
+// Walidacja UUID
+let validUserId: string;
+try {
+  validUserId = userIdSchema.parse(user_id);
+} catch (error) {
+  // Nieprawidłowy UUID - redirect do strony głównej lub 404
+  return Astro.redirect('/offers');
+}
+
+// Sprawdź autoryzację - jeśli brak sesji, redirect do logowania
+const session = await Astro.locals.supabase?.auth.getSession();
+if (!session?.data?.session) {
+  return Astro.redirect('/login');
+}
+---
+
+<Layout title={`Profil użytkownika - KAKAPO`}>
+  <UserProfileClient client:load userId={validUserId} />
+</Layout>
+

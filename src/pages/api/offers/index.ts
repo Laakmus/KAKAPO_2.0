@@ -63,16 +63,35 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Auth check
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-    if (authError || !session) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
+    // Auth check – spróbuj użyć localnego użytkownika (np. z middleware)
+    let userId = locals.user?.id as string | undefined;
+    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
+
+    if (!userId && authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const { data: userData, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !userData?.user) {
+        return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
+      }
+
+      userId = userData.user.id;
     }
 
-    const userId = session.user.id;
+    if (!userId) {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
+      }
+
+      userId = session.user.id;
+    }
+
+    if (!userId) {
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
+    }
 
     // Parse request body
     let body: unknown;

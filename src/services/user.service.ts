@@ -11,39 +11,20 @@ export class UserService {
    */
   async getPublicProfile(userId: string): Promise<PublicUserDTO | null> {
     try {
-      // Pobierz dane użytkownika z auth schema - supabase typings nie zawierają auth.users w domyślnym schemacie,
-      // więc używamy string cast aby uniknąć problemów typów przy odczycie. Dane użytkownika (first_name/last_name)
-      // są przechowywane w metadata auth.user albo w osobnej tabeli; tutaj próbujemy bezpiecznie pobrać z auth.users.
-      const sb = this.supabase as unknown as {
-        from: (relation: string) => {
-          select: (cols: string) => unknown;
-        };
-      };
-
-      const fromAuthUsers = sb.from('auth.users') as unknown as {
-        select: (cols: string) => {
-          eq: (col: string, val: unknown) => { single: () => Promise<{ data: unknown; error: unknown }> };
-        };
-      };
-
-      const res = await fromAuthUsers
-        .select('id, user_metadata->>first_name as first_name, user_metadata->>last_name as last_name')
+      // Pobierz dane użytkownika z widoku public.users
+      const { data: user, error: userError } = await this.supabase
+        .from('users')
+        .select('id, first_name, last_name')
         .eq('id', userId)
-        .single();
-      const { data: user, error: userError } = res as { data: unknown; error: unknown };
+        .maybeSingle();
 
       if (userError) {
-        // Brak wiersza traktujemy jako not found
-        if ((userError as unknown as { status?: number })?.status === 406) {
-          return null;
-        }
         throw userError;
       }
 
       if (!user) return null;
-      const u = user as unknown as { id: string; first_name?: string; last_name?: string };
 
-      // Policz aktywne oferty użytkownika (typy dla offers są dostępne)
+      // Policz aktywne oferty użytkownika
       const { count, error: countError } = await this.supabase
         .from('offers')
         .select('id', { count: 'exact', head: true })
@@ -55,9 +36,9 @@ export class UserService {
       }
 
       return {
-        id: u.id,
-        first_name: u.first_name ?? '',
-        last_name: u.last_name ?? '',
+        id: user.id as string,
+        first_name: (user.first_name ?? '') as string,
+        last_name: (user.last_name ?? '') as string,
         active_offers_count: count ?? 0,
       };
     } catch (error) {

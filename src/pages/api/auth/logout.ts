@@ -74,8 +74,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     try {
       await AuthService.revokeSession({ userId, sessionId, allDevices }, supabase);
-    } catch (err: any) {
-      const status = Number(err?.status) || 500;
+    } catch (err: unknown) {
+      const status = Number((err as { status?: number })?.status) || 500;
       if (status === 501) {
         return createErrorResponse('NOT_IMPLEMENTED', 'Operacja wymaga wsparcia serwera (not implemented)', 501);
       }

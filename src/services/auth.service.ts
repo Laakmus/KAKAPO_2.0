@@ -29,7 +29,7 @@ export class AuthService {
           last_name,
         },
       },
-    } as any); // `as any` - zachowujemy kompatybilność z różnymi wersjami SDK
+    });
 
     if (error) {
       const message = String(error.message ?? '');
@@ -37,39 +37,44 @@ export class AuthService {
 
       // Rozpoznawanie konfliktu email (mapujemy na 400 zgodnie ze spec)
       if (message.toLowerCase().includes('already') || message.toLowerCase().includes('user already')) {
-        const err = new Error('EMAIL_EXISTS');
-        (err as any).status = 400;
-        (err as any).original = error;
+        const err = new Error('EMAIL_EXISTS') as Error & { status: number; original: typeof error };
+        err.status = 400;
+        err.original = error;
         throw err;
       }
 
       // Słabe hasło / walidacja -> 422
       if (message.toLowerCase().includes('password') || status === 422) {
-        const err = new Error('WEAK_PASSWORD');
-        (err as any).status = 422;
-        (err as any).original = error;
+        const err = new Error('WEAK_PASSWORD') as Error & { status: number; original: typeof error };
+        err.status = 422;
+        err.original = error;
         throw err;
       }
 
       // Domyślny nieoczekiwany błąd Supabase
-      const err = new Error('SUPABASE_ERROR');
-      (err as any).status = 500;
-      (err as any).original = error;
+      const err = new Error('SUPABASE_ERROR') as Error & { status: number; original: typeof error };
+      err.status = 500;
+      err.original = error;
       throw err;
     }
 
     if (!data || !data.user) {
-      const err = new Error('INVALID_SUPABASE_RESPONSE');
-      (err as any).status = 500;
+      const err = new Error('INVALID_SUPABASE_RESPONSE') as Error & { status: number };
+      err.status = 500;
       throw err;
     }
+
+    const userWithMeta = data.user as typeof data.user & {
+      confirmed_at?: string | null;
+      email_confirmed_at?: string | null;
+    };
 
     return {
       user: {
         id: data.user.id,
         email: data.user.email ?? '',
         // Supabase może zwracać `confirmed_at` / `email_confirmed_at` nazwy różnie w zależności od wersji
-        email_confirmed_at: (data.user as any).confirmed_at ?? (data.user as any).email_confirmed_at ?? null,
+        email_confirmed_at: userWithMeta.confirmed_at ?? userWithMeta.email_confirmed_at ?? null,
       },
       message: 'Sprawdź swoją skrzynkę email w celu weryfikacji',
     };
@@ -90,12 +95,15 @@ export class AuthService {
    *
    * Rzuca Error z polem `status` dla mapowania w route (np. 404, 501, 500).
    */
-  static async revokeSession(params: { userId: string; sessionId?: string; allDevices?: boolean }, supabase: any) {
+  static async revokeSession(
+    params: { userId: string; sessionId?: string; allDevices?: boolean },
+    supabase: SupabaseClient,
+  ) {
     const { userId, sessionId, allDevices } = params;
 
     if (!supabase) {
-      const err = new Error('SUPABASE_CLIENT_MISSING');
-      (err as any).status = 500;
+      const err = new Error('SUPABASE_CLIENT_MISSING') as Error & { status: number };
+      err.status = 500;
       throw err;
     }
 
