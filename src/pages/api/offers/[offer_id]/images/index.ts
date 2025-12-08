@@ -170,4 +170,3 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     return createErrorResponse('INTERNAL_ERROR', 'Wystąpił nieoczekiwany błąd', 500);
   }
 };
-

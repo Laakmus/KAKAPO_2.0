@@ -666,11 +666,7 @@ export class OfferService {
    * @throws Error z kodem 'FORBIDDEN' gdy użytkownik nie jest właścicielem
    * @throws Error z kodem 'MAX_IMAGES_EXCEEDED' gdy przekroczono limit 5 zdjęć
    */
-  async addOfferImages(
-    offerId: string,
-    userId: string,
-    command: AddOfferImagesCommand,
-  ): Promise<OfferImageDTO[]> {
+  async addOfferImages(offerId: string, userId: string, command: AddOfferImagesCommand): Promise<OfferImageDTO[]> {
     // 1. Sprawdź czy oferta istnieje i użytkownik jest właścicielem
     const { data: offer, error: offerError } = await this.supabase
       .from('offers')
@@ -703,7 +699,9 @@ export class OfferService {
 
     const totalCount = (existingCount || 0) + command.images.length;
     if (totalCount > 5) {
-      const e = new Error(`Przekroczono limit 5 zdjęć na ofertę. Obecna liczba: ${existingCount}, próbujesz dodać: ${command.images.length}`);
+      const e = new Error(
+        `Przekroczono limit 5 zdjęć na ofertę. Obecna liczba: ${existingCount}, próbujesz dodać: ${command.images.length}`,
+      );
       Object.assign(e, { code: 'MAX_IMAGES_EXCEEDED' });
       throw e;
     }
@@ -741,11 +739,7 @@ export class OfferService {
    * @throws Error z kodem 'NOT_FOUND' gdy oferta nie istnieje
    * @throws Error z kodem 'FORBIDDEN' gdy użytkownik nie jest właścicielem
    */
-  async updateImageOrder(
-    offerId: string,
-    userId: string,
-    command: ReorderImagesCommand,
-  ): Promise<OfferImageDTO[]> {
+  async updateImageOrder(offerId: string, userId: string, command: ReorderImagesCommand): Promise<OfferImageDTO[]> {
     // 1. Sprawdź czy oferta istnieje i użytkownik jest właścicielem
     const { data: offer, error: offerError } = await this.supabase
       .from('offers')
@@ -847,10 +841,7 @@ export class OfferService {
     }
 
     // 3. Usuń zdjęcie
-    const { error: deleteError } = await this.supabase
-      .from('offer_images')
-      .delete()
-      .eq('id', imageId);
+    const { error: deleteError } = await this.supabase.from('offer_images').delete().eq('id', imageId);
 
     if (deleteError) {
       console.error('[DELETE_OFFER_IMAGE_ERROR]', deleteError);
@@ -861,10 +852,7 @@ export class OfferService {
     const remainingImages = await this.getOfferImages(image.offer_id);
     if (remainingImages.length > 0) {
       for (let i = 0; i < remainingImages.length; i++) {
-        await this.supabase
-          .from('offer_images')
-          .update({ order_index: i })
-          .eq('id', remainingImages[i].id);
+        await this.supabase.from('offer_images').update({ order_index: i }).eq('id', remainingImages[i].id);
       }
     }
 

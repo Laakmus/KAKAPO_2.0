@@ -45,9 +45,7 @@ export function ImageUpload({
     }
 
     // Odczytaj refresh_token z localStorage
-    const refreshToken = typeof window !== 'undefined' 
-      ? localStorage.getItem('refresh_token') || '' 
-      : '';
+    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') || '' : '';
 
     // Ustaw sesję na kliencie Supabase
     const { error: sessionError } = await supabaseClient.auth.setSession({
@@ -100,7 +98,7 @@ export function ImageUpload({
     try {
       // Upewnij się, że mamy aktywną sesję przed uploadem
       await ensureAuthSession();
-      
+
       const results = await uploadMultipleImages(files, userId, supabaseClient);
 
       // Create new images with order indices
@@ -127,10 +125,12 @@ export function ImageUpload({
   };
 
   const handleRemove = (index: number) => {
-    const updatedImages = images.filter((_, i) => i !== index).map((img, i) => ({
-      ...img,
-      order: i,
-    }));
+    const updatedImages = images
+      .filter((_, i) => i !== index)
+      .map((img, i) => ({
+        ...img,
+        order: i,
+      }));
 
     setImages(updatedImages);
     onImagesChange(updatedImages);

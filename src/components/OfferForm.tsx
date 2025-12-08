@@ -61,7 +61,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
   // Stan dla uploadu zdjęć (wiele zdjęć)
   const [uploadedImages, setUploadedImages] = useState<OfferImage[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  
+
   // Stan dla błędu walidacji formularza
   const [formValidationError, setFormValidationError] = useState<string | null>(null);
 
@@ -126,13 +126,14 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
     if (errors.description) errorMessages.push(`Opis: ${errors.description.message}`);
     if (errors.city) errorMessages.push(`Miasto: ${errors.city.message}`);
     if (errors.image_url) errorMessages.push(`Zdjęcie: ${errors.image_url.message}`);
-    
-    const errorMessage = errorMessages.length > 0 
-      ? `Formularz zawiera błędy: ${errorMessages.join(', ')}`
-      : 'Wypełnij poprawnie wszystkie wymagane pola formularza.';
-    
+
+    const errorMessage =
+      errorMessages.length > 0
+        ? `Formularz zawiera błędy: ${errorMessages.join(', ')}`
+        : 'Wypełnij poprawnie wszystkie wymagane pola formularza.';
+
     setFormValidationError(errorMessage);
-    
+
     // Wywołaj callback błędu z informacją o błędzie walidacji
     onError?.(errorMessage);
   };
@@ -143,7 +144,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
   const onSubmit = async (values: OfferFormValues) => {
     // Wyczyść błąd walidacji formularza
     setFormValidationError(null);
-    
+
     // Przygotuj dane do wysłania (city musi być CityName, nie '')
     if (!values.city) {
       setError('city', {
@@ -156,8 +157,8 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
     }
 
     // Główne zdjęcie to pierwsze zdjęcie (order = 0)
-    const mainImage = uploadedImages.find(img => img.order === 0) || uploadedImages[0];
-    
+    const mainImage = uploadedImages.find((img) => img.order === 0) || uploadedImages[0];
+
     const payload: CreateOfferCommand = {
       title: values.title,
       description: values.description,
@@ -170,7 +171,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
 
     if (result.success) {
       const offerId = result.data.id;
-      
+
       // Zapisz wszystkie zdjęcia do tabeli offer_images (jeśli są)
       if (uploadedImages.length > 0) {
         try {
@@ -187,7 +188,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
               })),
             }),
           });
-          
+
           if (!response.ok) {
             console.error('[OfferForm] Failed to save offer images:', await response.text());
           }
@@ -195,7 +196,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
           console.error('[OfferForm] Error saving offer images:', err);
         }
       }
-      
+
       // Sukces - wywołaj callback
       onSuccess?.(result.data);
 
@@ -259,15 +260,11 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
       {formValidationError && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
           <div className="flex items-start gap-3">
-            <svg 
-              className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" 
-              fill="currentColor" 
-              viewBox="0 0 20 20"
-            >
-              <path 
-                fillRule="evenodd" 
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" 
-                clipRule="evenodd" 
+            <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
               />
             </svg>
             <div>

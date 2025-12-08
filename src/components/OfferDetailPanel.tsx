@@ -93,10 +93,10 @@ export function OfferDetailPanel({
    * Renderuj szczegóły oferty
    */
   // Przygotuj listę zdjęć - użyj tablicy images lub fallback do image_url
-  const images: Array<{ url: string; thumbnail_url?: string | null }> = 
+  const images: Array<{ url: string; thumbnail_url?: string | null }> =
     offer.images && offer.images.length > 0
-      ? offer.images.map(img => ({ url: img.image_url, thumbnail_url: img.thumbnail_url }))
-      : offer.image_url 
+      ? offer.images.map((img) => ({ url: img.image_url, thumbnail_url: img.thumbnail_url }))
+      : offer.image_url
         ? [{ url: offer.image_url, thumbnail_url: null }]
         : [];
 
@@ -328,14 +328,7 @@ function ImageGallery({ images, title }: ImageGalleryProps) {
 
   // Jedno zdjęcie - prosta wersja bez nawigacji
   if (images.length === 1) {
-    return (
-      <OfferImage 
-        imageUrl={images[0].url} 
-        alt={title} 
-        className="aspect-video w-full" 
-        useThumbnail={false} 
-      />
-    );
+    return <OfferImage imageUrl={images[0].url} alt={title} className="aspect-video w-full" useThumbnail={false} />;
   }
 
   // Wiele zdjęć - pełna galeria
@@ -391,9 +384,7 @@ function ImageGallery({ images, title }: ImageGalleryProps) {
             key={idx}
             onClick={() => setCurrentIndex(idx)}
             className={`flex-shrink-0 rounded-md overflow-hidden transition-all ${
-              idx === currentIndex 
-                ? 'ring-2 ring-primary ring-offset-2' 
-                : 'opacity-70 hover:opacity-100'
+              idx === currentIndex ? 'ring-2 ring-primary ring-offset-2' : 'opacity-70 hover:opacity-100'
             }`}
             aria-label={`Przejdź do zdjęcia ${idx + 1}`}
             aria-current={idx === currentIndex ? 'true' : 'false'}

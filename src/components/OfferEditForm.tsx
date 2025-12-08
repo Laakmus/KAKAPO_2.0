@@ -65,11 +65,11 @@ export function OfferEditForm({ offer, onSubmit, onCancel, isSubmitting }: Offer
             Authorization: `Bearer ${token}`,
           },
         });
-        
+
         if (response.ok) {
           const result = await response.json();
           const images: OfferImageDTO[] = result.data || [];
-          
+
           // Konwertuj na format OfferImage
           const existingImages: OfferImage[] = images.map((img) => ({
             url: img.image_url,
@@ -77,27 +77,31 @@ export function OfferEditForm({ offer, onSubmit, onCancel, isSubmitting }: Offer
             path: '', // Nie znamy ścieżki dla istniejących zdjęć
             order: img.order_index,
           }));
-          
+
           setUploadedImages(existingImages);
         } else if (offer.image_url) {
           // Fallback - użyj głównego zdjęcia oferty
-          setUploadedImages([{
-            url: offer.image_url,
-            thumbnailUrl: undefined,
-            path: '',
-            order: 0,
-          }]);
+          setUploadedImages([
+            {
+              url: offer.image_url,
+              thumbnailUrl: undefined,
+              path: '',
+              order: 0,
+            },
+          ]);
         }
       } catch (err) {
         console.error('[OfferEditForm] Error loading images:', err);
         // Fallback - użyj głównego zdjęcia oferty
         if (offer.image_url) {
-          setUploadedImages([{
-            url: offer.image_url,
-            thumbnailUrl: undefined,
-            path: '',
-            order: 0,
-          }]);
+          setUploadedImages([
+            {
+              url: offer.image_url,
+              thumbnailUrl: undefined,
+              path: '',
+              order: 0,
+            },
+          ]);
         }
       } finally {
         setIsLoadingImages(false);
@@ -127,11 +131,11 @@ export function OfferEditForm({ offer, onSubmit, onCancel, isSubmitting }: Offer
     if (data.description && data.description !== offer.description) {
       payload.description = data.description;
     }
-    
+
     // Główne zdjęcie to pierwsze zdjęcie (order = 0)
-    const mainImage = uploadedImages.find(img => img.order === 0) || uploadedImages[0];
+    const mainImage = uploadedImages.find((img) => img.order === 0) || uploadedImages[0];
     const newMainImageUrl = mainImage?.url || null;
-    
+
     if (newMainImageUrl !== offer.image_url) {
       payload.image_url = newMainImageUrl;
     }
@@ -147,7 +151,7 @@ export function OfferEditForm({ offer, onSubmit, onCancel, isSubmitting }: Offer
 
     // Zaktualizuj ofertę
     await onSubmit(payload);
-    
+
     // Jeśli zdjęcia się zmieniły, zaktualizuj je przez API
     if (imagesChanged && uploadedImages.length > 0) {
       try {
@@ -155,11 +159,11 @@ export function OfferEditForm({ offer, onSubmit, onCancel, isSubmitting }: Offer
         const existingResponse = await fetch(`/api/offers/${offer.id}/images`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         if (existingResponse.ok) {
           const existingData = await existingResponse.json();
           const existingImages: OfferImageDTO[] = existingData.data || [];
-          
+
           // Usuń wszystkie istniejące zdjęcia
           for (const img of existingImages) {
             await fetch(`/api/offers/${offer.id}/images/${img.id}`, {
@@ -168,7 +172,7 @@ export function OfferEditForm({ offer, onSubmit, onCancel, isSubmitting }: Offer
             });
           }
         }
-        
+
         // Dodaj nowe zdjęcia
         await fetch(`/api/offers/${offer.id}/images`, {
           method: 'POST',
