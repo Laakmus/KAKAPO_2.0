@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import type { CreateOfferCommand, CreateOfferResponse, ApiErrorResponse } from '@/types';
 
 /**
@@ -39,6 +40,7 @@ type CreateOfferResult =
  * @returns {createOffer} - Funkcja tworząca ofertę
  */
 export function useCreateOffer() {
+  const auth = useAuth();
   const [state, setState] = useState<CreateOfferState>({
     isLoading: false,
     error: undefined,
@@ -50,61 +52,103 @@ export function useCreateOffer() {
    * @param values - Dane formularza (title, description, image_url?, city)
    * @returns CreateOfferResult - Sukces z danymi oferty lub błąd
    */
-  const createOffer = useCallback(async (values: CreateOfferCommand): Promise<CreateOfferResult> => {
-    // Resetuj stan
-    setState({
-      isLoading: true,
-      error: undefined,
-    });
-
-    try {
-      // Wywołaj API
-      const response = await fetch('/api/offers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Wysyła ciasteczko sesji Supabase
-        body: JSON.stringify(values),
+  const createOffer = useCallback(
+    async (values: CreateOfferCommand): Promise<CreateOfferResult> => {
+      // Resetuj stan
+      setState({
+        isLoading: true,
+        error: undefined,
       });
 
-      // Parsuj odpowiedź
-      const data = await response.json();
-
-      // Sukces (201)
-      if (response.ok) {
-        setState({
-          isLoading: false,
-          error: undefined,
+      try {
+        // Wywołaj API z Bearer tokenem
+        const response = await fetch('/api/offers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(auth.token && { Authorization: `Bearer ${auth.token}` }),
+          },
+          body: JSON.stringify(values),
         });
 
-        return {
-          success: true,
-          data: data as CreateOfferResponse,
-        };
-      }
+        // Parsuj odpowiedź
+        const data = await response.json();
 
-      // Błąd autoryzacji (401) - przekieruj do logowania
-      if (response.status === 401) {
-        setState({
-          isLoading: false,
-          error: 'Sesja wygasła. Zaloguj się ponownie.',
-        });
+        // Sukces (201)
+        if (response.ok) {
+          setState({
+            isLoading: false,
+            error: undefined,
+          });
 
-        // Przekieruj do logowania z parametrem redirect
-        setTimeout(() => {
-          window.location.href = `/login?redirect=${encodeURIComponent('/offers/new')}`;
-        }, 1500);
+          return {
+            success: true,
+            data: data as CreateOfferResponse,
+          };
+        }
 
-        return {
-          success: false,
-          error: 'Sesja wygasła. Zaloguj się ponownie.',
-        };
-      }
+        // Błąd autoryzacji (401) - przekieruj do logowania
+        if (response.status === 401) {
+          setState({
+            isLoading: false,
+            error: 'Sesja wygasła. Zaloguj się ponownie.',
+          });
 
-      // Błąd uprawnień (403)
-      if (response.status === 403) {
-        const errorMessage = data.error?.message || 'Brak uprawnień do wykonania tej operacji.';
+          // Przekieruj do logowania z parametrem redirect
+          setTimeout(() => {
+            window.location.href = `/login?redirect=${encodeURIComponent('/offers/new')}`;
+          }, 1500);
+
+          return {
+            success: false,
+            error: 'Sesja wygasła. Zaloguj się ponownie.',
+          };
+        }
+
+        // Błąd uprawnień (403)
+        if (response.status === 403) {
+          const errorMessage = data.error?.message || 'Brak uprawnień do wykonania tej operacji.';
+          setState({
+            isLoading: false,
+            error: errorMessage,
+          });
+
+          return {
+            success: false,
+            error: data as ApiErrorResponse,
+          };
+        }
+
+        // Błąd walidacji (400/422)
+        if (response.status === 400 || response.status === 422) {
+          const errorMessage = data.error?.message || 'Nieprawidłowe dane formularza.';
+          setState({
+            isLoading: false,
+            error: errorMessage,
+          });
+
+          return {
+            success: false,
+            error: data as ApiErrorResponse,
+          };
+        }
+
+        // Błąd serwera (500+)
+        if (response.status >= 500) {
+          const errorMessage = 'Wystąpił błąd serwera. Spróbuj ponownie później.';
+          setState({
+            isLoading: false,
+            error: errorMessage,
+          });
+
+          return {
+            success: false,
+            error: errorMessage,
+          };
+        }
+
+        // Inny błąd
+        const errorMessage = data.error?.message || 'Wystąpił nieoczekiwany błąd.';
         setState({
           isLoading: false,
           error: errorMessage,
@@ -114,25 +158,11 @@ export function useCreateOffer() {
           success: false,
           error: data as ApiErrorResponse,
         };
-      }
+      } catch (err) {
+        // Błąd sieciowy lub parsowania
+        const errorMessage = 'Nie udało się połączyć z serwerem. Sprawdź połączenie internetowe.';
+        console.error('useCreateOffer error:', err);
 
-      // Błąd walidacji (400/422)
-      if (response.status === 400 || response.status === 422) {
-        const errorMessage = data.error?.message || 'Nieprawidłowe dane formularza.';
-        setState({
-          isLoading: false,
-          error: errorMessage,
-        });
-
-        return {
-          success: false,
-          error: data as ApiErrorResponse,
-        };
-      }
-
-      // Błąd serwera (500+)
-      if (response.status >= 500) {
-        const errorMessage = 'Wystąpił błąd serwera. Spróbuj ponownie później.';
         setState({
           isLoading: false,
           error: errorMessage,
@@ -143,34 +173,9 @@ export function useCreateOffer() {
           error: errorMessage,
         };
       }
-
-      // Inny błąd
-      const errorMessage = data.error?.message || 'Wystąpił nieoczekiwany błąd.';
-      setState({
-        isLoading: false,
-        error: errorMessage,
-      });
-
-      return {
-        success: false,
-        error: data as ApiErrorResponse,
-      };
-    } catch (err) {
-      // Błąd sieciowy lub parsowania
-      const errorMessage = 'Nie udało się połączyć z serwerem. Sprawdź połączenie internetowe.';
-      console.error('useCreateOffer error:', err);
-
-      setState({
-        isLoading: false,
-        error: errorMessage,
-      });
-
-      return {
-        success: false,
-        error: errorMessage,
-      };
-    }
-  }, []);
+    },
+    [auth.token],
+  );
 
   return {
     ...state,

@@ -22,15 +22,11 @@ export const GET: APIRoute = async ({ request: _request, url, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Auth - uzyskaj sesję z kontekstu serwisu Supabase (middleware root-local powinien dostarczyć klienta)
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-    if (authError || !session) {
+    // Get userId from locals (set by middleware) - required
+    const userId = locals.user?.id;
+    if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
-    const userId = session.user.id;
 
     // Parsowanie i walidacja query params
     const searchParams = Object.fromEntries(url.searchParams.entries());

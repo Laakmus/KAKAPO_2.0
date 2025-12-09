@@ -38,19 +38,32 @@ export function useProtectedRoute(options: ProtectedRouteOptions = {}): Protecte
   const toast = useToast();
 
   useEffect(() => {
-    // Jeśli status to unauthenticated, przekieruj
-    if (auth.status === 'unauthenticated') {
+    // Jeśli status to unauthenticated (i NIE loading), przekieruj
+    // IMPORTANT: Nie przekierowuj podczas 'loading' - czekaj aż status będzie definitywny
+    if (auth.status === 'unauthenticated' && !auth.isLoading) {
+      // DEBUG: Log stan przed przekierowaniem
+      console.log('[useProtectedRoute] Przekierowuję - brak autoryzacji', {
+        status: auth.status,
+        isLoading: auth.isLoading,
+        hasToken: !!auth.token,
+        hasUser: !!auth.user,
+        pathname: window.location.pathname,
+      });
+
       toast.push({
         type: 'error',
         text: 'Musisz być zalogowany, aby uzyskać dostęp do tej strony.',
       });
 
-      // Przekieruj po krótkiej chwili (aby toast był widoczny)
+      // Przekieruj do strony logowania
+      const currentPath = window.location.pathname;
+      const redirectUrl = `${redirectPath}?redirect=${encodeURIComponent(currentPath)}`;
+
       setTimeout(() => {
-        window.location.href = redirectPath;
+        window.location.href = redirectUrl;
       }, 500);
     }
-  }, [auth.status, redirectPath, toast]);
+  }, [auth.status, auth.isLoading, auth.token, auth.user, redirectPath, toast]);
 
   // Określ status trasy
   let status: 'loading' | 'ready' | 'redirect' = 'loading';

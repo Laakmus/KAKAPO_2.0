@@ -16,23 +16,16 @@ export const prerender = false;
  */
 export const GET: APIRoute = async ({ locals, url }) => {
   try {
-    // supabase klient jest w locals (middleware)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = (locals as any).supabase;
+    const supabase = locals.supabase;
     if (!supabase) {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Pobranie sesji/auth - jeśli brak -> 401
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-    if (authError || !session) {
+    // Get userId from locals (set by middleware) - required
+    const userId = locals.user?.id;
+    if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
-
-    const userId = session.user.id;
 
     // Parsowanie i walidacja query params
     const searchParams = Object.fromEntries(url.searchParams.entries());

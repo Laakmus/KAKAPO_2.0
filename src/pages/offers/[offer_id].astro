@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import { OfferDetailPageLayout } from '@/components/OfferDetailPageLayout';
 import { offerIdParamsSchema } from '@/schemas/offers.schema';
 
 // Wyłącz prerendering - strona dynamiczna
@@ -18,6 +19,13 @@ try {
   isValidOfferId = false;
   validationError = 'Nieprawidłowy format ID oferty';
 }
+
+// Pobierz aktualną ścieżkę z URL
+const currentPath = Astro.url.pathname;
+
+// Token jest przechowywany w localStorage po stronie klienta
+// AuthContext odczyta go automatycznie podczas inicjalizacji
+const accessToken = undefined;
 ---
 
 <Layout title="Szczegóły oferty">
@@ -35,33 +43,12 @@ try {
       </div>
     </div>
   ) : (
-    <div id="offers-page-shell" data-offer-id={offer_id}></div>
+    <OfferDetailPageLayout
+      client:only="react"
+      currentPath={currentPath}
+      initialToken={accessToken}
+      offerId={offer_id!}
+    />
   )}
 </Layout>
-
-<script>
-  import { createElement } from 'react';
-  import { createRoot } from 'react-dom/client';
-  import { OffersPageShell } from '@/components/OffersPageShell';
-  import { AuthProvider } from '@/contexts/AuthContext';
-  import { ToastProvider } from '@/contexts/ToastContext';
-
-  // Znajdź kontener
-  const container = document.getElementById('offers-page-shell');
-
-  if (container) {
-    const offerId = container.dataset.offerId;
-
-    if (offerId) {
-      const root = createRoot(container);
-      root.render(
-        createElement(
-          AuthProvider,
-          null,
-          createElement(ToastProvider, null, createElement(OffersPageShell, { offerId })),
-        ),
-      );
-    }
-  }
-</script>
 

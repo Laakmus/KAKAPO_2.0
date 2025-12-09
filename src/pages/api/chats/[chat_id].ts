@@ -23,15 +23,11 @@ export const GET: APIRoute = async ({ params, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Auth - uzyskaj sesję
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-    if (authError || !session) {
+    // Get userId from locals (set by middleware) - required
+    const userId = locals.user?.id;
+    if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
-    const userId = session.user.id;
 
     // Walidacja parametru chat_id
     let validatedParams: z.infer<typeof chatIdParamsSchema>;

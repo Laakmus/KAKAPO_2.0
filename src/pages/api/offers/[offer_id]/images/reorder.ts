@@ -48,12 +48,8 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // 3. Pobierz sesję użytkownika
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    const userId = session?.user?.id;
+    // 3. Get userId from locals (set by middleware) - required
+    const userId = locals.user?.id;
     if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak ważnej sesji użytkownika', 401);
     }

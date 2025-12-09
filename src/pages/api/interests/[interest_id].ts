@@ -10,22 +10,29 @@ export const prerender = false;
  *
  * Auth required. Only owner of the interest may cancel it.
  */
-export const DELETE: APIRoute = async ({ request: _request, params, locals }) => {
+export const DELETE: APIRoute = async ({ request, params, locals }) => {
   try {
     const supabase = locals.supabase;
     if (!supabase) {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Enforce auth
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-    if (authError || !session) {
+    // Enforce auth - extract token from Authorization header
+    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
-    const userId = session.user.id;
+
+    const token = authHeader.split(' ')[1];
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
+    }
+    const userId = user.id;
 
     // Extract interest_id from params
     const interestId = params.interest_id ?? '';
@@ -54,9 +61,6 @@ export const DELETE: APIRoute = async ({ request: _request, params, locals }) =>
       if (code === 'FORBIDDEN') {
         return createErrorResponse('FORBIDDEN', 'Brak uprawnień', 403);
       }
-      if (code === 'ALREADY_CANCELLED') {
-        return createErrorResponse('CONFLICT', 'Zainteresowanie już anulowane', 409);
-      }
       if (code === 'DB_ERROR') {
         return createErrorResponse('INTERNAL_ERROR', 'Błąd bazy danych', 500);
       }
@@ -80,22 +84,29 @@ export const DELETE: APIRoute = async ({ request: _request, params, locals }) =>
  *
  * Potwierdzenie realizacji wymiany przez uczestnika.
  */
-export const PATCH: APIRoute = async ({ request: _request, params, locals }) => {
+export const PATCH: APIRoute = async ({ request, params, locals }) => {
   try {
     const supabase = locals.supabase;
     if (!supabase) {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Enforce auth
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-    if (authError || !session) {
+    // Enforce auth - extract token from Authorization header
+    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
-    const userId = session.user.id;
+
+    const token = authHeader.split(' ')[1];
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
+    }
+    const userId = user.id;
 
     // Extract interest_id from params
     const interestId = params.interest_id ?? '';

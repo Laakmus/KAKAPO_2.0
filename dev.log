@@ -1,0 +1,16 @@
+
+> kakapo@0.0.1 dev
+> astro dev
+
+13:54:04 [WARN] [config] This project contains server-rendered routes, but no adapter is installed. This is fine for development, but an adapter will be required to build your site for production.
+13:54:04 [types] Generated 0ms
+13:54:04 [content] Syncing content
+13:54:04 [content] Synced content
+13:54:04 [vite] Port 4321 is in use, trying another one...
+
+ astro  v5.16.4 ready in 303 ms
+
+┃ Local    http://localhost:4322/
+┃ Network  use --host to expose
+
+13:54:04 watching for file changes...

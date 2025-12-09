@@ -3,26 +3,23 @@ import { z } from 'zod';
 import { createErrorResponse } from '../../../utils/errors';
 import { createInterestSchema } from '../../../schemas/interests.schema';
 import { InterestsService } from '../../../services/interests.service';
+import { authenticateRequest } from '../../../utils/auth';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async (context) => {
   try {
+    const { request, locals } = context;
     const supabase = locals.supabase;
     if (!supabase) {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Auth check
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-    if (authError || !session) {
+    // Authenticate and set up session for RLS
+    const userId = await authenticateRequest(context);
+    if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
-
-    const userId = session.user.id;
 
     // Parse request body
     let body: unknown;
@@ -33,7 +30,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Validate input
-    let validatedInput;
+    let validatedInput: z.infer<typeof createInterestSchema>;
     try {
       validatedInput = createInterestSchema.parse(body);
     } catch (error) {
@@ -52,7 +49,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Call service
     const interestsService = new InterestsService(supabase);
 
-    let result;
+    let result: Awaited<ReturnType<InterestsService['expressInterest']>>;
     try {
       result = await interestsService.expressInterest(userId, validatedInput);
     } catch (error) {

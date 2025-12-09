@@ -18,15 +18,11 @@ export const PATCH: APIRoute = async ({ request: _request, params, locals }) => 
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Enforce auth
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-    if (authError || !session) {
+    // Get userId from locals (set by middleware) - required
+    const userId = locals.user?.id;
+    if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
-    const userId = session.user.id;
 
     // Extract interest_id from params
     const interestId = params.interest_id ?? '';

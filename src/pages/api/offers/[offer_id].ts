@@ -42,15 +42,9 @@ export const GET: APIRoute = async ({ params, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Pobranie sesji (jeśli brakujący, traktujemy jako unauthorized)
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    const userId = session?.user?.id;
-    if (!userId) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak ważnej sesji użytkownika', 401);
-    }
+    // Get userId from locals (set by middleware) - optional for this endpoint
+    // If user is logged in, we'll show additional info (is_interested, is_owner)
+    const userId = locals.user?.id;
 
     const service = new OfferService(supabase);
     const offer = await service.getOfferById(offerId, userId);
@@ -122,14 +116,10 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // 3. Pobierz sesję użytkownika
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    const userId = session?.user?.id;
+    // 3. Get userId from locals (set by middleware) - required for PATCH
+    const userId = locals.user?.id;
     if (!userId) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak ważnej sesji użytkownika', 401);
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
 
     // 4. Parse i walidacja request body

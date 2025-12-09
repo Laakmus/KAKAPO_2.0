@@ -204,6 +204,7 @@ export type Database = {
       };
       interests: {
         Row: {
+          chat_id: string | null;
           created_at: string;
           id: string;
           offer_id: string;
@@ -212,6 +213,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          chat_id?: string | null;
           created_at?: string;
           id?: string;
           offer_id: string;
@@ -220,6 +222,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          chat_id?: string | null;
           created_at?: string;
           id?: string;
           offer_id?: string;
@@ -228,6 +231,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'interests_chat_id_fkey';
+            columns: ['chat_id'];
+            isOneToOne: false;
+            referencedRelation: 'chats';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'interests_offer_id_fkey';
             columns: ['offer_id'];

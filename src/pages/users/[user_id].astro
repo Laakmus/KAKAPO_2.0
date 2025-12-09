@@ -20,11 +20,9 @@ try {
   return Astro.redirect('/offers');
 }
 
-// Sprawdź autoryzację - jeśli brak sesji, redirect do logowania
-const session = await Astro.locals.supabase?.auth.getSession();
-if (!session?.data?.session) {
-  return Astro.redirect('/login');
-}
+// NOTE: Autoryzacja jest sprawdzana po stronie klienta przez UserProfileClient
+// (który używa AuthenticatedLayout z useProtectedRoute).
+// Server-side auth check nie działa z tokenem w localStorage.
 ---
 
 <Layout title={`Profil użytkownika - KAKAPO`}>

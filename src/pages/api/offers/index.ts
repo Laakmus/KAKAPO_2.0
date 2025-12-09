@@ -13,15 +13,7 @@ export const GET: APIRoute = async ({ request: _request, locals, url }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Auth check
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-    if (authError || !session) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-    }
-
+    // Listing offers is public - no auth required
     // Parse & validate query params
     const searchParams = Object.fromEntries(url.searchParams.entries());
     let validatedQuery;
@@ -56,39 +48,16 @@ export const GET: APIRoute = async ({ request: _request, locals, url }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async (context) => {
   try {
+    const { request, locals } = context;
     const supabase = locals.supabase;
     if (!supabase) {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Auth check – spróbuj użyć localnego użytkownika (np. z middleware)
-    let userId = locals.user?.id as string | undefined;
-    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
-
-    if (!userId && authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      const { data: userData, error: userError } = await supabase.auth.getUser(token);
-      if (userError || !userData?.user) {
-        return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-      }
-
-      userId = userData.user.id;
-    }
-
-    if (!userId) {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-      }
-
-      userId = session.user.id;
-    }
-
+    // Get userId from locals (set by middleware)
+    const userId = locals.user?.id;
     if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }

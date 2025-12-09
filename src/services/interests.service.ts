@@ -87,6 +87,7 @@ export class InterestsService {
     const requesterOfferIds = (requesterOffers || []).map((r: { id: string }) => r.id) as string[];
 
     let mutualMatch = false;
+    let mutualInterestId: string | null = null;
     if (requesterOfferIds.length > 0) {
       const { data: mutual, error: mutualError } = await this.supabase
         .from('interests')
@@ -101,9 +102,48 @@ export class InterestsService {
       }
 
       mutualMatch = Array.isArray(mutual) && mutual.length > 0;
+      if (mutualMatch && mutual.length > 0) {
+        mutualInterestId = (mutual[0] as { id: string }).id;
+      }
     }
 
-    // 5) Utwórz interest (domyślnie PROPOSED)
+    // 5) Jeśli mutual match, zaktualizuj wcześniejsze zainteresowanie na ACCEPTED
+    if (mutualMatch && mutualInterestId) {
+      console.log('[INTERESTS_SERVICE][MUTUAL_MATCH_DETECTED]', {
+        mutualInterestId,
+        willUpdateStatus: 'ACCEPTED',
+      });
+
+      const { data: updateResult, error: updateMutualError, count } = await this.supabase
+        .from('interests')
+        .update({ status: 'ACCEPTED' })
+        .eq('id', mutualInterestId)
+        .select('*', { count: 'exact' });
+
+      console.log('[INTERESTS_SERVICE][UPDATE_RESULT]', {
+        error: updateMutualError,
+        count,
+        updatedRows: updateResult,
+      });
+
+      if (updateMutualError) {
+        console.error('[INTERESTS_SERVICE][UPDATE_MUTUAL_INTEREST_ERROR]', updateMutualError);
+        // Nie przerywamy operacji, kontynuujemy tworzenie nowego zainteresowania
+      } else {
+        console.log('[INTERESTS_SERVICE][MUTUAL_INTEREST_UPDATED]', {
+          updatedCount: updateResult?.length ?? 0,
+          updatedData: updateResult,
+        });
+      }
+    } else {
+      console.log('[INTERESTS_SERVICE][NO_MUTUAL_MATCH]', {
+        mutualMatch,
+        mutualInterestId,
+        requesterOfferIds: (requesterOffers || []).map((r: { id: string }) => r.id),
+      });
+    }
+
+    // 6) Utwórz interest (domyślnie PROPOSED, lub ACCEPTED jeśli mutual match)
     const initialStatus = mutualMatch ? 'ACCEPTED' : 'PROPOSED';
 
     const { data: insertedInterest, error: insertError } = await this.supabase
@@ -136,16 +176,19 @@ export class InterestsService {
       throw new Error('Nie udało się zapisać zainteresowania');
     }
 
-    // 6) Jeśli mutualMatch, utwórz chat i zaktualizuj interest.chat_id (jeśli tabela chats istnieje)
+    // 7) Jeśli mutualMatch, utwórz chat i zaktualizuj interest.chat_id (jeśli tabela chats istnieje)
     let chatId: string | null = null;
     if (mutualMatch) {
       try {
+        // Ensure user_a < user_b (lexicographically) to satisfy CHECK constraint
+        const [userA, userB] = [requesterId, offerOwnerId].sort();
+
         const { data: chat, error: chatError } = await this.supabase
           .from('chats')
           .insert({
-            user_a: requesterId,
-            user_b: offerOwnerId,
-            status: 'OPEN',
+            user_a: userA,
+            user_b: userB,
+            status: 'ACTIVE',
           })
           .select('id')
           .single();
@@ -156,7 +199,7 @@ export class InterestsService {
           const chatAny = chat as unknown as { id?: string } | null;
           if (chatAny?.id) {
             chatId = chatAny.id;
-            // Aktualizuj interest, ustaw chat_id i status ACCEPTED (jeśli jeszcze nie ustawiony)
+            // Aktualizuj oba interests (nowe i wcześniejsze), ustaw chat_id
             const insertedAny = insertedInterest as unknown as { id: string } | null;
             const { error: updateError } = await this.supabase
               .from('interests')
@@ -165,6 +208,18 @@ export class InterestsService {
 
             if (updateError) {
               console.error('[INTERESTS_SERVICE][INTEREST_UPDATE_ERROR]', updateError);
+            }
+
+            // Aktualizuj wcześniejsze zainteresowanie chat_id
+            if (mutualInterestId) {
+              const { error: updateMutualChatError } = await this.supabase
+                .from('interests')
+                .update({ chat_id: chatId })
+                .eq('id', mutualInterestId);
+
+              if (updateMutualChatError) {
+                console.error('[INTERESTS_SERVICE][UPDATE_MUTUAL_CHAT_ERROR]', updateMutualChatError);
+              }
             }
           }
         }
@@ -190,6 +245,15 @@ export class InterestsService {
       created_at: insertedAny.created_at,
       message: mutualMatch ? 'Wzajemne zainteresowanie! Chat został otwarty' : 'Zainteresowanie zostało wyrażone',
       chat_id: chatId ?? null,
+      // DEBUG INFO - usuń to po naprawie
+      _debug: {
+        mutualMatch,
+        mutualInterestId,
+        requesterOfferIds,
+        initialStatus,
+        requesterId,
+        offerOwnerId,
+      } as any,
     };
 
     return response;
@@ -257,7 +321,7 @@ export class InterestsService {
   /**
    * Anuluje (usuwa) zainteresowanie.
    *
-   * Soft-delete: ustawia deleted_at = now()
+   * Hard-delete: usuwa rekord z bazy danych
    *
    * @param requesterId - UUID użytkownika wykonującego operację
    * @param interestId - UUID rekordu zainteresowania
@@ -266,7 +330,7 @@ export class InterestsService {
     // Pobierz rekord zainteresowania
     const { data: interest, error } = await this.supabase
       .from('interests')
-      .select('id, user_id, deleted_at')
+      .select('id, user_id')
       .eq('id', interestId)
       .maybeSingle();
 
@@ -283,13 +347,6 @@ export class InterestsService {
       throw e;
     }
 
-    // Jeśli już oznaczone jako usunięte -> konflikt
-    if ((interest as any)?.deleted_at) {
-      const e = new Error('Zainteresowanie jest już anulowane');
-      Object.assign(e, { code: 'ALREADY_CANCELLED' });
-      throw e;
-    }
-
     // Sprawdź właściciela
     if ((interest as any).user_id !== requesterId) {
       const e = new Error('Brak uprawnień do anulowania tego zainteresowania');
@@ -297,14 +354,11 @@ export class InterestsService {
       throw e;
     }
 
-    // Soft-delete: ustaw deleted_at
-    const { error: updateError } = await this.supabase
-      .from('interests')
-      .update({ deleted_at: new Date().toISOString() } as any)
-      .eq('id', interestId);
+    // Hard-delete: usuń rekord
+    const { error: deleteError } = await this.supabase.from('interests').delete().eq('id', interestId);
 
-    if (updateError) {
-      console.error('[INTERESTS_SERVICE][DELETE_ERROR]', updateError);
+    if (deleteError) {
+      console.error('[INTERESTS_SERVICE][DELETE_ERROR]', deleteError);
       const e = new Error('Błąd podczas anulowania zainteresowania');
       Object.assign(e, { code: 'DB_ERROR' });
       throw e;

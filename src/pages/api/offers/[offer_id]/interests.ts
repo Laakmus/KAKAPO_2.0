@@ -63,15 +63,8 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
     }
 
     // 5. Autoryzacja - wymagamy zalogowanego użytkownika
-    const requesterId = locals.user?.id;
-    if (!requesterId) {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) {
-        return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-      }
-    }
-
-    const userId = (locals.user?.id as string) || (await supabase.auth.getSession()).data?.session?.user?.id;
+    // Get userId from locals (set by middleware) - required
+    const userId = locals.user?.id;
     if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
