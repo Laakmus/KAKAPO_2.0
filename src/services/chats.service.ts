@@ -71,17 +71,16 @@ export class ChatsService {
 
         let otherUser = { id: otherUserId ?? userId, name: '' };
         if (otherUserId) {
-          // Pobieramy imię/nazwisko z auth.users.user_metadata
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const fromAuthUsers = (this.supabase as unknown as any).from('auth.users');
-          const { data: userRow, error: userRowError } = await fromAuthUsers
-            .select('id, user_metadata->>first_name as first_name, user_metadata->>last_name as last_name')
+          // Pobieramy imię/nazwisko z public.users view
+          const { data: userRow, error: userRowError } = await this.supabase
+            .from('users')
+            .select('id, first_name, last_name')
             .eq('id', otherUserId)
             .maybeSingle();
           if (!userRowError && userRow) {
             const first = (userRow.first_name ?? '').trim();
             const last = (userRow.last_name ?? '').trim();
-            otherUser = { id: userRow.id, name: `${first} ${last}`.trim() || '' };
+            otherUser = { id: userRow.id ?? otherUserId, name: `${first} ${last}`.trim() || '' };
           }
         }
 
@@ -95,22 +94,15 @@ export class ChatsService {
           .maybeSingle();
         if (lastMsgError) throw lastMsgError;
 
-        // unread count
-        const { count: unreadCount, error: countError } = await this.supabase
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('chat_id', chatId)
-          .eq('is_read', false)
-          .eq('receiver_id', userId);
-        if (countError) throw countError;
-
+        // Uwaga: tabela messages nie ma kolumn is_read/receiver_id
+        // unread_count nie jest wspierany w bieżącej wersji schematu
         results.push({
           id: chatRow.id,
           status: chatRow.status,
           created_at: chatRow.created_at,
           other_user: otherUser,
           last_message: lastMsg ?? null,
-          unread_count: unreadCount ?? 0,
+          unread_count: 0,
         });
       }
 
@@ -148,20 +140,19 @@ export class ChatsService {
         throw new Error('ACCESS_DENIED');
       }
 
-      // 3) Pobierz dane obu użytkowników z auth.users
+      // 3) Pobierz dane obu użytkowników z public.users view
       const userAId = chat.user_a ?? '';
       const userBId = chat.user_b ?? '';
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fromAuthUsers = (this.supabase as unknown as any).from('auth.users');
-
-      const { data: userAData, error: userAError } = await fromAuthUsers
-        .select('id, user_metadata->>first_name as first_name, user_metadata->>last_name as last_name')
+      const { data: userAData, error: userAError } = await this.supabase
+        .from('users')
+        .select('id, first_name, last_name')
         .eq('id', userAId)
         .maybeSingle();
 
-      const { data: userBData, error: userBError } = await fromAuthUsers
-        .select('id, user_metadata->>first_name as first_name, user_metadata->>last_name as last_name')
+      const { data: userBData, error: userBError } = await this.supabase
+        .from('users')
+        .select('id, first_name, last_name')
         .eq('id', userBId)
         .maybeSingle();
 
@@ -171,14 +162,14 @@ export class ChatsService {
 
       const userA = userAData
         ? {
-            id: userAData.id,
+            id: userAData.id ?? userAId,
             name: `${(userAData.first_name ?? '').trim()} ${(userAData.last_name ?? '').trim()}`.trim() || 'Użytkownik',
           }
         : { id: userAId, name: 'Użytkownik' };
 
       const userB = userBData
         ? {
-            id: userBData.id,
+            id: userBData.id ?? userBId,
             name: `${(userBData.first_name ?? '').trim()} ${(userBData.last_name ?? '').trim()}`.trim() || 'Użytkownik',
           }
         : { id: userBId, name: 'Użytkownik' };
@@ -258,18 +249,28 @@ export class ChatsService {
       // 3) Pobierz imiona nadawców i mapuj do MessageViewModel
       const messageViewModels: MessageViewModel[] = [];
 
-      for (const msg of messages ?? []) {
-        // Pobierz imię nadawcy z auth.users
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const fromAuthUsers = (this.supabase as unknown as any).from('auth.users');
-        const { data: senderData, error: _senderError } = await fromAuthUsers
-          .select('id, user_metadata->>first_name as first_name, user_metadata->>last_name as last_name')
-          .eq('id', msg.sender_id)
-          .maybeSingle();
+      // Pobierz wszystkie unikalne sender_id aby zoptymalizować zapytania
+      const senderIds = [...new Set((messages ?? []).map((m) => m.sender_id))];
+      const senderMap = new Map<string, string>();
 
-        const senderName = senderData
-          ? `${(senderData.first_name ?? '').trim()} ${(senderData.last_name ?? '').trim()}`.trim() || 'Użytkownik'
-          : 'Użytkownik';
+      // Pobierz imiona wszystkich nadawców w jednym zapytaniu
+      if (senderIds.length > 0) {
+        const { data: sendersData } = await this.supabase
+          .from('users')
+          .select('id, first_name, last_name')
+          .in('id', senderIds);
+
+        for (const sender of sendersData ?? []) {
+          if (sender.id) {
+            const name =
+              `${(sender.first_name ?? '').trim()} ${(sender.last_name ?? '').trim()}`.trim() || 'Użytkownik';
+            senderMap.set(sender.id, name);
+          }
+        }
+      }
+
+      for (const msg of messages ?? []) {
+        const senderName = senderMap.get(msg.sender_id) ?? 'Użytkownik';
 
         messageViewModels.push({
           id: msg.id,
@@ -422,18 +423,13 @@ export class ChatsService {
         throw new Error('ACCESS_DENIED');
       }
 
-      // 2) Określ odbiorcę wiadomości
-      const receiverId = chat.user_a === userId ? chat.user_b : chat.user_a;
-
-      // 3) Wstaw wiadomość do bazy danych
+      // 2) Wstaw wiadomość do bazy danych
       const { data: message, error: insertError } = await this.supabase
         .from('messages')
         .insert({
           chat_id: chatId,
           sender_id: userId,
-          receiver_id: receiverId,
           body: body.trim(),
-          is_read: false,
         })
         .select('id, chat_id, sender_id, body, created_at')
         .single();
@@ -443,11 +439,10 @@ export class ChatsService {
         throw new Error('Failed to create message');
       }
 
-      // 4) Pobierz imię nadawcy
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fromAuthUsers = (this.supabase as unknown as any).from('auth.users');
-      const { data: senderData, error: _senderError } = await fromAuthUsers
-        .select('id, user_metadata->>first_name as first_name, user_metadata->>last_name as last_name')
+      // 4) Pobierz imię nadawcy z public.users view
+      const { data: senderData } = await this.supabase
+        .from('users')
+        .select('id, first_name, last_name')
         .eq('id', userId)
         .maybeSingle();
 

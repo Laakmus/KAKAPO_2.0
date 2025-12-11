@@ -1,0 +1,21 @@
+# Reduce cursor indexing on generated or sensitive files per docs
+.env
+.env.*
+*.log
+credentials.json
+secrets.json
+node_modules/
+.DS_Store
+/.git/
+.lock
+.cache/
+.bundle/
+.cache-loader/
+coverage/
+build/
+dist/
+.next/
+.nuxt/
+.venv/
+.pnp.js
+.pnp/

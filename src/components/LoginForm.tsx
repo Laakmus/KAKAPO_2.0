@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '@/schemas/auth.schema';
@@ -51,6 +51,7 @@ type LoginFormProps = {
  */
 export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = true }: LoginFormProps) {
   const { isLoading, notification, login, clearNotification } = useLogin();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Referencje do pól formularza (dla auto-focus)
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -94,6 +95,9 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
    * Handler submitu formularza
    */
   const onSubmit = async (values: LoginFormValues) => {
+    // Jeśli już przekierowujemy, ignoruj kolejne submit-y (anty-dublowanie requestów)
+    if (isRedirecting) return;
+
     // Wyczyść poprzednie notyfikacje
     clearNotification();
 
@@ -101,8 +105,16 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
     const result = await login(values);
 
     if (result.success) {
+      // Sukces - zablokuj formularz i pozwól stronie przekierować
+      setIsRedirecting(true);
       // Sukces - wywołaj callback z tokenami
-      onSuccess?.(result.data);
+      try {
+        onSuccess?.(result.data);
+      } catch (e) {
+        // Safety fallback - jeśli callback rzuci wyjątek, spróbuj prostego przekierowania
+        console.error('Login success handler error:', e);
+        window.location.href = '/offers';
+      }
     } else {
       // Błąd - mapuj błędy API na pola formularza
       if (typeof result.error !== 'string') {
@@ -149,7 +161,7 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
             id="email"
             type="email"
             placeholder="twoj@email.com"
-            disabled={isLoading || isSubmitting}
+            disabled={isRedirecting || isLoading || isSubmitting}
             aria-invalid={!!errors.email}
             aria-describedby={errors.email ? 'email-error' : undefined}
             {...emailRegister}
@@ -174,7 +186,7 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
             id="password"
             type="password"
             placeholder="Minimum 6 znaków"
-            disabled={isLoading || isSubmitting}
+            disabled={isRedirecting || isLoading || isSubmitting}
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? 'password-error' : undefined}
             {...passwordRegister}
@@ -191,8 +203,8 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
         </div>
 
         {/* Przycisk submit */}
-        <Button type="submit" className="w-full" disabled={isLoading || isSubmitting}>
-          {isLoading || isSubmitting ? 'Logowanie...' : 'Zaloguj się'}
+        <Button type="submit" className="w-full" disabled={isRedirecting || isLoading || isSubmitting}>
+          {isRedirecting ? 'Przekierowywanie...' : isLoading || isSubmitting ? 'Logowanie...' : 'Zaloguj się'}
         </Button>
       </form>
 

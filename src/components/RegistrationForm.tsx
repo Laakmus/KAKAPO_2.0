@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signupSchema } from '@/schemas/auth.schema';
@@ -45,6 +45,7 @@ type RegistrationFormProps = {
  */
 export function RegistrationForm({ onSuccess, onError, initialValues }: RegistrationFormProps) {
   const { isLoading, notification, signup, clearNotification } = useSignup();
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Referencje do pól formularza (dla auto-focus)
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -94,6 +95,9 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
    * Handler submitu formularza
    */
   const onSubmit = async (values: RegistrationFormValues) => {
+    // Po sukcesie blokujemy formularz, żeby nie wysyłać requestu kilka razy
+    if (isSuccess) return;
+
     // Wyczyść poprzednie notyfikacje
     clearNotification();
 
@@ -101,6 +105,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
     const result = await signup(values);
 
     if (result.success) {
+      setIsSuccess(true);
       // Sukces - wywołaj callback
       onSuccess?.(result.data.message);
     } else {
@@ -151,7 +156,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
             id="email"
             type="email"
             placeholder="twoj@email.com"
-            disabled={isLoading || isSubmitting}
+            disabled={isSuccess || isLoading || isSubmitting}
             aria-invalid={!!errors.email}
             aria-describedby={errors.email ? 'email-error' : undefined}
             {...emailRegister}
@@ -176,7 +181,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
             id="password"
             type="password"
             placeholder="Minimum 8 znaków"
-            disabled={isLoading || isSubmitting}
+            disabled={isSuccess || isLoading || isSubmitting}
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? 'password-error' : undefined}
             {...passwordRegister}
@@ -201,7 +206,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
             id="first_name"
             type="text"
             placeholder="Jan"
-            disabled={isLoading || isSubmitting}
+            disabled={isSuccess || isLoading || isSubmitting}
             aria-invalid={!!errors.first_name}
             aria-describedby={errors.first_name ? 'first_name-error' : undefined}
             {...firstNameRegister}
@@ -226,7 +231,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
             id="last_name"
             type="text"
             placeholder="Kowalski"
-            disabled={isLoading || isSubmitting}
+            disabled={isSuccess || isLoading || isSubmitting}
             aria-invalid={!!errors.last_name}
             aria-describedby={errors.last_name ? 'last_name-error' : undefined}
             {...lastNameRegister}
@@ -243,8 +248,8 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
         </div>
 
         {/* Przycisk submit */}
-        <Button type="submit" className="w-full" disabled={isLoading || isSubmitting}>
-          {isLoading || isSubmitting ? 'Rejestracja...' : 'Zarejestruj się'}
+        <Button type="submit" className="w-full" disabled={isSuccess || isLoading || isSubmitting}>
+          {isSuccess ? 'Zarejestrowano' : isLoading || isSubmitting ? 'Rejestracja...' : 'Zarejestruj się'}
         </Button>
       </form>
     </div>

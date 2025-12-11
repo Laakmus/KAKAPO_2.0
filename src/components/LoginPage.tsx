@@ -25,8 +25,13 @@ export function LoginPage() {
    */
   const handleSuccess = (_tokens: AuthTokensResponse) => {
     // Tokeny są już zapisane w localStorage przez useLogin
-    // Przekieruj użytkownika do strony głównej z ofertami
-    window.location.assign('/offers');
+    // Przekieruj użytkownika do docelowej strony (jeśli przyszli z protected route)
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    const safeTarget = redirect && redirect.startsWith('/') ? redirect : '/offers';
+
+    // Use hard navigation to ensure full reload and fresh auth state
+    window.location.assign(safeTarget);
   };
 
   /**
