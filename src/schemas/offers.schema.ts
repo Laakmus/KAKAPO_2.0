@@ -65,6 +65,14 @@ export const offersListQuerySchema = z.object({
     .describe('Filtrowanie po mieście'),
   sort: z.enum(['created_at', 'title']).optional().default('created_at'),
   order: z.enum(['asc', 'desc']).optional().default('desc'),
+  search: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.trim() : undefined))
+    .refine((val) => !val || val.length >= 2, {
+      message: 'Wyszukiwana fraza musi mieć co najmniej 2 znaki',
+    })
+    .describe('Wyszukiwanie w tytule i opisie oferty'),
 });
 
 export const createOfferSchema = z.object({

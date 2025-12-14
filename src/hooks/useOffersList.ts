@@ -67,6 +67,10 @@ export function useOffersList(filter: HomeFilterState, page: number) {
           params.append('city', filter.city);
         }
 
+        if (filter.search) {
+          params.append('search', filter.search);
+        }
+
         // Fetch z timeout 10s
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useOffersList } from '@/hooks/useOffersList';
 import { useUrlPagination } from '@/hooks/useUrlPagination';
 import { useOfferSelection } from '@/hooks/useOfferSelection';
 import type { HomeFilterState } from '@/types';
+import { OffersSearchInput } from './OffersSearchInput';
 import { OffersFilterPanel } from './OffersFilterPanel';
 import { OffersGrid } from './OffersGrid';
 import { PaginationControls } from './PaginationControls';
@@ -25,6 +26,7 @@ export function HomeOffersPage() {
   const [filter, setFilter] = useState<HomeFilterState>({
     sort: 'created_at',
     order: 'desc',
+    search: '',
   });
 
   // Paginacja z synchronizacją URL
@@ -35,6 +37,15 @@ export function HomeOffersPage() {
 
   // Wybór oferty do szczegółów
   const { selectedOffer, selectOffer, deselectOffer } = useOfferSelection();
+
+  /**
+   * Handler zmiany wyszukiwania
+   */
+  const handleSearchChange = (search: string) => {
+    setFilter((prev) => ({ ...prev, search }));
+    // Reset do strony 1 przy zmianie wyszukiwania
+    setPage(1);
+  };
 
   /**
    * Handler zmiany filtra
@@ -86,6 +97,11 @@ export function HomeOffersPage() {
 
   return (
     <div className="container mx-auto px-4 py-6">
+      {/* Pole wyszukiwania */}
+      <div className="mb-6">
+        <OffersSearchInput value={filter.search || ''} onChange={handleSearchChange} />
+      </div>
+
       {/* Panel filtrowania */}
       <div className="mb-6">
         <OffersFilterPanel
@@ -109,7 +125,9 @@ export function HomeOffersPage() {
           )}
 
           {/* Stan empty */}
-          {!isLoading && !error && offers.length === 0 && <EmptyState onRefresh={handleRefresh} />}
+          {!isLoading && !error && offers.length === 0 && (
+            <EmptyState onRefresh={handleRefresh} searchQuery={filter.search} />
+          )}
 
           {/* Stan success - siatka ofert */}
           {!isLoading && !error && offers.length > 0 && (

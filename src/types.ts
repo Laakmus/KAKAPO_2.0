@@ -197,6 +197,7 @@ export type OffersListQuery = PaginationParams & {
   city?: string;
   sort?: 'created_at' | 'title';
   order?: 'asc' | 'desc';
+  search?: string;
 };
 
 // Item returned in listings (augmented with computed fields)
@@ -251,6 +252,7 @@ export type HomeFilterState = {
   city?: string;
   sort: 'created_at' | 'title';
   order: 'desc' | 'asc';
+  search?: string;
 };
 
 export type ApiErrorViewModel = ApiErrorResponse & {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 
@@ -9,14 +8,31 @@ type EmptyStateProps = {
   title?: string;
   description?: string;
   onRefresh: () => void;
+  searchQuery?: string;
 };
 
 /**
  * Komponent stanu pustej listy
  *
- * Wyświetlany gdy brak ofert pasujących do filtrów
+ * Wyświetlany gdy brak ofert pasujących do filtrów lub wyszukiwania
  */
-export function EmptyState({ title, description, onRefresh }: EmptyStateProps) {
+export function EmptyState({ title, description, onRefresh, searchQuery }: EmptyStateProps) {
+  const defaultTitle = searchQuery ? `Brak wyników dla "${searchQuery}"` : 'Brak aktywnych ofert';
+
+  const defaultDescription = searchQuery ? (
+    <>
+      Nie znaleziono ofert pasujących do wyszukiwania.
+      <br />
+      Spróbuj użyć innych słów kluczowych.
+    </>
+  ) : (
+    <>
+      Nie znaleziono ofert pasujących do wybranych filtrów.
+      <br />
+      Spróbuj zmienić filtry lub odśwież stronę.
+    </>
+  );
+
   return (
     <Card className="p-12 text-center">
       <div className="flex flex-col items-center gap-4">
@@ -40,16 +56,8 @@ export function EmptyState({ title, description, onRefresh }: EmptyStateProps) {
 
         {/* Komunikat */}
         <div>
-          <h3 className="text-xl font-semibold mb-2">{title || 'Brak aktywnych ofert'}</h3>
-          <p className="text-muted-foreground mb-4">
-            {description || (
-              <>
-                Nie znaleziono ofert pasujących do wybranych filtrów.
-                <br />
-                Spróbuj zmienić filtry lub odśwież stronę.
-              </>
-            )}
-          </p>
+          <h3 className="text-xl font-semibold mb-2">{title || defaultTitle}</h3>
+          <p className="text-muted-foreground mb-4">{description || defaultDescription}</p>
         </div>
 
         {/* CTA */}

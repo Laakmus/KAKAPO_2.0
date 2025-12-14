@@ -36,7 +36,7 @@ export class OfferService {
    * - Paginate (offset-based)
    */
   async listOffers(query: OffersListQuery): Promise<Paginated<OfferListItemDTO>> {
-    const { page = 1, limit = 15, city, sort = 'created_at', order = 'desc' } = query;
+    const { page = 1, limit = 15, city, sort = 'created_at', order = 'desc', search } = query;
 
     // Count query (exact)
     let countQuery = this.supabase.from('offers').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE');
@@ -52,6 +52,13 @@ export class OfferService {
     if (city) {
       countQuery = countQuery.eq('city', city);
       dataQuery = dataQuery.eq('city', city);
+    }
+
+    // Search filter (case-insensitive ILIKE on title and description)
+    if (search) {
+      const searchPattern = `%${search}%`;
+      countQuery = countQuery.or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`);
+      dataQuery = dataQuery.or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`);
     }
 
     dataQuery = dataQuery.order(sort, { ascending: order === 'asc' }).range((page - 1) * limit, page * limit - 1);
