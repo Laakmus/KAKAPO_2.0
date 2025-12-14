@@ -57,7 +57,7 @@ type OfferFormProps = {
  */
 export function OfferForm({ onSuccess, onError }: OfferFormProps) {
   const { isLoading, createOffer } = useCreateOffer();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   // Stan dla uploadu zdjęć (wiele zdjęć)
   const [uploadedImages, setUploadedImages] = useState<OfferImage[]>([]);
@@ -180,6 +180,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({
               images: uploadedImages.map((img, idx) => ({
