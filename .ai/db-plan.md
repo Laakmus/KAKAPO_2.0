@@ -480,6 +480,72 @@ CREATE TRIGGER create_chat_on_mutual_interest
   EXECUTE FUNCTION create_chat_on_mutual_match();
 ```
 
+### Automatyczne usuwanie ofert po realizacji wymiany
+
+Gdy obie strony potwierdzą realizację wymiany (oba zainteresowania osiągną status REALIZED), oferty są automatycznie oznaczane jako REMOVED. Zapobiega to wyświetlaniu zrealizowanych ofert w publicznej liście oraz na liście "Moje oferty".
+
+```sql
+CREATE FUNCTION remove_offers_on_mutual_realization() RETURNS trigger AS $$
+DECLARE
+  v_other_user_id uuid;
+  v_other_interest_id uuid;
+  v_other_offer_id uuid;
+  v_my_offer_id uuid;
+BEGIN
+  -- Tylko dla statusu REALIZED (zmiana z innego statusu)
+  IF NEW.status != 'REALIZED' OR OLD.status = 'REALIZED' THEN
+    RETURN NEW;
+  END IF;
+
+  -- Znajdź właściciela oferty
+  SELECT owner_id INTO v_other_user_id
+  FROM offers
+  WHERE id = NEW.offer_id;
+
+  -- Zapisz ID mojej oferty
+  v_my_offer_id := NEW.offer_id;
+
+  -- Znajdź wzajemne zainteresowanie (druga strona też ma REALIZED)
+  SELECT i.id, i.offer_id
+  INTO v_other_interest_id, v_other_offer_id
+  FROM interests i
+  JOIN offers o ON i.offer_id = o.id
+  WHERE i.user_id = v_other_user_id
+    AND o.owner_id = NEW.user_id
+    AND i.status = 'REALIZED';
+
+  -- Jeśli oba zainteresowania są REALIZED, oznacz obie oferty jako REMOVED
+  IF v_other_interest_id IS NOT NULL THEN
+    -- Oznacz pierwszą ofertę jako REMOVED
+    UPDATE offers
+    SET status = 'REMOVED'
+    WHERE id = NEW.offer_id
+      AND status != 'REMOVED';
+
+    -- Oznacz drugą ofertę jako REMOVED
+    UPDATE offers
+    SET status = 'REMOVED'
+    WHERE id = v_other_offer_id
+      AND status != 'REMOVED';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER remove_offers_on_realized_trigger
+  AFTER UPDATE ON interests
+  FOR EACH ROW
+  EXECUTE FUNCTION remove_offers_on_mutual_realization();
+```
+
+**Uwagi:**
+- Trigger używa `SECURITY DEFINER` aby mieć uprawnienia do aktualizacji ofert mimo RLS
+- Sprawdzenie `status != 'REMOVED'` zapobiega nadmiarowym UPDATE jeśli oferta została już usunięta ręcznie
+- Trigger uruchamia się niezależnie dla obu użytkowników, ale dzięki warunkowi działa tylko gdy oba interests są REALIZED
+- Po usunięciu oferty nie jest ona widoczna w `/offers` (publiczna lista) ani w `/offers/my` (lista właściciela)
+- Czat jest dodatkowo blokowany przez logikę `isChatLocked()` w `ChatsService`
+
 ### Automatyczne tworzenie wpisu w historii wymian
 
 Gdy oba zainteresowania osiągną status REALIZED, tworzy wpis w exchange_history.

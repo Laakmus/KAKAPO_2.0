@@ -199,6 +199,7 @@ export function useChatsViewState(initialChatId?: string) {
           chatId: chatDetails.id,
           status: chatDetails.status,
           created_at: chatDetails.created_at,
+          is_locked: Boolean(chatDetails.is_locked),
           participants: {
             me: { id: user?.id || '', name: '' },
             other: chatDetails.other_user || { id: '', name: 'Nieznany użytkownik' },

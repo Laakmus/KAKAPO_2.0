@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { offerIdParamsSchema, updateOfferSchema } from '../../../schemas/offers.schema';
-import { createErrorResponse } from '../../../utils/errors';
-import { OfferService } from '../../../services/offer.service';
-import type { UpdateOfferCommand } from '../../../types';
+import { offerIdParamsSchema, updateOfferSchema } from '@/schemas/offers.schema';
+import { createErrorResponse } from '@/utils/errors';
+import { OfferService } from '@/services/offer.service';
+import type { UpdateOfferCommand } from '@/types';
 
 export const prerender = false;
 
@@ -185,6 +185,81 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     }
   } catch (error) {
     console.error('[OFFERS_PATCH_EXCEPTION]', error);
+    return createErrorResponse('INTERNAL_ERROR', 'Wystąpił nieoczekiwany błąd', 500);
+  }
+};
+
+/**
+ * DELETE /api/offers/{offer_id}
+ *
+ * Soft-delete oferty: ustawia status = 'REMOVED' (tylko właściciel).
+ *
+ * Headers:
+ *  - Authorization: Bearer {token} (wymagany)
+ *
+ * Response:
+ *  - 204 No Content: oferta oznaczona jako REMOVED
+ *  - 400 Bad Request: nieprawidłowy offer_id
+ *  - 401 Unauthorized: brak autoryzacji
+ *  - 403 Forbidden: brak uprawnień
+ *  - 404 Not Found: oferta nie istnieje
+ *  - 500 Internal Server Error
+ */
+export const DELETE: APIRoute = async ({ params, locals }) => {
+  try {
+    // 1) Walidacja parametrów ścieżki
+    try {
+      offerIdParamsSchema.parse(params);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const first = error.errors[0];
+        return createErrorResponse('VALIDATION_ERROR', first.message, 400, {
+          field: String(first.path[0] || 'offer_id'),
+          value: (params as Record<string, unknown>)?.[String(first.path[0] || 'offer_id')],
+        });
+      }
+      throw error;
+    }
+
+    const offerId = String(params.offer_id);
+
+    // 2) Sprawdź klienta Supabase
+    const supabase = locals.supabase;
+    if (!supabase) {
+      console.error('[OFFERS_DELETE] Supabase client not found in locals');
+      return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
+    }
+
+    // 3) Get userId from locals (set by middleware) - required for DELETE
+    const userId = locals.user?.id;
+    if (!userId) {
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
+    }
+
+    // 4) Soft-delete w serwisie
+    const service = new OfferService(supabase);
+    try {
+      await service.removeOffer(userId, offerId);
+    } catch (serviceError) {
+      const error = serviceError as Error & { code?: string };
+
+      if (error.code === 'NOT_FOUND') {
+        return createErrorResponse('NOT_FOUND', 'Oferta nie istnieje', 404);
+      }
+      if (error.code === 'FORBIDDEN') {
+        return createErrorResponse('FORBIDDEN', 'Nie masz uprawnień do usunięcia tej oferty', 403);
+      }
+      if (error.code === 'RLS_VIOLATION') {
+        return createErrorResponse('FORBIDDEN', 'Naruszenie zasad bezpieczeństwa', 403);
+      }
+
+      console.error('[OFFERS_DELETE_SERVICE_ERROR]', serviceError);
+      throw serviceError;
+    }
+
+    return new Response(null, { status: 204 });
+  } catch (error) {
+    console.error('[OFFERS_DELETE_EXCEPTION]', error);
     return createErrorResponse('INTERNAL_ERROR', 'Wystąpił nieoczekiwany błąd', 500);
   }
 };

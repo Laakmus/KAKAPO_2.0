@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AuthenticatedLayout } from './AuthenticatedLayout';
-import { ChatsViewPage } from './ChatsViewPage';
+import { AuthenticatedLayout } from '@/components/AuthenticatedLayout';
+import { ChatsViewPage } from '@/components/ChatsViewPage';
 
 /**
  * Props dla ChatsPageLayout

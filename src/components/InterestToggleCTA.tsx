@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Button } from './ui/button';
 
 /**
@@ -12,8 +12,25 @@ type InterestToggleCTAProps = {
   status: string;
   isMutating: boolean;
   interestsCount: number;
+  /**
+   * Czy użytkownik może wyrazić zainteresowanie (np. ma aktywne oferty do zaoferowania).
+   * Domyślnie true (brak blokady).
+   */
+  canExpressInterest?: boolean;
+  /**
+   * Callback wywoływany gdy użytkownik próbuje wyrazić zainteresowanie,
+   * ale jest to zablokowane (np. brak aktywnych ofert).
+   */
+  onBlockedExpressInterest?: () => void;
   onExpress: (offerId: string) => void;
   onCancel: (interestId: string) => void;
+};
+
+type BlockedTooltipState = {
+  open: boolean;
+  x: number;
+  y: number;
+  message: string;
 };
 
 /**
@@ -34,26 +51,100 @@ export function InterestToggleCTA({
   status,
   isMutating,
   interestsCount,
+  canExpressInterest = true,
+  onBlockedExpressInterest,
   onExpress,
   onCancel,
 }: InterestToggleCTAProps) {
   /**
+   * Sprawdź czy przycisk powinien być disabled
+   */
+  const isDisabled = isOwner || status === 'REMOVED' || isMutating || (isInterested && !currentInterestId); // Brak interest_id do anulowania
+  const isBlockedByNoOffers = !isInterested && !isDisabled && !canExpressInterest;
+
+  const [blockedTooltip, setBlockedTooltip] = useState<BlockedTooltipState>({
+    open: false,
+    x: 0,
+    y: 0,
+    message: '',
+  });
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const showBlockedTooltip = useCallback((x: number, y: number, message: string) => {
+    // Mały offset żeby nie zasłaniać kursora
+    const offset = 12;
+    const maxWidth = 320; // używane do prostego clampu w poziomie
+
+    const clampedX = typeof window !== 'undefined' ? Math.min(x + offset, window.innerWidth - maxWidth) : x + offset;
+    const clampedY = typeof window !== 'undefined' ? Math.min(y + offset, window.innerHeight - 80) : y + offset;
+
+    // Prosty throttling: nie aktualizuj jeśli zmiana minimalna (żeby nie spamować renderów)
+    const last = lastPosRef.current;
+    if (last && Math.abs(last.x - clampedX) < 2 && Math.abs(last.y - clampedY) < 2 && blockedTooltip.open) {
+      return;
+    }
+    lastPosRef.current = { x: clampedX, y: clampedY };
+
+    setBlockedTooltip({ open: true, x: clampedX, y: clampedY, message });
+  }, [blockedTooltip.open]);
+
+  const hideBlockedTooltip = useCallback(() => {
+    lastPosRef.current = null;
+    setBlockedTooltip((prev) => (prev.open ? { ...prev, open: false } : prev));
+  }, []);
+
+  /**
    * Handler dla kliknięcia przycisku
    */
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
     if (isInterested && currentInterestId) {
       // Anuluj zainteresowanie
       onCancel(currentInterestId);
     } else if (!isInterested) {
+      // Blokada: user nie ma aktywnej oferty do zaoferowania
+      if (!canExpressInterest) {
+        const msg = 'Nie masz oferty do zaoferowania';
+        showBlockedTooltip(e.clientX, e.clientY, msg);
+        onBlockedExpressInterest?.();
+        return;
+      }
       // Wyraź zainteresowanie
       onExpress(offerId);
     }
-  }, [isInterested, currentInterestId, offerId, onExpress, onCancel]);
+    },
+    [
+      isInterested,
+      currentInterestId,
+      offerId,
+      onExpress,
+      onCancel,
+      canExpressInterest,
+      onBlockedExpressInterest,
+      showBlockedTooltip,
+    ],
+  );
 
-  /**
-   * Sprawdź czy przycisk powinien być disabled
-   */
-  const isDisabled = isOwner || status === 'REMOVED' || isMutating || (isInterested && !currentInterestId); // Brak interest_id do anulowania
+  const handleMouseEnter = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (!isBlockedByNoOffers) return;
+      showBlockedTooltip(e.clientX, e.clientY, 'Nie masz oferty do zaoferowania');
+    },
+    [isBlockedByNoOffers, showBlockedTooltip],
+  );
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (!isBlockedByNoOffers) return;
+      showBlockedTooltip(e.clientX, e.clientY, 'Nie masz oferty do zaoferowania');
+    },
+    [isBlockedByNoOffers, showBlockedTooltip],
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    if (!isBlockedByNoOffers) return;
+    hideBlockedTooltip();
+  }, [isBlockedByNoOffers, hideBlockedTooltip]);
 
   /**
    * Tekst przycisku
@@ -68,6 +159,8 @@ export function InterestToggleCTA({
     ariaLabel = 'Nie możesz być zainteresowany własną ofertą';
   } else if (status === 'REMOVED') {
     ariaLabel = 'Oferta została usunięta';
+  } else if (isBlockedByNoOffers) {
+    ariaLabel = 'Nie masz oferty do zaoferowania';
   } else if (isMutating) {
     ariaLabel = 'Trwa przetwarzanie...';
   }
@@ -85,9 +178,13 @@ export function InterestToggleCTA({
         disabled={isDisabled}
         variant={variant}
         size="lg"
-        className="w-full"
+        className={`w-full ${isBlockedByNoOffers ? 'opacity-60' : ''}`}
         aria-label={ariaLabel}
         aria-busy={isMutating}
+        aria-disabled={isBlockedByNoOffers ? 'true' : undefined}
+        onMouseEnter={handleMouseEnter}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Spinner podczas mutacji */}
         {isMutating ? (
@@ -129,6 +226,20 @@ export function InterestToggleCTA({
           </>
         )}
       </Button>
+
+      {/* Komunikat obok kursora przy zablokowanej akcji */}
+      {blockedTooltip.open && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed z-50 pointer-events-none"
+          style={{ left: blockedTooltip.x, top: blockedTooltip.y }}
+        >
+          <div className="max-w-xs rounded-md border border-red-200 bg-red-50 text-red-900 shadow-lg px-3 py-2 text-sm font-medium">
+            {blockedTooltip.message}
+          </div>
+        </div>
+      )}
 
       {/* Info dla właściciela */}
       {isOwner && (

@@ -1,5 +1,5 @@
-import { type ReactNode, useMemo } from 'react';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { TopNavBar, type NavItem } from './TopNavBar';
 import { MainContentContainer } from './MainContentContainer';
@@ -33,6 +33,71 @@ function AuthenticatedLayoutInner({ children, currentPath }: Omit<AuthenticatedL
   const auth = useAuthState();
   const protectedRoute = useProtectedRoute();
   const { logout, isLoggingOut } = useLogout();
+  const { token } = useAuth();
+
+  /**
+   * Prosty wskaźnik "nowe"/"nieprzeczytane" dla linku "Moje Oferty".
+d   * Bazuje na porównaniu interests_count z "ostatnio widzianą" liczbą zainteresowań per oferta.
+   * (To jest czysto UI sygnał; łatwo podmienić na prawdziwe "unread" gdy API/schemat to wspiera.)
+   */
+  const [myOffersHasUpdates, setMyOffersHasUpdates] = useState(false);
+
+  useEffect(() => {
+    // Unikamy podwójnego fetchowania na /offers/my (ta strona i tak pobiera oferty).
+    if (currentPath.startsWith('/offers/my')) return;
+    if (!token) {
+      setMyOffersHasUpdates(false);
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    fetch('/api/offers/my?status=ACTIVE', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as { data?: Array<{ id: string; interests_count?: number }> };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        const offers = payload?.data ?? [];
+        let seenMap: Record<string, number> = {};
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = window.localStorage.getItem('kakapo_seen_interests_count_by_offer_id');
+            const parsed = raw ? (JSON.parse(raw) as Record<string, number>) : {};
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              seenMap = parsed;
+            }
+          } catch {
+            seenMap = {};
+          }
+        }
+
+        const hasNew = offers.some((o) => (o.interests_count ?? 0) > (seenMap[o.id] ?? 0));
+        setMyOffersHasUpdates(hasNew);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setMyOffersHasUpdates(false);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [token, currentPath]);
 
   /**
    * Nawigacja - stała lista linków
@@ -40,12 +105,17 @@ function AuthenticatedLayoutInner({ children, currentPath }: Omit<AuthenticatedL
   const navItems: NavItem[] = useMemo(
     () => [
       { label: 'Home', href: '/offers', testId: 'nav-home', exact: false },
-      { label: 'Dodaj ofertę', href: '/offers/new', testId: 'nav-new-offer', exact: true },
-      { label: 'Moje Oferty', href: '/offers/my', testId: 'nav-my-offers', exact: false },
+      {
+        label: 'Moje Oferty',
+        href: '/offers/my',
+        testId: 'nav-my-offers',
+        exact: false,
+        showDot: myOffersHasUpdates,
+      },
       { label: 'Profil', href: '/profile', testId: 'nav-profile', exact: true },
       { label: 'Chat', href: '/chats', testId: 'nav-chat', exact: false },
     ],
-    [],
+    [myOffersHasUpdates],
   );
 
   /**

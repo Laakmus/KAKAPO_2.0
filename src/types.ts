@@ -340,9 +340,13 @@ export type ChatListItemDTO = Pick<ChatRow, 'id' | 'status' | 'created_at'> & {
     created_at: string;
   } | null;
   unread_count?: number;
+  /**
+   * Read-only czat (np. gdy oferta powiązana z czatem została usunięta).
+   */
+  is_locked?: boolean;
 };
 
-export type ChatDetailDTO = ChatRow & {
+export type ChatDetailDTO = Omit<ChatRow, 'user_a' | 'user_b'> & {
   user_a: { id: string; name: string };
   user_b: { id: string; name: string };
 };
@@ -369,6 +373,10 @@ export type ChatDetailsViewModel = {
     their: OfferSummary;
   };
   realized_at?: string | null;
+  /**
+   * Read-only czat (np. gdy oferta powiązana z czatem została usunięta).
+   */
+  is_locked?: boolean;
 };
 
 /**
@@ -440,6 +448,10 @@ export type ChatDetailViewModel = {
   chatId: string;
   status: string;
   created_at: string;
+  /**
+   * Read-only czat (np. gdy oferta powiązana z czatem została usunięta).
+   */
+  is_locked?: boolean;
   participants: {
     me: { id: string; name: string };
     other: { id: string; name: string };

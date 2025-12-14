@@ -114,7 +114,11 @@ export class InterestsService {
         willUpdateStatus: 'ACCEPTED',
       });
 
-      const { data: updateResult, error: updateMutualError, count } = await this.supabase
+      const {
+        data: updateResult,
+        error: updateMutualError,
+        count,
+      } = await this.supabase
         .from('interests')
         .update({ status: 'ACCEPTED' })
         .eq('id', mutualInterestId)

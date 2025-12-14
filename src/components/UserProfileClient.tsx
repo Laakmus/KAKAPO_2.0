@@ -5,6 +5,7 @@ import { UserOffersSection } from './UserOffersSection';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { ErrorBanner } from './ErrorBanner';
 import { Button } from './ui/button';
+import { hardNavigate } from '@/utils/navigation';
 
 /**
  * Props dla UserProfileClient
@@ -31,7 +32,7 @@ export function UserProfileClient({ userId }: UserProfileClientProps) {
   // Redirect do logowania przy błędzie autoryzacji
   useEffect(() => {
     if (profileError?.statusCode === 401) {
-      window.location.href = '/login';
+      hardNavigate('/login');
     }
   }, [profileError]);
 
@@ -42,7 +43,7 @@ export function UserProfileClient({ userId }: UserProfileClientProps) {
     if (window.history.length > 1) {
       window.history.back();
     } else {
-      window.location.href = '/offers';
+      hardNavigate('/offers');
     }
   };
 

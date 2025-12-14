@@ -103,8 +103,12 @@ Ten dokument zbiera rozszerzony kontekst techniczny użytego stacku dla projektu
 
 ### 9. Testy, monitoring, backup
 
-- Testy jednostkowe dla logiki (Jest / Vitest).
-- Testy integracyjne minimalne do sprawdzenia CRUD ofert + RLS.
+- Testy jednostkowe / integracyjne (**rekomendowane**):
+  - **Vitest** (runner) + środowisko **jsdom** dla komponentów React w Astro.
+  - **React Testing Library** (testy komponentów z perspektywy użytkownika).
+  - **MSW (Mock Service Worker)** (mockowanie zapytań sieciowych, np. do API/Supabase).
+- Testy E2E (**rekomendowane**):
+  - **Playwright** (scenariusze end-to-end, w tym łatwe testowanie wielu kontekstów przeglądarki — np. chat między dwoma użytkownikami).
 - Backup bazy: uzgodnić politykę backupów Supabase lub eksport schematów/migrations.
 - Monitoring: Sentry (errors), Prometheus/Datadog (w miarę rozwoju).
 

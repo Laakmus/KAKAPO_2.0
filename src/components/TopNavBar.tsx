@@ -10,6 +10,11 @@ export type NavItem = {
   icon?: ReactNode;
   exact?: boolean;
   testId?: string;
+  /**
+   * Pokazuje małą czerwoną kropkę (badge-dot) sygnalizującą "nowe"/"nieprzeczytane".
+   * Bez licznika.
+   */
+  showDot?: boolean;
 };
 
 /**
@@ -85,7 +90,7 @@ export function TopNavBar({ navItems, activePath, onLogout, userLabel, isLogging
                   data-testid={item.testId}
                   aria-current={active ? 'page' : undefined}
                   className={`
-                    px-4 py-2 rounded-md text-sm font-medium transition-colors
+                    relative px-4 py-2 rounded-md text-sm font-medium transition-colors
                     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus-visible:ring-2
                     ${
                       active
@@ -94,6 +99,15 @@ export function TopNavBar({ navItems, activePath, onLogout, userLabel, isLogging
                     }
                   `}
                 >
+                  {item.showDot && !active && (
+                    <>
+                      <span
+                        aria-hidden="true"
+                        className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"
+                      />
+                      <span className="sr-only">Nowe</span>
+                    </>
+                  )}
                   {item.icon && (
                     <span className="mr-2" aria-hidden="true">
                       {item.icon}

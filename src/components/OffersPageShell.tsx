@@ -2,10 +2,12 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useOfferDetail } from '@/hooks/useOfferDetail';
 import { useInterestToggle } from '@/hooks/useInterestToggle';
 import { useUrlPagination } from '@/hooks/useUrlPagination';
+import { hardNavigate } from '@/utils/navigation';
 import type { HomeFilterState, NotificationMessage } from '@/types';
-import { OffersListPanel } from './OffersListPanel';
-import { OfferDetailPanel } from './OfferDetailPanel';
-import { GlobalNotification } from './GlobalNotification';
+import { OffersListPanel } from '@/components/OffersListPanel';
+import { OfferDetailPanel } from '@/components/OfferDetailPanel';
+import { GlobalNotification } from '@/components/GlobalNotification';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Props dla OffersPageShell
@@ -29,6 +31,7 @@ export function OffersPageShell({ offerId }: OffersPageShellProps) {
   const { offer, isLoading, error, refresh } = useOfferDetail(offerId);
   const { actionState, expressInterest, cancelInterest, resetActionState } = useInterestToggle();
   const { page, setPage } = useUrlPagination();
+  const { user } = useAuth();
 
   // Stan lokalny
   const [notification, setNotification] = useState<NotificationMessage | undefined>();
@@ -36,6 +39,17 @@ export function OffersPageShell({ offerId }: OffersPageShellProps) {
     sort: 'created_at',
     order: 'desc',
   });
+
+  /**
+   * Czy user ma przynajmniej jedną aktywną ofertę do zaoferowania.
+   * Jeśli profil nie jest jeszcze załadowany, nie blokujemy akcji (fallback = true).
+   */
+  const canExpressInterest = (user?.active_offers_count ?? 1) > 0;
+
+  /**
+   * Handler: user próbuje wyrazić zainteresowanie bez aktywnych ofert
+   */
+  // Komunikat dla tej sytuacji pokazujemy lokalnie przy kursorze (w InterestToggleCTA).
 
   /**
    * Handler dla akcji zainteresowania (wyrażanie)
@@ -108,7 +122,7 @@ export function OffersPageShell({ offerId }: OffersPageShellProps) {
    * Nawiguje do nowej oferty
    */
   const handleSelectOffer = useCallback((selectedOfferId: string) => {
-    window.location.href = `/offers/${selectedOfferId}`;
+    hardNavigate(`/offers/${selectedOfferId}`);
   }, []);
 
   /**
@@ -174,6 +188,7 @@ export function OffersPageShell({ offerId }: OffersPageShellProps) {
               onExpressInterest={handleExpressInterest}
               onCancelInterest={handleCancelInterest}
               isMutating={actionState.mutating}
+              canExpressInterest={canExpressInterest}
             />
           </div>
         </div>

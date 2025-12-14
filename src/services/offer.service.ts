@@ -200,6 +200,13 @@ export class OfferService {
       return null;
     }
 
+    // Jeśli oferta jest usunięta, ukryj ją dla wszystkich poza właścicielem
+    // (dla ownera jest widoczna np. w "Moje oferty" po filtrze REMOVED).
+    const isOwnerForVisibility = userId ? userId === offerData.owner_id : false;
+    if (offerData.status !== 'ACTIVE' && !isOwnerForVisibility) {
+      return null;
+    }
+
     // 2) Get owner data
     const { data: ownerData } = await this.supabase
       .from('users')
@@ -271,6 +278,65 @@ export class OfferService {
     } as OfferDetailDTO;
 
     return dto;
+  }
+
+  /**
+   * Soft-delete oferty (status -> 'REMOVED') - tylko właściciel.
+   *
+   * @param userId - ID zalogowanego użytkownika
+   * @param offerId - UUID oferty
+   *
+   * @throws Error z kodem:
+   *  - 'NOT_FOUND' gdy oferta nie istnieje
+   *  - 'FORBIDDEN' gdy użytkownik nie jest właścicielem
+   *  - 'RLS_VIOLATION' przy naruszeniu RLS
+   */
+  async removeOffer(userId: string, offerId: string): Promise<void> {
+    // 1) Sprawdź czy oferta istnieje + owner
+    const { data: existingOffer, error: fetchError } = await this.supabase
+      .from('offers')
+      .select('id, owner_id, status')
+      .eq('id', offerId)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error('[REMOVE_OFFER_FETCH_ERROR]', fetchError);
+      throw new Error('Nie udało się pobrać oferty');
+    }
+
+    if (!existingOffer) {
+      const e = new Error('Oferta nie istnieje');
+      Object.assign(e, { code: 'NOT_FOUND' });
+      throw e;
+    }
+
+    if (existingOffer.owner_id !== userId) {
+      const e = new Error('Brak uprawnień do usunięcia tej oferty');
+      Object.assign(e, { code: 'FORBIDDEN' });
+      throw e;
+    }
+
+    // 2) Jeśli już REMOVED, traktuj jako sukces (idempotent)
+    if (String(existingOffer.status) === 'REMOVED') {
+      return;
+    }
+
+    // 3) Soft-delete
+    const { error: updateError } = await this.supabase
+      .from('offers')
+      .update({ status: 'REMOVED' })
+      .eq('id', offerId)
+      .eq('owner_id', userId);
+
+    if (updateError) {
+      console.error('[REMOVE_OFFER_UPDATE_ERROR]', updateError);
+      if ((updateError as unknown as { code?: string }).code === '42501') {
+        const e = new Error('RLS_VIOLATION');
+        Object.assign(e, { code: 'RLS_VIOLATION' });
+        throw e;
+      }
+      throw new Error('Nie udało się usunąć oferty');
+    }
   }
 
   /**

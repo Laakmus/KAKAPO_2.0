@@ -20,6 +20,111 @@ export class ChatsService {
   constructor(private supabase: SupabaseClient<Database>) {}
 
   /**
+   * Sprawdza czy czat powinien być zablokowany (read-only).
+   * Czat jest zablokowany gdy:
+   * 1. Brak aktywnego mutual match (wszystkie oferty REMOVED)
+   * 2. LUB obie strony potwierdziły realizację (obie interests REALIZED)
+   */
+  private async isChatLocked(chatId: string): Promise<boolean> {
+    try {
+      // 1) Pobierz informacje o czacie (user_a, user_b)
+      const { data: chat, error: chatError } = await this.supabase
+        .from('chats')
+        .select('user_a, user_b')
+        .eq('id', chatId)
+        .maybeSingle();
+
+      if (chatError || !chat) {
+        console.error('[ChatsService.isChatLocked] chat error:', chatError);
+        return true;
+      }
+
+      const userA = chat.user_a;
+      const userB = chat.user_b;
+
+      // 2) Pobierz interests user_a w ofertach user_b
+      const { data: userAInterests } = await this.supabase
+        .from('interests')
+        .select('id, offer_id, status, realized_at')
+        .eq('user_id', userA)
+        .in('status', ['PROPOSED', 'ACCEPTED', 'REALIZED']);
+
+      // 3) Pobierz oferty user_b
+      const { data: userBOffers } = await this.supabase
+        .from('offers')
+        .select('id, title, owner_id, status')
+        .eq('owner_id', userB);
+
+      // 4) Znajdź interest user_a w ofercie user_b (najnowszy ACCEPTED lub REALIZED)
+      const userBOfferIds = (userBOffers ?? []).map((o) => o.id);
+      const userAInterest = (userAInterests ?? [])
+        .filter((i) => userBOfferIds.includes(i.offer_id))
+        .sort((a, b) => {
+          // Priorytet: REALIZED > ACCEPTED > PROPOSED
+          const statusOrder = { REALIZED: 3, ACCEPTED: 2, PROPOSED: 1 };
+          return (statusOrder[b.status as keyof typeof statusOrder] || 0) -
+                 (statusOrder[a.status as keyof typeof statusOrder] || 0);
+        })[0];
+
+      // 5) Pobierz interests user_b w ofertach user_a
+      const { data: userBInterests } = await this.supabase
+        .from('interests')
+        .select('id, offer_id, status, realized_at')
+        .eq('user_id', userB)
+        .in('status', ['PROPOSED', 'ACCEPTED', 'REALIZED']);
+
+      // 6) Pobierz oferty user_a
+      const { data: userAOffers } = await this.supabase
+        .from('offers')
+        .select('id, title, owner_id, status')
+        .eq('owner_id', userA);
+
+      // 7) Znajdź interest user_b w ofercie user_a (najnowszy ACCEPTED lub REALIZED)
+      const userAOfferIds = (userAOffers ?? []).map((o) => o.id);
+      const userBInterest = (userBInterests ?? [])
+        .filter((i) => userAOfferIds.includes(i.offer_id))
+        .sort((a, b) => {
+          const statusOrder = { REALIZED: 3, ACCEPTED: 2, PROPOSED: 1 };
+          return (statusOrder[b.status as keyof typeof statusOrder] || 0) -
+                 (statusOrder[a.status as keyof typeof statusOrder] || 0);
+        })[0];
+
+      // 8) Sprawdź czy jest aktywny mutual match
+      if (!userAInterest || !userBInterest) {
+        console.warn('[ChatsService.isChatLocked] No mutual match found - locking');
+        return true; // Brak mutual match -> zablokowany
+      }
+
+      // 9) Pobierz oferty dla tego mutual match
+      const offerA = userAOffers?.find((o) => o.id === userBInterest.offer_id);
+      const offerB = userBOffers?.find((o) => o.id === userAInterest.offer_id);
+
+      console.warn('[ChatsService.isChatLocked] Chat:', chatId);
+      console.warn('[ChatsService.isChatLocked] Interest A:', userAInterest.status, 'Offer B:', offerB?.status);
+      console.warn('[ChatsService.isChatLocked] Interest B:', userBInterest.status, 'Offer A:', offerA?.status);
+
+      // 10) Zablokuj jeśli którakolwiek oferta jest REMOVED
+      if (offerA?.status === 'REMOVED' || offerB?.status === 'REMOVED') {
+        console.warn('[ChatsService.isChatLocked] Offer removed - locking');
+        return true;
+      }
+
+      // 11) Zablokuj jeśli obie strony potwierdziły realizację
+      if (userAInterest.status === 'REALIZED' && userBInterest.status === 'REALIZED') {
+        console.warn('[ChatsService.isChatLocked] Both realized - locking');
+        return true;
+      }
+
+      console.warn('[ChatsService.isChatLocked] Chat active');
+      return false;
+    } catch (err) {
+      console.error('[ChatsService.isChatLocked] unexpected error:', err);
+      // Fail-closed: w przypadku nieoczekiwanego błędu też blokujemy wysyłkę.
+      return true;
+    }
+  }
+
+  /**
    * Pobiera listę czatów, w których uczestniczy `userId`.
    *
    * @param userId - id zalogowanego użytkownika
@@ -94,6 +199,8 @@ export class ChatsService {
           .maybeSingle();
         if (lastMsgError) throw lastMsgError;
 
+        const isLocked = await this.isChatLocked(chatId);
+
         // Uwaga: tabela messages nie ma kolumn is_read/receiver_id
         // unread_count nie jest wspierany w bieżącej wersji schematu
         results.push({
@@ -103,6 +210,7 @@ export class ChatsService {
           other_user: otherUser,
           last_message: lastMsg ?? null,
           unread_count: 0,
+          is_locked: isLocked,
         });
       }
 
@@ -328,7 +436,7 @@ export class ChatsService {
       // 4) Znajdź oferty należące do drugiego użytkownika
       const { data: otherUserOffers, error: otherOffersError } = await this.supabase
         .from('offers')
-        .select('id, title, owner_id')
+        .select('id, title, owner_id, status')
         .eq('owner_id', otherUserId);
 
       if (otherOffersError) throw otherOffersError;
@@ -349,7 +457,7 @@ export class ChatsService {
       // 7) Znajdź oferty należące do current usera
       const { data: currentUserOffers, error: currentOffersError } = await this.supabase
         .from('offers')
-        .select('id, title, owner_id')
+        .select('id, title, owner_id, status')
         .eq('owner_id', userId);
 
       if (currentOffersError) throw currentOffersError;
@@ -361,6 +469,10 @@ export class ChatsService {
       // 9) Pobierz tytuły ofert
       const myOffer = currentUserOffers?.find((o) => o.id === otherUserInterest?.offer_id);
       const theirOffer = otherUserOffers?.find((o) => o.id === currentUserInterest?.offer_id);
+
+      // 9a) Określ czy czat powinien być zablokowany (read-only)
+      // (np. gdy oferta została usunięta -> status=REMOVED).
+      const isLocked = await this.isChatLocked(chatId);
 
       // 10) Zbuduj ChatDetailsViewModel
       const result: ChatDetailsViewModel = {
@@ -387,6 +499,7 @@ export class ChatsService {
               }
             : undefined,
         realized_at: currentUserInterest?.realized_at,
+        is_locked: isLocked,
       };
 
       return result;
@@ -421,6 +534,12 @@ export class ChatsService {
       const isParticipant = chat.user_a === userId || chat.user_b === userId;
       if (!isParticipant) {
         throw new Error('ACCESS_DENIED');
+      }
+
+      // 1a) Blokada wysyłania gdy czat jest powiązany z usuniętą ofertą
+      const locked = await this.isChatLocked(chatId);
+      if (locked) {
+        throw new Error('CHAT_LOCKED');
       }
 
       // 2) Wstaw wiadomość do bazy danych

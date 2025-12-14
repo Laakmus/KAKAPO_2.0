@@ -14,3 +14,24 @@
 ┃ Network  use --host to expose
 
 13:54:04 watching for file changes...
+02:01:15 Configuration file updated. Restarting...
+02:01:15 [vite] Re-optimizing dependencies because vite config has changed
+02:01:16 [content] Syncing content
+02:01:16 [content] Synced content
+02:01:16 [types] Generated 120ms
+02:01:16 [vite] Re-optimizing dependencies because vite config has changed
+02:02:57 Configuration file updated. Restarting...
+02:02:57 [vite] Re-optimizing dependencies because vite config has changed
+02:02:58 [content] Syncing content
+02:02:58 [content] Astro config changed
+02:02:58 [content] Clearing content store
+02:02:58 [content] Synced content
+02:02:58 [types] Generated 73ms
+02:02:58 [vite] Re-optimizing dependencies because vite config has changed
+02:10:03 [vite] changed tsconfig file detected: /Users/jaroslawurbanowicz/Dysk E/10xDEVS/projects/KAKAPO_2.0/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+02:10:03 Configuration file updated. Restarting...
+02:10:03 [vite] Re-optimizing dependencies because lockfile has changed
+02:10:03 [content] Syncing content
+02:10:03 [content] Synced content
+02:10:03 [types] Generated 75ms
+02:10:03 [vite] Re-optimizing dependencies because vite config has changed

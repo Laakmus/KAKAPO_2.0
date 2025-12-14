@@ -18,6 +18,14 @@ type MessageComposerProps = {
    * Czy trwa wysyłanie wiadomości
    */
   isSending: boolean;
+  /**
+   * Czy composer ma być zablokowany (read-only).
+   */
+  isDisabled?: boolean;
+  /**
+   * Opcjonalny tekst wyjaśniający blokadę.
+   */
+  disabledMessage?: string;
 };
 
 /**
@@ -33,7 +41,12 @@ type MessageComposerProps = {
  * @param onSend - callback wysyłania wiadomości
  * @param isSending - czy trwa wysyłanie
  */
-export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
+export function MessageComposer({
+  onSend,
+  isSending,
+  isDisabled = false,
+  disabledMessage,
+}: MessageComposerProps) {
   const [charCount, setCharCount] = useState(0);
 
   const {
@@ -87,7 +100,7 @@ export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
           {...register('body')}
           placeholder="Napisz wiadomość... (Shift+Enter dla nowej linii)"
           rows={3}
-          disabled={isSending}
+          disabled={isSending || isDisabled}
           onKeyDown={handleKeyDown}
           className={errors.body ? 'border-destructive' : ''}
           aria-label="Treść wiadomości"
@@ -108,8 +121,10 @@ export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
 
       {/* Przycisk wysyłania */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">Shift+Enter dla nowej linii, Enter aby wysłać</p>
-        <Button type="submit" disabled={!isValid || isSending || charCount === 0} size="default">
+        <p className="text-xs text-muted-foreground">
+          {isDisabled ? disabledMessage || 'Nie możesz wysyłać wiadomości w tym czacie' : 'Shift+Enter dla nowej linii, Enter aby wysłać'}
+        </p>
+        <Button type="submit" disabled={!isValid || isSending || isDisabled || charCount === 0} size="default">
           {isSending ? (
             <>
               <svg

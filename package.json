@@ -11,7 +11,17 @@
     "lint:fix": "eslint . --ext .js,.ts,.astro --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,astro,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,astro,json,css,md}\"",
-    "shadcn": "npx shadcn@latest add && npm run lint:fix"
+    "shadcn": "npx shadcn@latest add && npm run lint:fix",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:unit:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "pw:install": "playwright install"
   },
   "dependencies": {
     "@astrojs/react": "^4.4.2",
@@ -37,14 +47,23 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
+    "@types/node": "^22.13.10",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^1.5.0",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "jsdom": "^26.1.0",
     "prettier": "^3.6.2",
-    "prettier-plugin-astro": "^0.14.1"
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }

@@ -18,6 +18,15 @@ type OfferDetailPanelProps = {
   onExpressInterest: (offerId: string) => void;
   onCancelInterest: (interestId: string) => void;
   isMutating: boolean;
+  /**
+   * Czy użytkownik może wyrazić zainteresowanie (np. ma aktywne oferty).
+   * Gdy false, kliknięcie "Jestem zainteresowany" nie wywoła mutacji.
+   */
+  canExpressInterest?: boolean;
+  /**
+   * Callback gdy kliknięto "Jestem zainteresowany" ale akcja jest zablokowana.
+   */
+  onBlockedExpressInterest?: () => void;
 };
 
 /**
@@ -40,6 +49,8 @@ export function OfferDetailPanel({
   onExpressInterest,
   onCancelInterest,
   isMutating,
+  canExpressInterest = true,
+  onBlockedExpressInterest,
 }: OfferDetailPanelProps) {
   /**
    * Renderuj loading state
@@ -133,6 +144,8 @@ export function OfferDetailPanel({
             status={offer.status}
             isMutating={isMutating}
             interestsCount={offer.interests_count}
+            canExpressInterest={canExpressInterest}
+            onBlockedExpressInterest={onBlockedExpressInterest}
             onExpress={onExpressInterest}
             onCancel={onCancelInterest}
           />

@@ -41,6 +41,8 @@ export function ChatListItem({ chat, isActive, onSelect }: ChatListItemProps) {
    * Obsługa kliknięcia
    */
   const handleClick = () => {
+    // Blokuj kliknięcie jeśli czat jest zablokowany
+    if (isLocked) return;
     onSelect(chat.id);
   };
 
@@ -48,6 +50,8 @@ export function ChatListItem({ chat, isActive, onSelect }: ChatListItemProps) {
    * Obsługa klawiatury (Enter/Space)
    */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Blokuj akcję klawiatury jeśli czat jest zablokowany
+    if (isLocked) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onSelect(chat.id);
@@ -61,21 +65,24 @@ export function ChatListItem({ chat, isActive, onSelect }: ChatListItemProps) {
   };
 
   const lastMessagePreview = chat.last_message?.body ? truncateMessage(chat.last_message.body) : 'Brak wiadomości';
+  const isLocked = Boolean(chat.is_locked);
 
   return (
     <div
       role="button"
-      tabIndex={0}
+      tabIndex={isLocked ? -1 : 0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       className={cn(
-        'group flex items-start gap-3 p-4 border-b border-border cursor-pointer',
+        'group flex items-start gap-3 p-4 border-b border-border',
         'transition-all duration-200 ease-in-out',
-        'hover:bg-accent hover:shadow-sm focus:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset',
-        isActive && 'bg-accent border-l-4 border-l-primary shadow-sm',
+        !isLocked && 'cursor-pointer hover:bg-accent hover:shadow-sm focus:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset',
+        isActive && !isLocked && 'bg-accent border-l-4 border-l-primary shadow-sm',
+        isLocked && 'opacity-50 cursor-not-allowed',
       )}
-      aria-label={`Czat z ${chat.other_user.name}${(chat.unread_count ?? 0) > 0 ? `, ${chat.unread_count} nieprzeczytanych wiadomości` : ''}`}
+      aria-label={`Czat z ${chat.other_user.name}${isLocked ? ' (nieaktywny)' : ''}${(chat.unread_count ?? 0) > 0 ? `, ${chat.unread_count} nieprzeczytanych wiadomości` : ''}`}
       aria-current={isActive ? 'true' : 'false'}
+      aria-disabled={isLocked}
     >
       {/* Avatar użytkownika */}
       <Avatar className="h-10 w-10 flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
@@ -104,10 +111,12 @@ export function ChatListItem({ chat, isActive, onSelect }: ChatListItemProps) {
           <span
             className={cn(
               'text-xs px-2 py-0.5 rounded-full',
-              chat.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
+              isLocked || chat.status !== 'ACTIVE'
+                ? 'bg-gray-200 text-gray-800'
+                : 'bg-green-100 text-green-800',
             )}
           >
-            {chat.status === 'ACTIVE' ? 'Aktywny' : 'Archiwizowany'}
+            {isLocked ? 'Nieaktywny' : chat.status === 'ACTIVE' ? 'Aktywny' : 'Archiwizowany'}
           </span>
 
           {/* Badge nieprzeczytanych wiadomości */}

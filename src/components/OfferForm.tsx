@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { CitySelect, type CityName } from '@/components/CitySelect';
 import { ImageUpload, type OfferImage } from '@/components/ImageUpload';
+import { hardNavigate } from '@/utils/navigation';
 
 /**
  * Typ wartości formularza
@@ -202,7 +203,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
 
       // Przekieruj do szczegółów oferty po krótkiej zwłoce (czas na wyświetlenie powiadomienia)
       setTimeout(() => {
-        window.location.href = `/offers/${offerId}`;
+        hardNavigate(`/offers/${offerId}`);
       }, 1500);
     } else {
       // Błąd - mapuj błędy API na pola formularza

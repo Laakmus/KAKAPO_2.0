@@ -1,5 +1,6 @@
 import { LoginForm } from '@/components/LoginForm';
 import type { ApiErrorResponse, AuthTokensResponse } from '@/types';
+import { hardNavigate } from '@/utils/navigation';
 
 /**
  * Komponent LoginPage
@@ -31,7 +32,7 @@ export function LoginPage() {
     const safeTarget = redirect && redirect.startsWith('/') ? redirect : '/offers';
 
     // Use hard navigation to ensure full reload and fresh auth state
-    window.location.assign(safeTarget);
+    hardNavigate(safeTarget);
   };
 
   /**

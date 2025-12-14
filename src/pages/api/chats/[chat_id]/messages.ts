@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { createErrorResponse } from '../../../../utils/errors';
-import { chatIdParamsSchema, listMessagesQuerySchema, createMessageSchema } from '../../../../schemas/chats.schema';
-import ChatsService from '../../../../services/chats.service';
+import { createErrorResponse } from '@/utils/errors';
+import { chatIdParamsSchema, listMessagesQuerySchema, createMessageSchema } from '@/schemas/chats.schema';
+import ChatsService from '@/services/chats.service';
 
 export const prerender = false;
 
@@ -162,6 +162,9 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
         }
         if (err.message === 'ACCESS_DENIED') {
           return createErrorResponse('FORBIDDEN', 'Brak uprawnień do tego czatu', 403);
+        }
+        if (err.message === 'CHAT_LOCKED') {
+          return createErrorResponse('CHAT_LOCKED', 'Czat jest zamknięty (oferta została usunięta)', 409);
         }
       }
       console.error('[POST_MESSAGE_EXCEPTION]', err);

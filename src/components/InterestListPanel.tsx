@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useInterestsList } from '@/hooks/useInterestsList';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -11,6 +11,12 @@ type InterestListPanelProps = {
   offerId: string | null;
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * Callback wywoływany, gdy lista zainteresowanych faktycznie została załadowana
+   * i wyrenderowana (tzn. isOpen=true, brak error, isLoading=false i interests.length>0).
+   * Używane do gaszenia "kropki" (badge-dot) po realnym zobaczeniu listy.
+   */
+  onInterestsDisplayed?: (offerId: string, totalInterests: number) => void;
 };
 
 /**
@@ -22,9 +28,26 @@ type InterestListPanelProps = {
  * - Linki do profili użytkowników i ich ofert
  * - Obsługa błędów 403/404
  */
-export function InterestListPanel({ offerId, isOpen, onClose }: InterestListPanelProps) {
+export function InterestListPanel({ offerId, isOpen, onClose, onInterestsDisplayed }: InterestListPanelProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const { interests, pagination, isLoading, error } = useInterestsList(offerId, currentPage, 20);
+  const displayedForOfferIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Reset "notified" when offer changes / panel closes
+    if (!isOpen) {
+      displayedForOfferIdRef.current = null;
+      return;
+    }
+    if (!offerId) return;
+    if (displayedForOfferIdRef.current === offerId) return;
+
+    if (!isLoading && !error && interests.length > 0) {
+      displayedForOfferIdRef.current = offerId;
+      const total = pagination?.total ?? interests.length;
+      onInterestsDisplayed?.(offerId, total);
+    }
+  }, [isOpen, offerId, isLoading, error, interests.length, pagination?.total, onInterestsDisplayed]);
 
   /**
    * Handler zmiany strony

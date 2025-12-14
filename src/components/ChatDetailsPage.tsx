@@ -255,7 +255,8 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
           <div>
             <h1 className="text-lg font-semibold">{otherUser?.name ?? 'Użytkownik'}</h1>
             <p className="text-xs text-muted-foreground">
-              Status: {chatDetails.status === 'ACTIVE' ? 'Aktywny' : 'Zarchiwizowany'}
+              Status:{' '}
+              {chatDetails.is_locked ? 'Zamknięty' : chatDetails.status === 'ACTIVE' ? 'Aktywny' : 'Zarchiwizowany'}
             </p>
           </div>
         </div>
@@ -320,7 +321,12 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
 
       {/* Formularz wysyłania wiadomości */}
       <div className="bg-card border-t p-4">
-        <MessageComposer onSend={handleSendMessage} isSending={isSending} />
+        <MessageComposer
+          onSend={handleSendMessage}
+          isSending={isSending}
+          isDisabled={Boolean(chatDetails?.is_locked)}
+          disabledMessage="Oferta została usunięta — ten czat jest zamknięty"
+        />
       </div>
     </div>
   );

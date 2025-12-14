@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMyOffers } from '@/hooks/useMyOffers';
 import { useOfferActions } from '@/hooks/useOfferActions';
 import { LoadingSkeletonGrid } from './LoadingSkeletonGrid';
@@ -10,6 +10,8 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { useToast } from '@/contexts/ToastContext';
 import type { UpdateOfferCommand } from '@/types';
+
+type SeenInterestsCountByOfferId = Record<string, number>;
 
 /**
  * Komponent strony Moje Oferty
@@ -39,6 +41,35 @@ export function MyOffersPage() {
   // Stan panelu zainteresowanych (ID oferty)
   const [interestPanelOfferId, setInterestPanelOfferId] = useState<string | null>(null);
 
+  /**
+   * Lokalny "unread" dla przycisku Zainteresowani.
+   * Kropka znika dopiero po tym, gdy lista zainteresowanych faktycznie się wyświetli
+   * (czyli po zakończeniu ładowania i wyrenderowaniu kart w modalu).
+   */
+  const [seenInterestsCountByOfferId, setSeenInterestsCountByOfferId] = useState<SeenInterestsCountByOfferId>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage.getItem('kakapo_seen_interests_count_by_offer_id');
+      const parsed = raw ? (JSON.parse(raw) as SeenInterestsCountByOfferId) : {};
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      return parsed;
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        'kakapo_seen_interests_count_by_offer_id',
+        JSON.stringify(seenInterestsCountByOfferId),
+      );
+    } catch {
+      // ignore
+    }
+  }, [seenInterestsCountByOfferId]);
+
   // Stan dialogu usuwania (oferta do usunięcia)
   const [offerToDelete, setOfferToDelete] = useState<{ id: string; title: string } | null>(null);
 
@@ -65,6 +96,13 @@ export function MyOffersPage() {
    */
   const handleRefresh = () => {
     refetch();
+  };
+
+  const markInterestsAsViewed = (offerId: string, totalInterests: number) => {
+    setSeenInterestsCountByOfferId((prev) => ({
+      ...prev,
+      [offerId]: Math.max(0, Number(totalInterests) || 0),
+    }));
   };
 
   /**
@@ -135,8 +173,10 @@ export function MyOffersPage() {
           </div>
 
           {/* CTA - Dodaj nową ofertę */}
-          <Button onClick={() => (window.location.href = '/offers/new')} size="default">
-            Dodaj nową ofertę
+          <Button asChild size="default">
+            <a href="/offers/new" data-testid="my-offers-add-offer">
+              Dodaj ofertę
+            </a>
           </Button>
         </div>
 
@@ -206,8 +246,10 @@ export function MyOffersPage() {
 
             {/* CTA */}
             {statusFilter === 'ACTIVE' && (
-              <Button onClick={() => (window.location.href = '/offers/new')} variant="default">
-                Dodaj pierwszą ofertę
+              <Button asChild variant="default">
+                <a href="/offers/new" data-testid="my-offers-add-first-offer">
+                  Dodaj pierwszą ofertę
+                </a>
               </Button>
             )}
           </div>
@@ -220,6 +262,8 @@ export function MyOffersPage() {
           {offers.map((offer) => {
             const isEditing = editingOfferId === offer.id;
             const isLoadingAction = isActionLoading(offer.id);
+            const lastSeenCount = seenInterestsCountByOfferId[offer.id] ?? 0;
+            const hasNewInterests = (offer.interests_count ?? 0) > lastSeenCount;
 
             return (
               <Card key={offer.id} className="p-4">
@@ -293,9 +337,19 @@ export function MyOffersPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="relative"
                         onClick={() => setInterestPanelOfferId(offer.id)}
                         disabled={offer.interests_count === 0 || isLoadingAction}
                       >
+                        {offer.interests_count > 0 && hasNewInterests && (
+                          <>
+                            <span
+                              aria-hidden="true"
+                              className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"
+                            />
+                            <span className="sr-only">Nowe</span>
+                          </>
+                        )}
                         Zainteresowani ({offer.interests_count})
                       </Button>
                     </div>
@@ -334,6 +388,7 @@ export function MyOffersPage() {
         offerId={interestPanelOfferId}
         isOpen={!!interestPanelOfferId}
         onClose={() => setInterestPanelOfferId(null)}
+        onInterestsDisplayed={(offerId, total) => markInterestsAsViewed(offerId, total)}
       />
     </div>
   );
