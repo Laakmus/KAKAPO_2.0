@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { createErrorResponse, handleAuthError } from '../../../utils/errors';
+import { createErrorResponse } from '../../../utils/errors';
 import UserService from '../../../services/user.service';
 
 // Wyłączenie pre-renderowania - endpoint musi działać server-side
@@ -41,7 +41,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData?.user) {
-      return createErrorResponse('UNAUTHORIZED', 'Token nieprawidłowy lub wygasł', 401);
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
 
     const user = userData.user;
@@ -52,17 +52,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
     };
     const meta = userWithMeta.user_metadata ?? userWithMeta.raw_user_meta_data ?? {};
 
-    // Policz aktywne oferty użytkownika
-    const { count, error: countError } = await supabase
+    const { count } = await supabase
       .from('offers')
       .select('id', { count: 'exact', head: true })
       .eq('owner_id', user.id)
       .eq('status', 'ACTIVE');
-
-    if (countError) {
-      console.error('[USERS_ME_GET_COUNT_ERROR]', countError);
-      return createErrorResponse('INTERNAL_ERROR', 'Błąd podczas pobierania liczby ofert', 500);
-    }
 
     const profile = {
       id: user.id,
@@ -106,12 +100,11 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
 
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData?.user) {
-      return createErrorResponse('UNAUTHORIZED', 'Token nieprawidłowy lub wygasł', 401);
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
 
     const user = userData.user;
 
-    // Parsowanie body
     let requestBody: unknown;
     try {
       requestBody = await request.json();
@@ -119,7 +112,6 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       return createErrorResponse('VALIDATION_ERROR', 'Nieprawidłowy format JSON', 400);
     }
 
-    // Walidacja danych
     let validatedData: { first_name: string; last_name: string };
     try {
       validatedData = updateProfileSchema.parse(requestBody);
@@ -133,7 +125,6 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       throw err;
     }
 
-    // Aktualizacja metadanych użytkownika w Supabase Auth
     const { data: updatedUser, error: updateError } = await supabase.auth.updateUser({
       data: {
         first_name: validatedData.first_name,
@@ -141,26 +132,16 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       },
     });
 
-    if (updateError) {
+    if (updateError || !updatedUser?.user) {
       console.error('[USERS_ME_PATCH_ERROR]', updateError);
       return createErrorResponse('INTERNAL_ERROR', 'Błąd podczas aktualizacji profilu', 500);
     }
 
-    if (!updatedUser?.user) {
-      return createErrorResponse('INTERNAL_ERROR', 'Błąd podczas aktualizacji profilu', 500);
-    }
-
-    // Policz aktywne oferty użytkownika
-    const { count, error: countError } = await supabase
+    const { count } = await supabase
       .from('offers')
       .select('id', { count: 'exact', head: true })
       .eq('owner_id', user.id)
       .eq('status', 'ACTIVE');
-
-    if (countError) {
-      console.error('[USERS_ME_PATCH_COUNT_ERROR]', countError);
-      return createErrorResponse('INTERNAL_ERROR', 'Błąd podczas pobierania liczby ofert', 500);
-    }
 
     const profile = {
       id: updatedUser.user.id,
@@ -196,7 +177,6 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Parsowanie body
     let requestBody: unknown;
     try {
       requestBody = await request.json();
@@ -204,7 +184,6 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
       return createErrorResponse('VALIDATION_ERROR', 'Nieprawidłowy format JSON', 400);
     }
 
-    // Walidacja hasła
     try {
       passwordSchema.parse(requestBody);
     } catch (err) {
@@ -225,58 +204,28 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     }
     const token = authHeader.split(' ')[1];
 
-    // Pobranie użytkownika z tokena
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData?.user) {
-      return createErrorResponse('UNAUTHORIZED', 'Token nieprawidłowy lub wygasł', 401);
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
     const currentUser = userData.user;
 
-    // Weryfikacja hasła poprzez próbę zalogowania (security: nie ujawniamy szczegółów)
-    try {
-      const { error: signinError, data: signinData } = await supabase.auth.signInWithPassword({
-        email: currentUser.email ?? '',
-        password,
-      });
+    const { error: signinError } = await supabase.auth.signInWithPassword({
+      email: currentUser.email ?? '',
+      password,
+    });
 
-      if (signinError) {
-        return createErrorResponse('UNAUTHORIZED', 'Nieprawidłowe hasło', 401);
-      }
-
-      // Dodatkowa weryfikacja identyfikatora użytkownika (safety)
-      if (!signinData?.user || signinData.user.id !== currentUser.id) {
-        return createErrorResponse('UNAUTHORIZED', 'Nieprawidłowe dane uwierzytelniające', 401);
-      }
-    } catch (err: unknown) {
-      // Mapowanie znanych błędów auth
-      const error = err as { message?: string };
-      if (error?.message && typeof error.message === 'string') {
-        return handleAuthError(error as Error);
-      }
-      console.error('[USERS_ME_VERIFY_PASSWORD_ERROR]', err);
-      return createErrorResponse('INTERNAL_ERROR', 'Błąd podczas weryfikacji hasła', 500);
+    if (signinError) {
+      return createErrorResponse('UNAUTHORIZED', 'Nieprawidłowe hasło', 401);
     }
 
-    // Wywołanie serwisu usuwania konta
-    try {
-      await UserService.deleteUser({ userId: currentUser.id, password }, supabase);
-      return new Response(JSON.stringify({ message: 'Konto zostało usunięte' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } catch (err: unknown) {
-      const status = Number((err as { status?: number })?.status) || 500;
-      if (status === 404) {
-        return createErrorResponse('NOT_FOUND', 'Użytkownik nie znaleziony', 404);
-      }
-      if (status === 501) {
-        return createErrorResponse('NOT_IMPLEMENTED', 'Operacja nieobsługiwana przez serwer', 501);
-      }
-      console.error('[USERS_ME_DELETE_ERROR]', err);
-      return createErrorResponse('INTERNAL_ERROR', 'Błąd podczas usuwania konta', 500);
-    }
+    await UserService.deleteUser({ userId: currentUser.id, password }, supabase);
+    return new Response(JSON.stringify({ message: 'Konto zostało usunięte' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('[USERS_ME_DELETE_EXCEPTION]', error);
-    return createErrorResponse('INTERNAL_ERROR', 'Wystąpił nieoczekiwany błąd', 500);
+    return createErrorResponse('INTERNAL_ERROR', 'Błąd podczas usuwania konta', 500);
   }
 };

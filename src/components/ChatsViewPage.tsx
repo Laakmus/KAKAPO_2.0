@@ -315,12 +315,7 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
                   Brak uprawnień do wysyłania wiadomości w tym czacie
                 </div>
               ) : (
-                <MessageComposer
-                  onSend={handleSendMessage}
-                  isSending={isSending}
-                  isDisabled={Boolean(selectedChat?.is_locked)}
-                  disabledMessage="Oferta została usunięta — ten czat jest zamknięty"
-                />
+                <MessageComposer onSend={handleSendMessage} isSending={isSending} />
               )}
             </div>
           </>

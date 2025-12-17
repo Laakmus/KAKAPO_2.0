@@ -76,7 +76,8 @@ export function ChatListItem({ chat, isActive, onSelect }: ChatListItemProps) {
       className={cn(
         'group flex items-start gap-3 p-4 border-b border-border',
         'transition-all duration-200 ease-in-out',
-        !isLocked && 'cursor-pointer hover:bg-accent hover:shadow-sm focus:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset',
+        !isLocked &&
+          'cursor-pointer hover:bg-accent hover:shadow-sm focus:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset',
         isActive && !isLocked && 'bg-accent border-l-4 border-l-primary shadow-sm',
         isLocked && 'opacity-50 cursor-not-allowed',
       )}
@@ -111,9 +112,7 @@ export function ChatListItem({ chat, isActive, onSelect }: ChatListItemProps) {
           <span
             className={cn(
               'text-xs px-2 py-0.5 rounded-full',
-              isLocked || chat.status !== 'ACTIVE'
-                ? 'bg-gray-200 text-gray-800'
-                : 'bg-green-100 text-green-800',
+              isLocked || chat.status !== 'ACTIVE' ? 'bg-gray-200 text-gray-800' : 'bg-green-100 text-green-800',
             )}
           >
             {isLocked ? 'Nieaktywny' : chat.status === 'ACTIVE' ? 'Aktywny' : 'Archiwizowany'}

@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { z } from 'zod';
 import { createErrorResponse } from '../../../utils/errors';
 import { InterestsService } from '../../../services/interests.service';
 
@@ -17,7 +16,6 @@ export const DELETE: APIRoute = async ({ request, params, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Enforce auth - extract token from Authorization header
     const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
@@ -34,21 +32,7 @@ export const DELETE: APIRoute = async ({ request, params, locals }) => {
     }
     const userId = user.id;
 
-    // Extract interest_id from params
     const interestId = params.interest_id ?? '';
-
-    // Validate interest_id (UUID)
-    try {
-      z.object({ interest_id: z.string().uuid() }).parse({ interest_id: interestId });
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        const first = err.errors[0];
-        return createErrorResponse('VALIDATION_ERROR', first.message, 400, {
-          field: String(first.path[0] || 'interest_id'),
-        });
-      }
-      throw err;
-    }
 
     const interestsService = new InterestsService(supabase);
     try {
@@ -60,9 +44,6 @@ export const DELETE: APIRoute = async ({ request, params, locals }) => {
       }
       if (code === 'FORBIDDEN') {
         return createErrorResponse('FORBIDDEN', 'Brak uprawnień', 403);
-      }
-      if (code === 'DB_ERROR') {
-        return createErrorResponse('INTERNAL_ERROR', 'Błąd bazy danych', 500);
       }
 
       console.error('[DELETE_INTEREST_EXCEPTION]', err);
@@ -91,7 +72,6 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Enforce auth - extract token from Authorization header
     const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
@@ -108,21 +88,7 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
     }
     const userId = user.id;
 
-    // Extract interest_id from params
     const interestId = params.interest_id ?? '';
-
-    // Validate interest_id (UUID)
-    try {
-      z.object({ interest_id: z.string().uuid() }).parse({ interest_id: interestId });
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        const first = err.errors[0];
-        return createErrorResponse('VALIDATION_ERROR', first.message, 400, {
-          field: String(first.path[0] || 'interest_id'),
-        });
-      }
-      throw err;
-    }
 
     const interestsService = new InterestsService(supabase);
     try {
@@ -144,9 +110,6 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
       }
       if (code === 'ALREADY_REALIZED') {
         return createErrorResponse('CONFLICT', 'Zainteresowanie już zrealizowane', 409);
-      }
-      if (code === 'DB_ERROR') {
-        return createErrorResponse('INTERNAL_ERROR', 'Błąd bazy danych', 500);
       }
 
       console.error('[PATCH_INTEREST_EXCEPTION]', err);

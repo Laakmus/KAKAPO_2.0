@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { PublicUserDTO, UserOfferDTO, ApiError } from '@/types';
-import { supabaseClient } from '@/db/supabase.client';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Hook useUserProfile
@@ -12,25 +12,13 @@ import { supabaseClient } from '@/db/supabase.client';
  * @returns Stan profilu, ofert, flagi ładowania, błędy i funkcja odświeżania
  */
 export function useUserProfile(userId: string) {
+  const auth = useAuth();
   const [profile, setProfile] = useState<PublicUserDTO | null>(null);
   const [offers, setOffers] = useState<UserOfferDTO[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingOffers, setIsLoadingOffers] = useState(false);
   const [profileError, setProfileError] = useState<ApiError | null>(null);
   const [offersError, setOffersError] = useState<ApiError | null>(null);
-
-  /**
-   * Pobiera token autoryzacyjny z Supabase
-   */
-  const getAuthToken = async (): Promise<string | null> => {
-    try {
-      const { data } = await supabaseClient.auth.getSession();
-      return data?.session?.access_token || null;
-    } catch (error) {
-      console.error('[useUserProfile] Error getting auth token:', error);
-      return null;
-    }
-  };
 
   /**
    * Konwertuje response error na ApiError
@@ -60,7 +48,7 @@ export function useUserProfile(userId: string) {
     setProfileError(null);
 
     try {
-      const token = await getAuthToken();
+      const token = auth.token;
       if (!token) {
         setProfileError({
           code: 'UNAUTHORIZED',
@@ -106,7 +94,7 @@ export function useUserProfile(userId: string) {
     setOffersError(null);
 
     try {
-      const token = await getAuthToken();
+      const token = auth.token;
       if (!token) {
         setOffersError({
           code: 'UNAUTHORIZED',
@@ -157,10 +145,12 @@ export function useUserProfile(userId: string) {
    */
   useEffect(() => {
     if (!userId) return;
+    if (!auth.token) return; // Czekaj aż token się załaduje
 
     fetchProfile();
     fetchOffers();
-  }, [userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, auth.token]);
 
   const isLoading = isLoadingProfile || isLoadingOffers;
   const hasError = profileError !== null || offersError !== null;

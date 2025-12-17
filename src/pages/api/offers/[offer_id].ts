@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { offerIdParamsSchema, updateOfferSchema } from '@/schemas/offers.schema';
+import { updateOfferSchema } from '@/schemas/offers.schema';
 import { createErrorResponse } from '@/utils/errors';
 import { OfferService } from '@/services/offer.service';
 import type { UpdateOfferCommand } from '@/types';
@@ -20,30 +20,12 @@ export const prerender = false;
  */
 export const GET: APIRoute = async ({ params, locals }) => {
   try {
-    // Walidacja parametrów ścieżki
-    try {
-      offerIdParamsSchema.parse(params);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const first = error.errors[0];
-        return createErrorResponse('VALIDATION_ERROR', first.message, 400, {
-          field: String(first.path[0] || 'offer_id'),
-          value: (params as Record<string, unknown>)?.[String(first.path[0] || 'offer_id')],
-        });
-      }
-      throw error;
-    }
-
-    const offerId = String(params.offer_id);
-
     const supabase = locals.supabase;
     if (!supabase) {
-      console.error('[OFFERS_GET] Supabase client not found in locals');
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Get userId from locals (set by middleware) - optional for this endpoint
-    // If user is logged in, we'll show additional info (is_interested, is_owner)
+    const offerId = String(params.offer_id);
     const userId = locals.user?.id;
 
     const service = new OfferService(supabase);
@@ -93,45 +75,25 @@ export const GET: APIRoute = async ({ params, locals }) => {
  */
 export const PATCH: APIRoute = async ({ params, request, locals }) => {
   try {
-    // 1. Walidacja parametrów ścieżki
-    try {
-      offerIdParamsSchema.parse(params);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const first = error.errors[0];
-        return createErrorResponse('VALIDATION_ERROR', first.message, 400, {
-          field: String(first.path[0] || 'offer_id'),
-          value: (params as Record<string, unknown>)?.[String(first.path[0] || 'offer_id')],
-        });
-      }
-      throw error;
-    }
-
-    const offerId = String(params.offer_id);
-
-    // 2. Sprawdź klienta Supabase
     const supabase = locals.supabase;
     if (!supabase) {
-      console.error('[OFFERS_PATCH] Supabase client not found in locals');
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // 3. Get userId from locals (set by middleware) - required for PATCH
     const userId = locals.user?.id;
     if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
 
-    // 4. Parse i walidacja request body
+    const offerId = String(params.offer_id);
+
     let requestBody: unknown;
     try {
       requestBody = await request.json();
-    } catch (error) {
-      console.error('[OFFERS_PATCH_JSON_PARSE_ERROR]', error);
+    } catch {
       return createErrorResponse('VALIDATION_ERROR', 'Nieprawidłowy format JSON', 400);
     }
 
-    // 5. Walidacja danych wejściowych
     let validatedData: UpdateOfferCommand;
     try {
       validatedData = updateOfferSchema.parse(requestBody);
@@ -149,7 +111,6 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       throw error;
     }
 
-    // 6. Wywołaj serwis aktualizacji
     const service = new OfferService(supabase);
 
     try {
@@ -160,26 +121,16 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
         headers: { 'Content-Type': 'application/json' },
       });
     } catch (serviceError) {
-      // Obsługa specyficznych błędów z serwisu
       const error = serviceError as Error & { code?: string };
 
       if (error.code === 'NOT_FOUND') {
         return createErrorResponse('NOT_FOUND', 'Oferta nie istnieje', 404);
       }
 
-      if (error.code === 'FORBIDDEN') {
+      if (error.code === 'FORBIDDEN' || error.code === 'RLS_VIOLATION') {
         return createErrorResponse('FORBIDDEN', 'Nie masz uprawnień do edycji tej oferty', 403);
       }
 
-      if (error.code === 'RLS_VIOLATION') {
-        return createErrorResponse('FORBIDDEN', 'Naruszenie zasad bezpieczeństwa', 403);
-      }
-
-      if (error.code === 'CONSTRAINT_VIOLATION') {
-        return createErrorResponse('VALIDATION_ERROR', 'Naruszenie ograniczeń danych', 400);
-      }
-
-      // Inne błędy
       console.error('[OFFERS_PATCH_SERVICE_ERROR]', serviceError);
       throw serviceError;
     }
@@ -207,36 +158,18 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
  */
 export const DELETE: APIRoute = async ({ params, locals }) => {
   try {
-    // 1) Walidacja parametrów ścieżki
-    try {
-      offerIdParamsSchema.parse(params);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const first = error.errors[0];
-        return createErrorResponse('VALIDATION_ERROR', first.message, 400, {
-          field: String(first.path[0] || 'offer_id'),
-          value: (params as Record<string, unknown>)?.[String(first.path[0] || 'offer_id')],
-        });
-      }
-      throw error;
-    }
-
-    const offerId = String(params.offer_id);
-
-    // 2) Sprawdź klienta Supabase
     const supabase = locals.supabase;
     if (!supabase) {
-      console.error('[OFFERS_DELETE] Supabase client not found in locals');
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // 3) Get userId from locals (set by middleware) - required for DELETE
     const userId = locals.user?.id;
     if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
 
-    // 4) Soft-delete w serwisie
+    const offerId = String(params.offer_id);
+
     const service = new OfferService(supabase);
     try {
       await service.removeOffer(userId, offerId);
@@ -246,11 +179,8 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
       if (error.code === 'NOT_FOUND') {
         return createErrorResponse('NOT_FOUND', 'Oferta nie istnieje', 404);
       }
-      if (error.code === 'FORBIDDEN') {
+      if (error.code === 'FORBIDDEN' || error.code === 'RLS_VIOLATION') {
         return createErrorResponse('FORBIDDEN', 'Nie masz uprawnień do usunięcia tej oferty', 403);
-      }
-      if (error.code === 'RLS_VIOLATION') {
-        return createErrorResponse('FORBIDDEN', 'Naruszenie zasad bezpieczeństwa', 403);
       }
 
       console.error('[OFFERS_DELETE_SERVICE_ERROR]', serviceError);

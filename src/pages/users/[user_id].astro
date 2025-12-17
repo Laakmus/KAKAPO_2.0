@@ -1,6 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import { UserProfileClient } from '@/components/UserProfileClient';
+import { UserProfilePageLayout } from '@/components/UserProfilePageLayout';
 import { z } from 'zod';
 
 export const prerender = false;
@@ -20,12 +20,16 @@ try {
   return Astro.redirect('/offers');
 }
 
-// NOTE: Autoryzacja jest sprawdzana po stronie klienta przez UserProfileClient
-// (który używa AuthenticatedLayout z useProtectedRoute).
-// Server-side auth check nie działa z tokenem w localStorage.
+const currentPath = Astro.url.pathname;
+const accessToken = undefined;
 ---
 
 <Layout title={`Profil użytkownika - KAKAPO`}>
-  <UserProfileClient client:load userId={validUserId} />
+  <UserProfilePageLayout
+    client:only="react"
+    currentPath={currentPath}
+    initialToken={accessToken}
+    userId={validUserId}
+  />
 </Layout>
 

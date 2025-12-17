@@ -62,8 +62,10 @@ export class ChatsService {
         .sort((a, b) => {
           // Priorytet: REALIZED > ACCEPTED > PROPOSED
           const statusOrder = { REALIZED: 3, ACCEPTED: 2, PROPOSED: 1 };
-          return (statusOrder[b.status as keyof typeof statusOrder] || 0) -
-                 (statusOrder[a.status as keyof typeof statusOrder] || 0);
+          return (
+            (statusOrder[b.status as keyof typeof statusOrder] || 0) -
+            (statusOrder[a.status as keyof typeof statusOrder] || 0)
+          );
         })[0];
 
       // 5) Pobierz interests user_b w ofertach user_a
@@ -85,8 +87,10 @@ export class ChatsService {
         .filter((i) => userAOfferIds.includes(i.offer_id))
         .sort((a, b) => {
           const statusOrder = { REALIZED: 3, ACCEPTED: 2, PROPOSED: 1 };
-          return (statusOrder[b.status as keyof typeof statusOrder] || 0) -
-                 (statusOrder[a.status as keyof typeof statusOrder] || 0);
+          return (
+            (statusOrder[b.status as keyof typeof statusOrder] || 0) -
+            (statusOrder[a.status as keyof typeof statusOrder] || 0)
+          );
         })[0];
 
       // 8) Sprawdź czy jest aktywny mutual match

@@ -70,23 +70,26 @@ export function InterestToggleCTA({
   });
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  const showBlockedTooltip = useCallback((x: number, y: number, message: string) => {
-    // Mały offset żeby nie zasłaniać kursora
-    const offset = 12;
-    const maxWidth = 320; // używane do prostego clampu w poziomie
+  const showBlockedTooltip = useCallback(
+    (x: number, y: number, message: string) => {
+      // Mały offset żeby nie zasłaniać kursora
+      const offset = 12;
+      const maxWidth = 320; // używane do prostego clampu w poziomie
 
-    const clampedX = typeof window !== 'undefined' ? Math.min(x + offset, window.innerWidth - maxWidth) : x + offset;
-    const clampedY = typeof window !== 'undefined' ? Math.min(y + offset, window.innerHeight - 80) : y + offset;
+      const clampedX = typeof window !== 'undefined' ? Math.min(x + offset, window.innerWidth - maxWidth) : x + offset;
+      const clampedY = typeof window !== 'undefined' ? Math.min(y + offset, window.innerHeight - 80) : y + offset;
 
-    // Prosty throttling: nie aktualizuj jeśli zmiana minimalna (żeby nie spamować renderów)
-    const last = lastPosRef.current;
-    if (last && Math.abs(last.x - clampedX) < 2 && Math.abs(last.y - clampedY) < 2 && blockedTooltip.open) {
-      return;
-    }
-    lastPosRef.current = { x: clampedX, y: clampedY };
+      // Prosty throttling: nie aktualizuj jeśli zmiana minimalna (żeby nie spamować renderów)
+      const last = lastPosRef.current;
+      if (last && Math.abs(last.x - clampedX) < 2 && Math.abs(last.y - clampedY) < 2 && blockedTooltip.open) {
+        return;
+      }
+      lastPosRef.current = { x: clampedX, y: clampedY };
 
-    setBlockedTooltip({ open: true, x: clampedX, y: clampedY, message });
-  }, [blockedTooltip.open]);
+      setBlockedTooltip({ open: true, x: clampedX, y: clampedY, message });
+    },
+    [blockedTooltip.open],
+  );
 
   const hideBlockedTooltip = useCallback(() => {
     lastPosRef.current = null;
@@ -98,20 +101,20 @@ export function InterestToggleCTA({
    */
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (isInterested && currentInterestId) {
-      // Anuluj zainteresowanie
-      onCancel(currentInterestId);
-    } else if (!isInterested) {
-      // Blokada: user nie ma aktywnej oferty do zaoferowania
-      if (!canExpressInterest) {
-        const msg = 'Nie masz oferty do zaoferowania';
-        showBlockedTooltip(e.clientX, e.clientY, msg);
-        onBlockedExpressInterest?.();
-        return;
+      if (isInterested && currentInterestId) {
+        // Anuluj zainteresowanie
+        onCancel(currentInterestId);
+      } else if (!isInterested) {
+        // Blokada: user nie ma aktywnej oferty do zaoferowania
+        if (!canExpressInterest) {
+          const msg = 'Nie masz oferty do zaoferowania';
+          showBlockedTooltip(e.clientX, e.clientY, msg);
+          onBlockedExpressInterest?.();
+          return;
+        }
+        // Wyraź zainteresowanie
+        onExpress(offerId);
       }
-      // Wyraź zainteresowanie
-      onExpress(offerId);
-    }
     },
     [
       isInterested,

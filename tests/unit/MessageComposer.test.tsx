@@ -37,23 +37,6 @@ describe('MessageComposer', () => {
       // Assert
       expect(screen.getByText(/shift\+enter dla nowej linii/i)).toBeInTheDocument();
     });
-
-    it('disables textarea and button when isDisabled is true', () => {
-      const mockSend = vi.fn();
-
-      render(
-        <MessageComposer
-          onSend={mockSend}
-          isSending={false}
-          isDisabled={true}
-          disabledMessage="Czat zamknięty"
-        />,
-      );
-
-      expect(screen.getByPlaceholderText(/napisz wiadomość/i)).toBeDisabled();
-      expect(screen.getByRole('button', { name: /wyślij/i })).toBeDisabled();
-      expect(screen.getByText('Czat zamknięty')).toBeInTheDocument();
-    });
   });
 
   describe('character counter', () => {

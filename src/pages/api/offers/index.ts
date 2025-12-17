@@ -56,13 +56,11 @@ export const POST: APIRoute = async (context) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    // Get userId from locals (set by middleware)
     const userId = locals.user?.id;
     if (!userId) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
 
-    // Parse request body
     let body: unknown;
     try {
       body = await request.json();
@@ -70,8 +68,7 @@ export const POST: APIRoute = async (context) => {
       return createErrorResponse('VALIDATION_ERROR', 'Nieprawidłowe dane wejściowe', 400);
     }
 
-    // Validate input
-    let validatedInput;
+    let validatedInput: z.infer<typeof createOfferSchema>;
     try {
       validatedInput = createOfferSchema.parse(body);
     } catch (error) {
@@ -89,24 +86,8 @@ export const POST: APIRoute = async (context) => {
       throw error;
     }
 
-    // Call service
     const offerService = new OfferService(supabase);
-
-    let result;
-    try {
-      result = await offerService.createOffer(userId, validatedInput);
-    } catch (error) {
-      if (error instanceof Error) {
-        const code = (error as unknown as { code?: string }).code;
-        if (code === 'RLS_VIOLATION' || error.message === 'RLS_VIOLATION') {
-          return createErrorResponse('FORBIDDEN', 'Brak uprawnień do wykonania tej operacji', 403);
-        }
-        if (code === 'CONSTRAINT_VIOLATION' || error.message === 'CONSTRAINT_VIOLATION') {
-          return createErrorResponse('VALIDATION_ERROR', 'Dane nie spełniają wymagań bazy danych', 422);
-        }
-      }
-      throw error;
-    }
+    const result = await offerService.createOffer(userId, validatedInput);
 
     return new Response(JSON.stringify(result), {
       status: 201,

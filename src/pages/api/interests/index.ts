@@ -46,12 +46,14 @@ export const POST: APIRoute = async (context) => {
       throw error;
     }
 
-    // Call service
     const interestsService = new InterestsService(supabase);
 
-    let result: Awaited<ReturnType<InterestsService['expressInterest']>>;
     try {
-      result = await interestsService.expressInterest(userId, validatedInput);
+      const result = await interestsService.expressInterest(userId, validatedInput);
+      return new Response(JSON.stringify(result), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      });
     } catch (error) {
       if (error instanceof Error) {
         const code = (error as unknown as { code?: string }).code;
@@ -64,18 +66,10 @@ export const POST: APIRoute = async (context) => {
         if (code === 'NOT_FOUND') {
           return createErrorResponse('NOT_FOUND', 'Nie znaleziono oferty', 404);
         }
-        if (code === 'RLS_VIOLATION') {
-          return createErrorResponse('FORBIDDEN', 'Brak uprawnień do wykonania tej operacji', 403);
-        }
       }
       console.error('[CREATE_INTEREST_EXCEPTION]', error);
       return createErrorResponse('INTERNAL_ERROR', 'Wystąpił błąd podczas zapisywania zainteresowania', 500);
     }
-
-    return new Response(JSON.stringify(result), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('[CREATE_INTEREST_EXCEPTION_TOP]', error);
     return createErrorResponse('INTERNAL_ERROR', 'Wystąpił błąd podczas zapisywania zainteresowania', 500);
