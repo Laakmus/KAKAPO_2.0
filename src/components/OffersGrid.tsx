@@ -7,20 +7,18 @@ import { OfferCard } from './OfferCard';
  */
 type OffersGridProps = {
   offers: OfferListItemViewModel[];
-  selectedOfferId?: string;
-  onSelectOffer: (offer: OfferListItemViewModel) => void;
 };
 
 /**
  * Siatka kart ofert
  *
- * Responsywna siatka (1-3 kolumny zależnie od breakpointu)
+ * Responsywna siatka (1-4 kolumny zależnie od breakpointu)
  */
-export function OffersGrid({ offers, selectedOfferId, onSelectOffer }: OffersGridProps) {
+export function OffersGrid({ offers }: OffersGridProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {offers.map((offer) => (
-        <OfferCard key={offer.id} offer={offer} isSelected={selectedOfferId === offer.id} onSelect={onSelectOffer} />
+        <OfferCard key={offer.id} offer={offer} />
       ))}
     </div>
   );

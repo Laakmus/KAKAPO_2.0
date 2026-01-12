@@ -1,6 +1,7 @@
 import React from 'react';
 import type { OfferListItemViewModel } from '@/types';
 import { Card } from './ui/card';
+import { Button } from './ui/button';
 import { OfferImage } from './ImagePlaceholder';
 
 /**
@@ -8,8 +9,6 @@ import { OfferImage } from './ImagePlaceholder';
  */
 type OfferCardProps = {
   offer: OfferListItemViewModel;
-  isSelected?: boolean;
-  onSelect: (offer: OfferListItemViewModel) => void;
 };
 
 /**
@@ -19,11 +18,10 @@ type OfferCardProps = {
  * - Wyświetla podstawowe dane oferty
  * - Skraca opis do 120 znaków
  * - Ukrywa licznik zainteresowanych dla własnych ofert
- * - Obsługuje kliknięcie (wybór oferty)
- * - Wizualna wskazówka przy hover/focus/selected
+ * - Przycisk "Zobacz szczegóły" prowadzący do pełnego widoku oferty
  * - Badge z liczbą zdjęć (jeśli > 1)
  */
-export function OfferCard({ offer, isSelected = false, onSelect }: OfferCardProps) {
+export function OfferCard({ offer }: OfferCardProps) {
   /**
    * Skróć opis do 120 znaków
    */
@@ -51,22 +49,7 @@ export function OfferCard({ offer, isSelected = false, onSelect }: OfferCardProp
   const imagesCount = offer.images_count ?? (offer.image_url ? 1 : 0);
 
   return (
-    <Card
-      className={`
-        p-4 cursor-pointer transition-all hover:shadow-md focus-within:ring-2 focus-within:ring-primary
-        ${isSelected ? 'ring-2 ring-primary shadow-md' : ''}
-      `}
-      onClick={() => onSelect(offer)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect(offer);
-        }
-      }}
-      aria-label={`Oferta: ${offer.title} przez ${ownerName}`}
-    >
+    <Card className="group p-4 transition-all hover:shadow-lg hover:scale-105 flex flex-col">
       {/* Miniatura z badge liczby zdjęć */}
       <div className="relative mb-3">
         <OfferImage
@@ -103,7 +86,7 @@ export function OfferCard({ offer, isSelected = false, onSelect }: OfferCardProp
       <p className="text-sm text-muted-foreground mb-3 line-clamp-3">{truncatedDesc}</p>
 
       {/* Meta info */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
         <div className="flex flex-col gap-1">
           <span className="font-medium">{offer.city}</span>
           <span>{ownerName}</span>
@@ -119,6 +102,11 @@ export function OfferCard({ offer, isSelected = false, onSelect }: OfferCardProp
           )}
         </div>
       </div>
+
+      {/* Przycisk zobacz szczegóły - widoczny tylko przy hover */}
+      <Button asChild variant="default" className="w-full mt-3 hidden group-hover:block">
+        <a href={`/offers/${offer.id}`}>Zobacz szczegóły</a>
+      </Button>
     </Card>
   );
 }
