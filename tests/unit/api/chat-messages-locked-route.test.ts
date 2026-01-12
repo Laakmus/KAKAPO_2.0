@@ -42,3 +42,4 @@ describe('POST /api/chats/:chat_id/messages', () => {
     expect(payload?.error?.code).toBe('CHAT_LOCKED');
   });
 });
+

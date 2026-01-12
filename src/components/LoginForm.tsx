@@ -95,8 +95,8 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
    * Handler submitu formularza
    */
   const onSubmit = async (values: LoginFormValues) => {
-    // Jeśli już przekierowujemy, ignoruj kolejne submit-y (anty-dublowanie requestów)
-    if (isRedirecting) return;
+    // Jeśli już przetwarzamy request lub przekierowujemy, ignoruj kolejne submit-y (anty-dublowanie requestów)
+    if (isRedirecting || isLoading || isSubmitting) return;
 
     // Wyczyść poprzednie notyfikacje
     clearNotification();

@@ -125,8 +125,30 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       throw err;
     }
 
-    const { data: updatedUser, error: updateError } = await supabase.auth.updateUser({
-      data: {
+    // Utwórz Admin klienta Supabase z service role key
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+    const supabaseServiceRoleKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      console.error(
+        '[USERS_ME_PATCH_ERROR] Missing config - URL:',
+        !!supabaseUrl,
+        'ServiceKey:',
+        !!supabaseServiceRoleKey,
+      );
+      return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
+    }
+
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    const { data: updatedUser, error: updateError } = await adminClient.auth.admin.updateUserById(user.id, {
+      user_metadata: {
         first_name: validatedData.first_name,
         last_name: validatedData.last_name,
       },
