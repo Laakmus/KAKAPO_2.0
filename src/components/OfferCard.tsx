@@ -49,7 +49,7 @@ export function OfferCard({ offer }: OfferCardProps) {
   const imagesCount = offer.images_count ?? (offer.image_url ? 1 : 0);
 
   return (
-    <Card className="group p-4 transition-all hover:shadow-lg hover:scale-105 flex flex-col">
+    <Card className="group relative p-4 transition-all hover:shadow-xl hover:scale-105 hover:z-10 flex flex-col h-full origin-top">
       {/* Miniatura z badge liczby zdjęć */}
       <div className="relative mb-3">
         <OfferImage
@@ -104,7 +104,11 @@ export function OfferCard({ offer }: OfferCardProps) {
       </div>
 
       {/* Przycisk zobacz szczegóły - widoczny tylko przy hover */}
-      <Button asChild variant="default" className="w-full mt-3 hidden group-hover:block">
+      <Button
+        asChild
+        variant="default"
+        className="w-full mt-auto opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity"
+      >
         <a href={`/offers/${offer.id}`}>Zobacz szczegóły</a>
       </Button>
     </Card>
