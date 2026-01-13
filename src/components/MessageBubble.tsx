@@ -60,11 +60,11 @@ export function MessageBubble({ message, isOwn }: MessageBubbleProps) {
       {/* Bąbelek wiadomości */}
       <div
         className={cn(
-          'max-w-[75%] rounded-lg px-4 py-2 break-words',
+          'max-w-[75%] rounded-lg px-4 py-2',
           isOwn ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
         )}
       >
-        <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+        <p className="text-sm whitespace-pre-wrap break-all">{message.body}</p>
       </div>
 
       {/* Timestamp */}
