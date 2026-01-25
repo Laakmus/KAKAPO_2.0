@@ -223,6 +223,7 @@ export function useChatsViewState(initialChatId?: string) {
               otherUserName: chatDetail.participants.other.name,
               offerTitle: chatDetail.offerContext?.theirOfferTitle || '',
               realizationStatus: chatDetail.realizationStatus,
+              otherRealizationStatus: chatDetails.other_interest_status,
             }
           : undefined;
 

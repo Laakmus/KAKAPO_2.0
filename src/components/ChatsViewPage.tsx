@@ -155,20 +155,27 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
    * Przygotuj stan realizacji dla ChatStatusControls
    */
   const realizationState: InterestRealizationState | undefined = interestContext
-    ? {
-        can_realize: interestContext.realizationStatus === 'ACCEPTED',
-        can_unrealize:
-          interestContext.realizationStatus === 'PROPOSED' &&
-          (selectedChat?.realizationStatus === 'ACCEPTED' || selectedChat?.realizationStatus === 'PROPOSED'),
-        other_confirmed: false, // TODO: Można rozszerzyć jeśli backend zwraca info o drugiej stronie
-        status: interestContext.realizationStatus,
-        message:
-          interestContext.realizationStatus === 'ACCEPTED'
-            ? 'Wymiana została zaakceptowana. Możesz potwierdzić realizację.'
-            : interestContext.realizationStatus === 'REALIZED'
-              ? 'Potwierdzono realizację wymiany.'
-              : undefined,
-      }
+    ? (() => {
+        const myStatus = interestContext.realizationStatus;
+        const otherStatus = interestContext.otherRealizationStatus;
+        const bothRealized = myStatus === 'REALIZED' && otherStatus === 'REALIZED';
+        const iAmWaiting = myStatus === 'REALIZED' && otherStatus !== 'REALIZED';
+
+        return {
+          can_realize: myStatus === 'ACCEPTED',
+          can_unrealize: myStatus === 'REALIZED' && !bothRealized,
+          other_confirmed: otherStatus === 'REALIZED',
+          status: iAmWaiting ? 'WAITING' : myStatus,
+          message:
+            myStatus === 'ACCEPTED'
+              ? 'Wymiana została zaakceptowana. Możesz potwierdzić realizację.'
+              : iAmWaiting
+                ? 'Potwierdziłeś realizację. Oczekiwanie na drugą stronę.'
+                : bothRealized
+                  ? 'Wymiana została zrealizowana przez obie strony!'
+                  : undefined,
+        };
+      })()
     : undefined;
 
   return (

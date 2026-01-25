@@ -159,12 +159,20 @@ export function ChatStatusControls({
           className={`text-sm px-2 py-1 rounded ${
             state.status === 'REALIZED'
               ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-              : state.status === 'ACCEPTED'
-                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+              : state.status === 'WAITING'
+                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                : state.status === 'ACCEPTED'
+                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                  : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
           }`}
         >
-          {state.status === 'REALIZED' ? 'Zrealizowana' : state.status === 'ACCEPTED' ? 'Zaakceptowana' : 'Proponowana'}
+          {state.status === 'REALIZED'
+            ? 'Zrealizowana'
+            : state.status === 'WAITING'
+              ? 'Oczekująca'
+              : state.status === 'ACCEPTED'
+                ? 'Zaakceptowana'
+                : 'Proponowana'}
         </span>
       </div>
 

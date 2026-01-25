@@ -485,6 +485,7 @@ export type InterestActionContext = {
   otherUserName: string;
   offerTitle: string;
   realizationStatus: 'PROPOSED' | 'ACCEPTED' | 'REALIZED';
+  otherRealizationStatus?: 'PROPOSED' | 'ACCEPTED' | 'REALIZED';
 };
 
 /**
