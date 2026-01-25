@@ -5,7 +5,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { ChatListColumn } from './ChatListColumn';
 import { MessagesList } from './MessagesList';
 import { MessageComposer } from './MessageComposer';
-import { ChatStatusControls } from './ChatStatusControls';
+import { ChatStatusControls, RealizeButton } from './ChatStatusControls';
 import { ErrorBanner } from './ErrorBanner';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { EmptyState } from './EmptyState';
@@ -296,14 +296,15 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
             {/* Lista wiadomości */}
             <MessagesList messages={messages} currentUserId={user?.id || ''} isLoading={isLoadingMessages} />
 
-            {/* Panel akcji realizacji */}
-            {realizationState && (
+            {/* Panel akcji realizacji - pokazuj tylko gdy NIE jest ACCEPTED (bo wtedy info jest w dialogu) */}
+            {realizationState && realizationState.status !== 'ACCEPTED' && (
               <div className="p-4 border-t border-border bg-card">
                 <ChatStatusControls
                   state={realizationState}
                   isProcessing={isRealizing || isUnrealizing}
                   onRealize={handleRealize}
                   onUnrealize={handleUnrealize}
+                  hideRealizeButton
                 />
               </div>
             )}
@@ -315,7 +316,15 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
                   Brak uprawnień do wysyłania wiadomości w tym czacie
                 </div>
               ) : (
-                <MessageComposer onSend={handleSendMessage} isSending={isSending} />
+                <MessageComposer
+                  onSend={handleSendMessage}
+                  isSending={isSending}
+                  leftAction={
+                    realizationState?.can_realize ? (
+                      <RealizeButton onRealize={handleRealize} isProcessing={isRealizing || isUnrealizing} />
+                    ) : undefined
+                  }
+                />
               )}
             </div>
           </>

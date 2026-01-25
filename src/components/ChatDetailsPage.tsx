@@ -6,7 +6,7 @@ import { useChatMessages } from '@/hooks/useChatMessages';
 import { useRealizationActions } from '@/hooks/useRealizationActions';
 import { MessagesList } from './MessagesList';
 import { MessageComposer } from './MessageComposer';
-import { ChatStatusControls } from './ChatStatusControls';
+import { ChatStatusControls, RealizeButton } from './ChatStatusControls';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { ErrorBanner } from './ErrorBanner';
 import type { InterestRealizationState } from '@/types';
@@ -307,14 +307,15 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
         )}
       </div>
 
-      {/* Status wymiany i kontrole realizacji */}
-      {realizationState && (
+      {/* Status wymiany i kontrole realizacji - pokazuj tylko gdy NIE jest ACCEPTED (bo wtedy info jest w dialogu) */}
+      {realizationState && realizationState.status !== 'ACCEPTED' && (
         <div className="px-4 py-2">
           <ChatStatusControls
             state={realizationState}
             onRealize={handleRealize}
             onUnrealize={handleUnrealize}
             isProcessing={isRealizationMutating}
+            hideRealizeButton
           />
         </div>
       )}
@@ -324,8 +325,11 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
         <MessageComposer
           onSend={handleSendMessage}
           isSending={isSending}
-          isDisabled={Boolean(chatDetails?.is_locked)}
-          disabledMessage="Oferta została usunięta — ten czat jest zamknięty"
+          leftAction={
+            realizationState?.can_realize ? (
+              <RealizeButton onRealize={handleRealize} isProcessing={isRealizationMutating} />
+            ) : undefined
+          }
         />
       </div>
     </div>

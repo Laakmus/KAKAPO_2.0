@@ -257,4 +257,48 @@ describe('MessageComposer', () => {
       expect(mockSend).not.toHaveBeenCalled();
     });
   });
+
+  describe('leftAction slot', () => {
+    it('renders leftAction element when provided', () => {
+      // Arrange
+      const mockSend = vi.fn();
+      const leftAction = <button data-testid="realize-btn">Potwierdzam realizację</button>;
+
+      // Act
+      render(<MessageComposer onSend={mockSend} isSending={false} leftAction={leftAction} />);
+
+      // Assert
+      expect(screen.getByTestId('realize-btn')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /wyślij/i })).toBeInTheDocument();
+    });
+
+    it('renders leftAction button next to send button', () => {
+      // Arrange
+      const mockSend = vi.fn();
+      const leftAction = <button data-testid="realize-btn">Potwierdzam realizację</button>;
+
+      // Act
+      render(<MessageComposer onSend={mockSend} isSending={false} leftAction={leftAction} />);
+
+      // Assert - both buttons should be in the same container
+      const realizeBtn = screen.getByTestId('realize-btn');
+      const sendBtn = screen.getByRole('button', { name: /wyślij/i });
+
+      // Check they share a parent container
+      expect(realizeBtn.parentElement).toBe(sendBtn.parentElement);
+    });
+
+    it('does not render leftAction container when not provided', () => {
+      // Arrange
+      const mockSend = vi.fn();
+
+      // Act
+      render(<MessageComposer onSend={mockSend} isSending={false} />);
+
+      // Assert - only one button (Wyślij)
+      const buttons = screen.getAllByRole('button');
+      expect(buttons).toHaveLength(1);
+      expect(buttons[0]).toHaveTextContent(/wyślij/i);
+    });
+  });
 });
