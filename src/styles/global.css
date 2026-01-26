@@ -5,58 +5,58 @@
 @layer base {
   :root {
     /* Kakapo-inspired color palette */
-    --background: 75 25% 96%;           /* Jasny, ciepły beż (jak brzuch kakapo) */
-    --foreground: 85 30% 15%;           /* Ciemna zieleń (jak pióra) */
-    --card: 75 20% 98%;                 /* Bardzo jasny beż dla kart */
-    --card-foreground: 85 30% 15%;      /* Ciemna zieleń */
+    --background: 75 25% 96%; /* Jasny, ciepły beż (jak brzuch kakapo) */
+    --foreground: 85 30% 15%; /* Ciemna zieleń (jak pióra) */
+    --card: 75 20% 98%; /* Bardzo jasny beż dla kart */
+    --card-foreground: 85 30% 15%; /* Ciemna zieleń */
     --popover: 75 20% 98%;
     --popover-foreground: 85 30% 15%;
-    --primary: 85 45% 35%;              /* Głęboka zieleń kakapo */
-    --primary-foreground: 75 25% 96%;   /* Jasny beż na zielonym tle */
-    --secondary: 75 50% 75%;            /* Jasny beż/żółty (brzuch kakapo) */
+    --primary: 85 45% 35%; /* Głęboka zieleń kakapo */
+    --primary-foreground: 75 25% 96%; /* Jasny beż na zielonym tle */
+    --secondary: 75 50% 75%; /* Jasny beż/żółty (brzuch kakapo) */
     --secondary-foreground: 85 30% 20%; /* Ciemnozielony tekst */
-    --muted: 75 15% 88%;                /* Stonowany beż */
-    --muted-foreground: 85 15% 40%;     /* Stonowana zieleń */
-    --accent: 55 90% 50%;               /* Żółty akcent (jak wokół oczu kakapo) */
-    --accent-foreground: 85 30% 15%;    /* Ciemnozielony tekst */
-    --destructive: 0 70% 50%;           /* Czerwony dla błędów */
+    --muted: 75 15% 88%; /* Stonowany beż */
+    --muted-foreground: 85 15% 40%; /* Stonowana zieleń */
+    --accent: 55 90% 50%; /* Żółty akcent (jak wokół oczu kakapo) */
+    --accent-foreground: 85 30% 15%; /* Ciemnozielony tekst */
+    --destructive: 0 70% 50%; /* Czerwony dla błędów */
     --destructive-foreground: 0 0% 98%;
-    --border: 85 20% 75%;               /* Delikatna zielonawa ramka */
-    --input: 75 15% 92%;                /* Jasne beżowe inputy */
-    --ring: 85 45% 40%;                 /* Zieleń kakapo dla focus */
-    --chart-1: 85 50% 45%;              /* Zieleń */
-    --chart-2: 55 85% 55%;              /* Żółty */
-    --chart-3: 75 45% 60%;              /* Beż */
-    --chart-4: 95 40% 50%;              /* Jasna zieleń */
-    --chart-5: 45 75% 55%;              /* Złoty */
-    --radius: 0.5rem
+    --border: 85 20% 75%; /* Delikatna zielonawa ramka */
+    --input: 75 15% 92%; /* Jasne beżowe inputy */
+    --ring: 85 45% 40%; /* Zieleń kakapo dla focus */
+    --chart-1: 85 50% 45%; /* Zieleń */
+    --chart-2: 55 85% 55%; /* Żółty */
+    --chart-3: 75 45% 60%; /* Beż */
+    --chart-4: 95 40% 50%; /* Jasna zieleń */
+    --chart-5: 45 75% 55%; /* Złoty */
+    --radius: 0.5rem;
   }
   .dark {
     /* Kakapo dark mode - nocna zieleń lasu */
-    --background: 85 25% 12%;           /* Ciemna zieleń (nocny las) */
-    --foreground: 75 20% 90%;           /* Jasny beż (jak brzuch kakapo) */
-    --card: 85 20% 16%;                 /* Ciemniejsza zieleń dla kart */
+    --background: 85 25% 12%; /* Ciemna zieleń (nocny las) */
+    --foreground: 75 20% 90%; /* Jasny beż (jak brzuch kakapo) */
+    --card: 85 20% 16%; /* Ciemniejsza zieleń dla kart */
     --card-foreground: 75 20% 90%;
     --popover: 85 20% 16%;
     --popover-foreground: 75 20% 90%;
-    --primary: 85 50% 45%;              /* Żywa zieleń kakapo */
-    --primary-foreground: 85 25% 12%;   /* Ciemna zieleń na primary */
-    --secondary: 75 35% 35%;            /* Stonowany beż */
+    --primary: 85 50% 45%; /* Żywa zieleń kakapo */
+    --primary-foreground: 85 25% 12%; /* Ciemna zieleń na primary */
+    --secondary: 75 35% 35%; /* Stonowany beż */
     --secondary-foreground: 75 20% 90%;
-    --muted: 85 15% 22%;                /* Stonowana ciemna zieleń */
+    --muted: 85 15% 22%; /* Stonowana ciemna zieleń */
     --muted-foreground: 75 15% 65%;
-    --accent: 55 85% 55%;               /* Żółty akcent */
+    --accent: 55 85% 55%; /* Żółty akcent */
     --accent-foreground: 85 25% 12%;
-    --destructive: 0 65% 45%;           /* Czerwony dla błędów */
+    --destructive: 0 65% 45%; /* Czerwony dla błędów */
     --destructive-foreground: 0 0% 98%;
-    --border: 85 20% 25%;               /* Zielonawa ramka */
-    --input: 85 15% 20%;                /* Ciemne inputy */
-    --ring: 85 50% 50%;                 /* Jasna zieleń dla focus */
+    --border: 85 20% 25%; /* Zielonawa ramka */
+    --input: 85 15% 20%; /* Ciemne inputy */
+    --ring: 85 50% 50%; /* Jasna zieleń dla focus */
     --chart-1: 85 55% 50%;
     --chart-2: 55 80% 60%;
     --chart-3: 75 40% 55%;
     --chart-4: 95 45% 55%;
-    --chart-5: 45 70% 60%
+    --chart-5: 45 70% 60%;
   }
 }
 

@@ -38,9 +38,29 @@ export function useProtectedRoute(options: ProtectedRouteOptions = {}): Protecte
   const toast = useToast();
 
   useEffect(() => {
+    // Clear the login flag if user is now authenticated
+    if (auth.status === 'authenticated') {
+      localStorage.removeItem('_just_logged_in');
+    }
+
     // Jeśli status to unauthenticated (i NIE loading), przekieruj
     // IMPORTANT: Nie przekierowuj podczas 'loading' - czekaj aż status będzie definitywny
     if (auth.status === 'unauthenticated' && !auth.isLoading) {
+      // CRITICAL: Check if user just logged in - give AuthContext time to hydrate
+      const justLoggedInRaw = localStorage.getItem('_just_logged_in');
+      if (justLoggedInRaw) {
+        const loginTime = parseInt(justLoggedInRaw, 10);
+        const elapsed = Date.now() - loginTime;
+        if (elapsed < 2000) {
+          // Less than 2 seconds since login - don't redirect yet, wait for auth to hydrate
+          console.warn('[useProtectedRoute] User just logged in, waiting for auth hydration...', { elapsed });
+          return;
+        } else {
+          // More than 2 seconds - clear flag and proceed with redirect
+          localStorage.removeItem('_just_logged_in');
+        }
+      }
+
       // DEBUG: Log stan przed przekierowaniem
       console.log('[useProtectedRoute] Przekierowuję - brak autoryzacji', {
         status: auth.status,

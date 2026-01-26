@@ -1,13 +1,16 @@
 # Plan implementacji widoku Czaty
 
 ## 1. Przegląd
+
 Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowaną listę aktywnych czatów z ostatnią wiadomością, liczbą nieprzeczytanych i statusem, po prawej pełną historię wybranego czatu wraz z kontekstem wymiany i formularzem wysyłania wiadomości. Całość ma działać w kontekście mutual matchów (status ACCEPTED) i realizacji wymiany (przycisk „Zrealizowana” / „Anuluj potwierdzenie”). Widok musi być bezpieczny (tylko uczestnik), responsywny na desktop oraz spełniać walidacje z PRD (np. walidacja długości wiadomości).
 
 ## 2. Routing widoku
+
 - `/chats` – domyślna lista czatów; po załadowaniu wybieramy pierwszy czat, jeśli istnieje.
 - `/chats/:chat_id` – opcjonalna część ścieżki; kontroluje zaznaczenie czatu i ładowanie historii (może być synchronizowana z URL-em po stronie klienta).
 
 ## 3. Struktura komponentów
+
 - `ChatsPage` (Astro + React island) – wrapper i punkt wejścia; ładuje dane, dostarcza kontekst (np. `AuthContext` i `ChatsViewContext`).
 - `ChatsLayout` – grid dwukolumnowy z `ChatListColumn` i `ChatDetailColumn`.
 - `ChatListColumn` – lista `ChatListItem`.
@@ -17,6 +20,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
 ## 4. Szczegóły komponentów
 
 ### ChatsPage
+
 - **Opis**: logika ładowania danych (lista czatów + aktualny czat) oraz dostarczenie hooków `useChatsViewState`.
 - **Elementy**: `ChatsLayout`, `StatusBanner`, `LoadingSkeleton`.
 - **Zdarzenia**: `init` (fetch list), selekcja czatu (ustawienie `selectedChatId`), `refresh`.
@@ -25,6 +29,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
 - **Propsy**: `initialChatId?`, `onChatSelected?`.
 
 ### ChatListColumn
+
 - **Opis**: scrollowana kolumna z kartami czatów, button „Odśwież”, obsługa pustego stanu.
 - **Elementy**: `RefreshButton`, `ChatListItem` x N, placeholder przy ładowaniu.
 - **Zdarzenia**: `onSelect(chatId)`, `onRefresh`.
@@ -38,6 +43,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
   - `isLoading: boolean`
 
 ### ChatListItem
+
 - **Opis**: pokazuje `other_user.name`, `last_message.body`, `created_at`, `unread_count`, `status`.
 - **Elementy**: avatar/text, podtytuł z ostatnią wiadomością + data, badge status, notification badge (unread).
 - **Zdarzenia**: `onClick`, `onKeyDown` (Enter/Space), `onFocus` (dla obsługi klawiatury).
@@ -49,6 +55,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
   - `onSelect(chatId: string)`
 
 ### ChatDetailColumn
+
 - **Opis**: prawa kolumna wyświetlająca nagłówek czatu, kontekst oferty, historię wiadomości, composer i akcje.
 - **Elementy**: `ChatHeader` ( uczestnicy, status ), `OfferContextPanel` (oferty/interest), `MessageList`, `MessageComposer`, `ChatActionsPane`.
 - **Zdarzenia**: `refreshMessages`, `sendMessage`, `realize`, `unrealize`.
@@ -66,6 +73,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
   - `errorBanner?: { type: '403' | '404' | 'generic'; message: string }`
 
 ### MessageComposer
+
 - **Opis**: formularz z textarea (1–2000 znaków) i przyciskiem „Wyślij”.
 - **Elementy**: `textarea`, `send button`, `char counter`, `validation hint`.
 - **Zdarzenia**: `onSubmit`, `onChange`.
@@ -77,6 +85,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
   - `initialValue?: string`
 
 ### MessageList / MessageItem
+
 - **Opis**: lista wiadomości posortowana rosnąco, każda wiadomość pokazuje `sender_name`, `body`, `created_at`.
 - **Elementy**: `ul` z `MessageItem` (opis + meta), ewentualnie `empty state` („Brak wiadomości”).
 - **Zdarzenia**: `scroll` (może przeskoczyć do dołu po wysłaniu), `onLoadMore` (jeśli paginacja).
@@ -88,6 +97,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
   - `highlightLast?: boolean`
 
 ### ChatActionsPane
+
 - **Opis**: panel przycisków „Odśwież”, „Zrealizowana”, „Anuluj potwierdzenie” (tylko gdy można).
 - **Elementy**: `Refresh`, `Realize`, `CancelRealize`, feedback.
 - **Zdarzenia**: `onRealize`, `onUnrealize`, `onRefresh`.
@@ -102,6 +112,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
   - `onRefresh()`
 
 ## 5. Typy
+
 - `ChatSummaryViewModel` (rozszerzenie `ChatListItemDTO`):
   - `id`, `status`, `created_at`
   - `other_user: { id: string; name: string }`
@@ -120,6 +131,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
 - `ChatsViewState`: bundluje `chats`, `selectedChatId`, `selectedChat`, `messages`, loading/error flags, action states.
 
 ## 6. Zarządzanie stanem
+
 - Stworzyć hook `useChatsViewState()`:
   - Fetch `GET /api/chats` -> `chats`.
   - Domyślnie ustawia `selectedChatId` na pierwszy chat lub z URL.
@@ -130,6 +142,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
   - Timeout 10s (przez `AbortController`) i obsługa `network error`.
 
 ## 7. Integracja API
+
 - `GET /api/chats`:
   - Request: Authorization Bearer (handled globally), optional `status=ACTIVE`.
   - Response: `{ data: ChatListItemDTO[] }`.
@@ -150,6 +163,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
   - Po sukcesie odśwież chat listę i historię.
 
 ## 8. Interakcje użytkownika
+
 - Otwarcie `/chats` -> wywołanie `list` + selekcja pierwszego czatu (lub pusty stan).
 - Kliknięcie czatu -> `selectedChatId`, fetch wiadomości, highlight.
 - Kliknięcie „Odśwież” listy -> ponowny GET `/api/chats`.
@@ -160,6 +174,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
 - 403 w detail -> `StatusBanner` z tekstem „Brak uprawnień do tego czatu” i zablokowany composer.
 
 ## 9. Warunki i walidacja
+
 - Lista czatów:
   - `status` enum (ACTIVE) – query default.
   - `chatId` z URL musi być UUID (po stronie routera/ hooka).
@@ -173,6 +188,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
 - API responses 403/404/401 – przekazywać do `StatusBanner`.
 
 ## 10. Obsługa błędów
+
 - `401 Unauthorized`: przekieruj na logowanie / pokaż banner z „Zaloguj się ponownie”.
 - `403 Forbidden`: banner „Brak uprawnień do tego czatu”, composer off, przycisk „Odśwież” listę oraz 403 retry.
 - `404 Not Found`: informacja „Czat nie istnieje”, sugeruj powrót do listy i odświeżenie.
@@ -182,6 +198,7 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
 - Brak czatów: w `ChatListColumn` tekst „Nie masz jeszcze żadnych czatów”.
 
 ## 11. Kroki implementacji
+
 1. Dodać typy `ChatSummaryViewModel`, `ChatDetailViewModel`, `ChatMessageViewModel`, `InterestActionContext`, `ChatsViewState` w `src/types.ts` lub `src/types/chats.ts`.
 2. Stworzyć hook `useChatsViewState` (fetch list, domyślny wybór, fetch wiadomości, akcje realize/unrealize, zarządzanie errorami/loading).
 3. Zbudować komponenty `ChatListColumn`, `ChatListItem`, `ChatDetailColumn`, `MessageList`, `MessageComposer`, `ChatActionsPane`, `StatusBanner` zgodnie z opisem (Tailwind + shadcn/ui).
@@ -193,4 +210,3 @@ Widok **Czaty** (ścieżka `/chats`) pokazuje dwie kolumny: po lewej scrollowan�
 9. Utworzyć mechanizm wyświetlania kontekstu ofert (data z API: `offerTitle`, `interestId`, `realizationStatus`); powiązać z `ChatActionsPane`.
 10. Dodać testy jednostkowe/integracyjne (np. `vitest`): render listy, eventy `send`, błędy 403/500, realize flows.
 11. Przetestować UX: 403 banner, pusty stan, walidacja, odświeżenia, retry, performance (ok. 2s load).
-

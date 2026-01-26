@@ -19,6 +19,33 @@ import { hardNavigate } from '@/utils/navigation';
  * na poziomie routingu lub middleware (jeśli dostępne).
  */
 export function LoginPage() {
+  const computeSafeRedirectTarget = (redirectRaw: string | null): string | null => {
+    if (!redirectRaw) return null;
+    if (redirectRaw === '/login') return null;
+
+    // Block protocol-relative URLs like //evil.com
+    if (redirectRaw.startsWith('//')) return null;
+
+    let url: URL;
+    try {
+      url = new URL(redirectRaw, window.location.origin);
+    } catch {
+      return null;
+    }
+
+    // Only allow same-origin redirects
+    if (url.origin !== window.location.origin) return null;
+
+    // Prevent redirecting back to any variant of /login (e.g. /login?redirect=..., /login/, /login#...)
+    if (url.pathname === '/login' || url.pathname.startsWith('/login/')) return null;
+
+    // Prevent no-op navigations (stuck on "Przekierowywanie..." if browser ignores replace to same URL)
+    const current = new URL(window.location.href);
+    if (url.pathname === current.pathname && url.search === current.search && url.hash === current.hash) return null;
+
+    return `${url.pathname}${url.search}${url.hash}`;
+  };
+
   /**
    * Handler sukcesu logowania
    * Zapisuje tokeny (obsługiwane przez useLogin) i przekierowuje do /offers
@@ -29,10 +56,21 @@ export function LoginPage() {
     // Przekieruj użytkownika do docelowej strony (jeśli przyszli z protected route)
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get('redirect');
-    const safeTarget = redirect && redirect.startsWith('/') ? redirect : '/offers';
+    console.warn('[LoginPage] handleSuccess: redirect z query =', redirect);
+    const safeTarget = computeSafeRedirectTarget(redirect) ?? '/offers';
+    console.warn('[LoginPage] handleSuccess: safeTarget =', safeTarget);
 
-    // Use hard navigation to ensure full reload and fresh auth state
-    hardNavigate(safeTarget);
+    // CRITICAL: Set flag to prevent useProtectedRoute from redirecting immediately after login
+    // (AuthContext needs time to read token from localStorage and fetch user)
+    localStorage.setItem('_just_logged_in', Date.now().toString());
+
+    // CRITICAL: Delay navigation slightly to ensure localStorage.setItem() has fully synced
+    // and AuthContext will read the token on the next page
+    console.warn('[LoginPage] Opozniam nawigację o 300ms żeby localStorage się zsynchronizował');
+    setTimeout(() => {
+      console.warn('[LoginPage] Teraz wykonuję nawigację do:', safeTarget);
+      hardNavigate(safeTarget);
+    }, 300);
   };
 
   /**

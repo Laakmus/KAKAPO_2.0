@@ -178,6 +178,24 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
       })()
     : undefined;
 
+  const exchangeLabel = (() => {
+    if (!selectedChat) {
+      return undefined;
+    }
+
+    if (selectedChat.orderedRelatedOffers?.length === 2) {
+      return selectedChat.orderedRelatedOffers
+        .map((entry) => `${entry.offerTitle}${entry.ownerName ? ` (${entry.ownerName})` : ''}`)
+        .join(' ↔ ');
+    }
+
+    if (selectedChat.offerContext) {
+      return `${selectedChat.offerContext.myOfferTitle} ↔ ${selectedChat.offerContext.theirOfferTitle}`;
+    }
+
+    return undefined;
+  })();
+
   return (
     <div className="flex h-full bg-background">
       {/* Lewa kolumna - Lista czatów */}
@@ -256,11 +274,8 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
                       <h2 className="text-lg font-semibold truncate">
                         {selectedChat?.participants.other.name || 'Czat'}
                       </h2>
-                      {selectedChat?.offerContext && (
-                        <p className="text-xs text-muted-foreground mt-1 truncate">
-                          Wymiana: {selectedChat.offerContext.myOfferTitle} ↔{' '}
-                          {selectedChat.offerContext.theirOfferTitle}
-                        </p>
+                      {exchangeLabel && (
+                        <p className="text-xs text-muted-foreground mt-1 truncate">Wymiana: {exchangeLabel}</p>
                       )}
                     </>
                   )}

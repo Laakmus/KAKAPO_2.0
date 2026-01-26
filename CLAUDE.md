@@ -65,6 +65,7 @@ The project uses a **service-based architecture** to separate business logic fro
 - **Example**: `OfferService` handles all offer-related operations (getOfferById, createOffer, listOffers, etc.)
 
 **When to use services**:
+
 - Always use services for database operations in API endpoints
 - Don't write raw Supabase queries directly in endpoints
 - Services handle type transformations between database types and API DTOs
@@ -187,7 +188,7 @@ Refer to these documents when implementing new features or understanding existin
 
 Required environment variables (set in `.env`):
 
-- `PUBLIC_SUPABASE_URL`: Supabase project URL (PUBLIC_ prefix required for client-side access)
+- `PUBLIC_SUPABASE_URL`: Supabase project URL (PUBLIC\_ prefix required for client-side access)
 - `PUBLIC_SUPABASE_KEY`: Supabase anonymous key (public, used client-side)
 
 **Important**: In Astro, environment variables must have the `PUBLIC_` prefix to be accessible in client-side code (browser). Variables without this prefix are only available in server-side code.
@@ -234,6 +235,7 @@ The project uses **shadcn/ui** for React components:
 - **Adding components**: Use `npm run shadcn` to add new components from shadcn/ui
 
 **Important patterns**:
+
 - Import UI components from `@/components/ui/button` (uses path alias)
 - Use `client:load` directive when using React components in Astro pages
 - Theme colors defined via CSS variables in global CSS (HSL color system)

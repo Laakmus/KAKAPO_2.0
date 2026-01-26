@@ -21,22 +21,24 @@ try {
 ---
 
 <ProtectedLayout>
-  {!isValidChatId ? (
-    <div class="container mx-auto px-4 py-8">
-      <div class="bg-destructive/10 border border-destructive rounded-lg p-6 max-w-md mx-auto">
-        <h1 class="text-xl font-semibold text-destructive mb-2">Błędny adres</h1>
-        <p class="text-muted-foreground mb-4">{validationError}</p>
-        <a
-          href="/chats"
-          class="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-        >
-          Wróć do listy czatów
-        </a>
+  {
+    !isValidChatId ? (
+      <div class="container mx-auto px-4 py-8">
+        <div class="bg-destructive/10 border border-destructive rounded-lg p-6 max-w-md mx-auto">
+          <h1 class="text-xl font-semibold text-destructive mb-2">Błędny adres</h1>
+          <p class="text-muted-foreground mb-4">{validationError}</p>
+          <a
+            href="/chats"
+            class="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            Wróć do listy czatów
+          </a>
+        </div>
       </div>
-    </div>
-  ) : (
-    <div id="chat-details-page" data-chat-id={chat_id}></div>
-  )}
+    ) : (
+      <div id="chat-details-page" data-chat-id={chat_id} />
+    )
+  }
 </ProtectedLayout>
 
 <script>
@@ -56,4 +58,3 @@ try {
     }
   }
 </script>
-

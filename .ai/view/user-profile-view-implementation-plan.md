@@ -9,6 +9,7 @@ Widok `/users/:user_id` umożliwia zalogowanym użytkownikom przeglądanie podst
 Ścieżka: `/users/:user_id` (parametr `user_id` jako UUID, walidowany).
 
 Nawigacja do widoku:
+
 - Z listy zainteresowanych w widoku "Moje Oferty" (US-013)
 - Ze szczegółów oferty (link przy imieniu oferenta) (US-004)
 - Z listy czatów (link do profilu drugiej osoby) (US-015)
@@ -32,6 +33,7 @@ UserProfilePage (Astro page)
 ## 4. Szczegóły komponentów
 
 ### UserProfilePage
+
 - **Opis**: główny komponent orkiestrujący pobieranie danych z API (`GET /api/users/{user_id}`, `GET /api/users/{user_id}/offers`), zarządzanie stanem ładowania/błędów.
 - **Elementy**: `<main>` z podkomponentami, breadcrumb „Wróć", opcjonalnie przycisk „Odśwież".
 - **Interakcje**: nawigacja wstecz, kliknięcie karty oferty → `/offers/:offer_id`, odświeżenie danych.
@@ -40,6 +42,7 @@ UserProfilePage (Astro page)
 - **Props**: brak (dane z Astro params + hook `useUserProfile`).
 
 ### UserProfileHeader
+
 - **Opis**: nagłówek z imieniem, nazwiskiem, liczbą aktywnych ofert, placeholder awatara (przyszłość).
 - **Elementy**: `<header>`, `<h1>`, statystyki.
 - **Interakcje**: brak (statyczny).
@@ -48,6 +51,7 @@ UserProfilePage (Astro page)
 - **Props**: `firstName`, `lastName`, `activeOffersCount`.
 
 ### UserOffersSection
+
 - **Opis**: sekcja z listą aktywnych ofert użytkownika lub `EmptyState` gdy brak.
 - **Elementy**: `<section>`, nagłówek, siatka kart (`OfferGrid`) lub `EmptyState`.
 - **Interakcje**: delegacja kliknięć do `OfferCard`, przyszłość: paginacja.
@@ -56,6 +60,7 @@ UserProfilePage (Astro page)
 - **Props**: `offers`, `isLoading`.
 
 ### OfferCard (reużywalny)
+
 - **Opis**: istniejący komponent karty oferty, w tym kontekście bez licznika zainteresowanych (zgodnie z API dla prywatności).
 - **Elementy**: karta z obrazem, tytułem, opisem, miastem, link do szczegółów.
 - **Interakcje**: kliknięcie → `/offers/:offer_id`.
@@ -63,6 +68,7 @@ UserProfilePage (Astro page)
 - **Props**: `offer`, `showInterestsCount`.
 
 ### LoadingState / ErrorState / EmptyState
+
 - **LoadingState**: spinner z komunikatem „Ładowanie profilu...". Props: `message?: string`.
 - **ErrorState**: tytuł, komunikat, przycisk „Spróbuj ponownie" (callback `onRetry`). Props: `title`, `message`, `errorCode?`, `onRetry?`.
 - **EmptyState**: komunikat „Ten użytkownik nie ma jeszcze aktywnych ofert", ikona. Props: `message`, `icon?`.
@@ -127,16 +133,19 @@ interface ApiError {
 ## 7. Integracja API
 
 ### GET /api/users/{user_id}
+
 - **Request**: Bearer token, brak body.
 - **Response (200)**: `PublicUserDTO` (id, first_name, last_name, active_offers_count).
 - **Błędy**: 400 (UUID), 401 (token), 404 (użytkownik nie istnieje), 500 (serwer).
 
 ### GET /api/users/{user_id}/offers
+
 - **Request**: Bearer token, brak body.
 - **Response (200)**: `{ data: UserOfferDTO[] }` (tylko aktywne oferty, bez interests_count).
 - **Błędy**: 400, 401, 404, 500.
 
 ### Obsługa tokenów
+
 - Token z Supabase Auth (cookies) lub localStorage.
 - Retry logic z exponential backoff (max 3 próby) przy błędach sieciowych.
 
@@ -158,13 +167,13 @@ interface ApiError {
 
 ## 10. Obsługa błędów
 
-| Scenariusz | Kod HTTP | Error Code | Komunikat | Akcja UI |
-|------------|----------|------------|-----------|----------|
-| Nieprawidłowy UUID | 400 | VALIDATION_ERROR | „Nieprawidłowy identyfikator użytkownika" | ErrorState bez retry |
-| Brak/wygasły token | 401 | UNAUTHORIZED | „Sesja wygasła. Zaloguj się ponownie." | Redirect `/login` |
-| Użytkownik nie istnieje | 404 | USER_NOT_FOUND | „Użytkownik nie został znaleziony" | ErrorState + „Wróć" |
-| Błąd serwera | 500 | INTERNAL_ERROR | „Wystąpił błąd. Spróbuj ponownie." | ErrorState + retry |
-| Błąd sieci | N/A | NETWORK_ERROR | „Brak połączenia z internetem." | ErrorState + retry |
+| Scenariusz              | Kod HTTP | Error Code       | Komunikat                                 | Akcja UI             |
+| ----------------------- | -------- | ---------------- | ----------------------------------------- | -------------------- |
+| Nieprawidłowy UUID      | 400      | VALIDATION_ERROR | „Nieprawidłowy identyfikator użytkownika" | ErrorState bez retry |
+| Brak/wygasły token      | 401      | UNAUTHORIZED     | „Sesja wygasła. Zaloguj się ponownie."    | Redirect `/login`    |
+| Użytkownik nie istnieje | 404      | USER_NOT_FOUND   | „Użytkownik nie został znaleziony"        | ErrorState + „Wróć"  |
+| Błąd serwera            | 500      | INTERNAL_ERROR   | „Wystąpił błąd. Spróbuj ponownie."        | ErrorState + retry   |
+| Błąd sieci              | N/A      | NETWORK_ERROR    | „Brak połączenia z internetem."           | ErrorState + retry   |
 
 **Mapowanie błędów**: funkcja `getErrorMessage(error: ApiError): { title, message }` konwertuje kody na przyjazne komunikaty PL.
 
@@ -178,7 +187,7 @@ interface ApiError {
 
 2. **Hook `useUserProfile`**: zaimplementuj stan lokalny, `fetchProfile()`, `fetchOffers()`, `refresh()`, useEffect, obsługa błędów i tokenów. Helper `getAuthToken()`.
 
-3. **Komponenty UI**: 
+3. **Komponenty UI**:
    - `UserProfileHeader` (nagłówek z danymi).
    - `UserOffersSection` (lista ofert lub EmptyState).
    - Reużyj/dostosuj `OfferCard` (props `showInterestsCount=false`).
@@ -192,7 +201,7 @@ interface ApiError {
 
 7. **Nawigacja**: dodaj linki do profilu w innych widokach (Szczegóły oferty, Moje Oferty → zainteresowani, Czaty).
 
-8. **Testowanie**: 
+8. **Testowanie**:
    - Manualne: valid/invalid UUID, 404, 401, brak ofert, odświeżanie, nawigacja.
    - Opcjonalnie: unit testy hooka, integration testy komponentu.
 
@@ -205,6 +214,7 @@ interface ApiError {
 ## Dodatkowe uwagi
 
 **Przyszłe rozszerzenia**:
+
 - Avatar użytkownika (pole `avatar_url` + Supabase Storage).
 - Paginacja ofert (query params `page`, `limit`).
 - Filtrowanie/sortowanie ofert.
@@ -212,15 +222,18 @@ interface ApiError {
 - Statystyki (zrealizowane wymiany, rating).
 
 **Bezpieczeństwo**:
+
 - Rate limiting API (ochrona przed enumeration attacks).
 - Nie wyświetlać emaila, daty rejestracji (GDPR, prywatność).
 - Sanityzacja danych z API (React domyślnie chroni przed XSS).
 
 **Kompatybilność**:
+
 - Spójność z widokiem „Mój profil" (`/profile`) — podobny layout, różne dane.
 - Linki z innych widoków (Oferty, Moje Oferty, Czaty).
 
 **Zgodność z PRD**:
+
 - ✅ US-011: lista aktywnych ofert, podstawowe dane, liczba ofert.
 - ✅ US-014: nawigacja z zainteresowanych, możliwość wyrażenia zainteresowania ich ofertami.
 

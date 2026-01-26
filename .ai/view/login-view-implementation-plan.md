@@ -1,9 +1,11 @@
 # Plan implementacji widoku Logowanie
 
 ## 1. Przegląd
+
 Widok `Logowanie` `/login` umożliwia zalogowanie istniejącego użytkownika przez podanie emaila i hasła, wyświetla błędy zgodnie z PRD (401/403/429/500) i zarządza przekierowaniem do `/offers` po otrzymaniu tokenów JWT z `POST /api/auth/login`. Wspiera dostępność przez `aria-live` dla globalnych komunikatów oraz bezpieczne przechowywanie tokenów (opisane w tech stacku).
 
 ## 2. Routing widoku
+
 - Ścieżka: `/login` w pliku `src/pages/login.astro`.
 - `export const prerender = false` (tak jak w innych API/stronach auth).
 - Wrap wewnątrz `Layout` z tytułem „Logowanie — KAKAPO”.
@@ -11,12 +13,14 @@ Widok `Logowanie` `/login` umożliwia zalogowanie istniejącego użytkownika prz
 - Strona powinna korzystać z `client:load` dla `LoginPage`, by mieć dostęp do browser APIs (focus, localStorage, redirect).
 
 ## 3. Struktura komponentów
+
 - `LoginPage` (kontener widoku, układ + metadane, przekierowanie jeśli już zalogowany)
 - `LoginForm` (formularz, walidacja, submit, GlobalNotification)
 - `GlobalNotification` (aria-live area, rozszerzenie o CTA „Zaloguj ponownie” w sytuacjach UNAUTHORIZED)
 - `FooterLinks` (link do `/signup`)
 
 Diagram drzewa komponentów:
+
 ```
 LoginPage
 ├── Layout (meta + tytuł)
@@ -33,6 +37,7 @@ LoginPage
 ## 4. Szczegóły komponentów
 
 ### LoginPage
+
 - **Opis**: Astro + Reactowy komponent kontenerowy. Odpowiada za layout, tytuł strony, redirect gdy użytkownik ma już sesję (sprawdzany z `Astro.locals.user` i ewentualnie z `useLogin`/`localStorage`), przekazuje callbacki do `LoginForm`.
 - **Główne elementy**: `Layout`, `section`/`div` tworzące centrowany panel, `LoginForm`, `FooterLinks`.
 - **Obsługiwane interakcje**: weryfikacja istnienia aktywnej sesji (podczas SSR i w `useEffect`), przekazanie `onSuccess`, `onError` do `LoginForm`, ewentualna zmiana focusu.
@@ -41,6 +46,7 @@ LoginPage
 - **Propsy**: `initialValues?: LoginFormValues` (np. z query `?email=`, `?reason=unauthorized`), `onLoginSuccess(tokens)` (przekierowuje do `/offers`, zapisuje tokeny), `onLoginError(error)` (ustawia `GlobalNotification`).
 
 ### LoginForm
+
 - **Opis**: Reactowy formularz istniejący wewnątrz `LoginPage`. Używa `react-hook-form` + `zodResolver(loginSchema)` i `GlobalNotification` do komunikatów, integruje się z `useLogin`.
 - **Główne elementy**: `form`, `Input` (email), `Input` (password), `Button` submit, `GlobalNotification`, `FooterLinks`.
 - **Obsługiwane interakcje**:
@@ -61,6 +67,7 @@ LoginPage
   - `showFooterLink?: boolean` (domyślnie true, by pokazać `FooterLinks`).
 
 ### GlobalNotification (rozszerzone użycie)
+
 - **Opis**: Komponent aria-live z `role="status"` (już istnieje) – dla logowania potrzebujemy dodatkowego CTA w treści (np. `actionLabel` / `actionHref`).
 - **Główne elementy**: `div` z ikoną, tekst, opcjonalna `button`/`a` dla akcji „Zaloguj ponownie” (przy UNAUTHORIZED lub gdy serwer sugeruje ponowne uwierzytelnienie).
 - **Obsługiwane interakcje**: pojawienie się i zniknięcie komunikatu po błędzie, CTA wykonujący `onClick`/przekierowanie.
@@ -69,6 +76,7 @@ LoginPage
 - **Propsy**: `message?: LoginNotificationMessage`, `className?: string`.
 
 ### FooterLinks
+
 - **Opis**: Link spod formularza przenoszący do `/signup`.
 - **Główne elementy**: `p` + `a` (Tailwind, focus).
 - **Obsługiwane interakcje**: klik przekierowuje do rejestracji.
@@ -77,6 +85,7 @@ LoginPage
 - **Propsy**: przekazać `href="/signup"` i ewentualnie `className="mt-6"`.
 
 ## 5. Typy
+
 - `LoginFormValues` (ViewModel dla `LoginForm`):
   - `email: string`
   - `password: string`
@@ -98,6 +107,7 @@ LoginPage
   - `initialValues?: Partial<LoginFormValues>`
 
 ## 6. Zarządzanie stanem
+
 - `useLogin` (custom hook):
   - `useState<UseLoginState>` z `isLoading`, `notification`.
   - `login(values: LoginFormValues)` wysyła `POST /api/auth/login`.
@@ -110,6 +120,7 @@ LoginPage
 - `LoginPage` może przechowywać `initialNotification` (np. `?reason=unauthorized`), przekazując do `useLogin` w `notification` startowej (CTA „Zaloguj ponownie”).
 
 ## 7. Integracja API
+
 1. Endpoint: `POST /api/auth/login` (Astro API route `src/pages/api/auth/login.ts`).
 2. Request body: `LoginUserCommand` = `{ email: string; password: string; }`.
 3. Nagłówki: `Content-Type: application/json`.
@@ -124,6 +135,7 @@ LoginPage
 7. Po sukcesie: `useLogin` zapisuje tokeny i ewentualnie ustawia `document.cookie = `? to do wewnątrz hooka (w planie wyjaśnić preferowany mechanizm z tech stacku — `httpOnly cookie` w przyszłości, teraz np. `localStorage`).
 
 ## 8. Interakcje użytkownika
+
 - focus na polu email po załadowaniu (z `useEffect` + `ref`).
 - wysyłanie wartości (email/hasło) → walidacja Zod + `react-hook-form`.
 - klik „Zaloguj”:
@@ -136,6 +148,7 @@ LoginPage
 - `ESC`/`Enter` w formularzu (standardowa obsługa form): `Enter` submit, `Esc` może zamknąć globalny alert (jeśli w `GlobalNotification` dodamy `onClose`).
 
 ## 9. Warunki i walidacja
+
 - Email:
   - `required`.
   - `zod` sprawdza format i lowercase/trim (jak backend).
@@ -153,6 +166,7 @@ LoginPage
 - Formularz `noValidate` i walidacja klienta (zod) zapewnia spójność przed wysłaniem.
 
 ## 10. Obsługa błędów
+
 - 400 VALIDATION_ERROR -> `setError` (email/password) + `GlobalNotification` z `details`.
 - 401 UNAUTHORIZED -> `notification` z `actionLabel: 'Zaloguj ponownie'`, `actionHref: '/login'`, `type: 'error'`.
 - 403 FORBIDDEN -> `notification` „Email nie został zweryfikowany. Sprawdź skrzynkę.”, CTA „Wyślij link ponownie” (może to być placeholder do przyszłego flow).
@@ -161,6 +175,7 @@ LoginPage
 - Timeout/sieć -> `notification` i `clearNotification` (z `useLogin`), button `Zaloguj` odblokowany.
 
 ## 11. Kroki implementacji
+
 1. Dodać lub odświeżyć `loginSchema` (już jest w `src/schemas/auth.schema.ts`) i upewnić się, że eksportuje `LoginInput`.
 2. Zaplanować `LoginPage` (Astro) z `Layout`, `LoginPage` React component importowany z `client:load`, `prerender = false`.
 3. Stworzyć `LoginPage` React z logiką redirectu (`Astro.locals.user`, `useEffect`).
@@ -173,4 +188,3 @@ LoginPage
 10. Dodać `FooterLinks` z `href="/signup"` i opcjonalną sekcją „Nie masz konta?”.
 11. Przetestować doświadczenia: walidacje, błędy 401/403/429/500, komunikaty, redirect, CTA „Zaloguj ponownie”.
 12. Upewnić się, że przy `przekierowaniu UNAUTHORIZED` inne widoki (np. middleware) mogą przekazywać query `?reason=unauthorized` do `LoginPage` i że `GlobalNotification` wyświetla zachęcający link.
-

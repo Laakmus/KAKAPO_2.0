@@ -540,6 +540,7 @@ CREATE TRIGGER remove_offers_on_realized_trigger
 ```
 
 **Uwagi:**
+
 - Trigger używa `SECURITY DEFINER` aby mieć uprawnienia do aktualizacji ofert mimo RLS
 - Sprawdzenie `status != 'REMOVED'` zapobiega nadmiarowym UPDATE jeśli oferta została już usunięta ręcznie
 - Trigger uruchamia się niezależnie dla obu użytkowników, ale dzięki warunkowi działa tylko gdy oba interests są REALIZED
@@ -967,6 +968,7 @@ CREATE POLICY audit_logs_admin_only
 Bucket do przechowywania zdjęć ofert uploadowanych przez użytkowników z ich komputerów.
 
 **Konfiguracja:**
+
 - Publiczny dostęp do odczytu (każdy może wyświetlić zdjęcia ofert)
 - Maksymalny rozmiar pliku: 10 MB
 - Dozwolone formaty: JPG, JPEG, PNG, WebP
@@ -1010,6 +1012,7 @@ USING (
 7. Przy usuwaniu oferty, opcjonalnie można usunąć plik ze Storage (zalecane) - `src/utils/image.ts::deleteImageFromStorage()`
 
 **Powiązane pliki:**
+
 - Migracja: `supabase/migrations/20240101000007_storage_setup.sql`
 - Utility: `src/utils/image.ts` (kompresja, walidacja, upload, usuwanie)
 - Komponenty: `src/components/ImageUpload.tsx`, `src/components/ImagePlaceholder.tsx` (OfferImage)

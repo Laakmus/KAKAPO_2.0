@@ -6,17 +6,14 @@ import type { ApiErrorViewModel, HomeFilterState, OfferListItemViewModel, Offers
 const mocks = vi.hoisted(() => ({
   useOffersList: vi.fn(),
   useUrlPagination: vi.fn(),
-  useOfferSelection: vi.fn(),
 
   setPage: vi.fn(),
   refetch: vi.fn(),
-  selectOffer: vi.fn(),
-  deselectOffer: vi.fn(),
 
+  OffersSearchInput: vi.fn(),
   OffersFilterPanel: vi.fn(),
   OffersGrid: vi.fn(),
   PaginationControls: vi.fn(),
-  OfferDetailsPanel: vi.fn(),
   LoadingSkeletonGrid: vi.fn(),
   EmptyState: vi.fn(),
   ErrorBanner: vi.fn(),
@@ -30,8 +27,11 @@ vi.mock('@/hooks/useUrlPagination', () => ({
   useUrlPagination: mocks.useUrlPagination,
 }));
 
-vi.mock('@/hooks/useOfferSelection', () => ({
-  useOfferSelection: mocks.useOfferSelection,
+vi.mock('@/components/OffersSearchInput', () => ({
+  OffersSearchInput: (props: { value: string; onChange: (v: string) => void }) => {
+    mocks.OffersSearchInput(props);
+    return <div data-testid="OffersSearchInput" />;
+  },
 }));
 
 vi.mock('@/components/OffersFilterPanel', () => ({
@@ -57,20 +57,11 @@ vi.mock('@/components/OffersFilterPanel', () => ({
 }));
 
 vi.mock('@/components/OffersGrid', () => ({
-  OffersGrid: (props: {
-    offers: OfferListItemViewModel[];
-    selectedOfferId?: string;
-    onSelectOffer: (offer: OfferListItemViewModel) => void;
-  }) => {
+  OffersGrid: (props: { offers: OfferListItemViewModel[] }) => {
     mocks.OffersGrid(props);
     return (
       <div>
         <div data-testid="OffersGrid">{props.offers.map((o) => o.title).join(',')}</div>
-        {props.offers[0] ? (
-          <button type="button" onClick={() => props.onSelectOffer(props.offers[0])}>
-            select-first
-          </button>
-        ) : null}
       </div>
     );
   },
@@ -90,20 +81,6 @@ vi.mock('@/components/PaginationControls', () => ({
   },
 }));
 
-vi.mock('@/components/OfferDetailsPanel', () => ({
-  OfferDetailsPanel: (props: { selectedOffer?: OfferListItemViewModel; onClose: () => void }) => {
-    mocks.OfferDetailsPanel(props);
-    return (
-      <div>
-        <div data-testid="OfferDetailsPanel">{props.selectedOffer?.title ?? 'none'}</div>
-        <button type="button" onClick={props.onClose}>
-          close-details
-        </button>
-      </div>
-    );
-  },
-}));
-
 vi.mock('@/components/LoadingSkeletonGrid', () => ({
   LoadingSkeletonGrid: (props: { count?: number }) => {
     mocks.LoadingSkeletonGrid(props);
@@ -112,7 +89,7 @@ vi.mock('@/components/LoadingSkeletonGrid', () => ({
 }));
 
 vi.mock('@/components/EmptyState', () => ({
-  EmptyState: (props: { onRefresh: () => void }) => {
+  EmptyState: (props: { onRefresh: () => void; searchQuery?: string }) => {
     mocks.EmptyState(props);
     return (
       <div>
@@ -143,15 +120,8 @@ describe('HomeOffersPage', () => {
   beforeEach(() => {
     mocks.setPage.mockReset();
     mocks.refetch.mockReset();
-    mocks.selectOffer.mockReset();
-    mocks.deselectOffer.mockReset();
 
     mocks.useUrlPagination.mockReturnValue({ page: 1, setPage: mocks.setPage });
-    mocks.useOfferSelection.mockReturnValue({
-      selectedOffer: undefined,
-      selectOffer: mocks.selectOffer,
-      deselectOffer: mocks.deselectOffer,
-    });
 
     mocks.useOffersList.mockReturnValue({
       offers: [],
@@ -199,7 +169,7 @@ describe('HomeOffersPage', () => {
     expect(screen.getByTestId('LoadingSkeletonGrid')).toBeInTheDocument();
   });
 
-  it('renders EmptyState and refresh triggers refetch + deselectOffer', async () => {
+  it('renders EmptyState and refresh triggers refetch', async () => {
     const user = userEvent.setup();
 
     render(<HomeOffersPage />);
@@ -209,10 +179,9 @@ describe('HomeOffersPage', () => {
     await user.click(screen.getByRole('button', { name: 'refresh-empty' }));
 
     expect(mocks.refetch).toHaveBeenCalledTimes(1);
-    expect(mocks.deselectOffer).toHaveBeenCalledTimes(1);
   });
 
-  it('supports selecting an offer and paginating (deselect + scrollTo)', async () => {
+  it('renders OffersGrid with offers and supports pagination with scrollTo', async () => {
     const user = userEvent.setup();
 
     const offers: OfferListItemViewModel[] = [
@@ -244,13 +213,11 @@ describe('HomeOffersPage', () => {
 
     render(<HomeOffersPage />);
 
-    await user.click(screen.getByRole('button', { name: 'select-first' }));
-    expect(mocks.selectOffer).toHaveBeenCalledWith(offers[0]);
+    expect(screen.getByTestId('OffersGrid')).toHaveTextContent('Oferta 1');
 
     await user.click(screen.getByRole('button', { name: 'page-2' }));
 
     expect(mocks.setPage).toHaveBeenCalledWith(2);
-    expect(mocks.deselectOffer).toHaveBeenCalledTimes(1);
     expect(scrollToSpy).toHaveBeenCalled();
 
     scrollToSpy.mockRestore();

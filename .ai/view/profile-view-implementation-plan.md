@@ -21,6 +21,7 @@ Strona dostępna na ścieżce `/profile`. Chroniona sesją Supabase (Bearer toke
 ## 4. Szczegóły komponentów
 
 ### ProfilePage
+
 - **Opis**: główny kontener strony, zarządza fetchem profilu z `GET /api/users/me`, stan edycji i modal usunięcia.
 - **Elementy**: `ProfileHeader`, `ProfileStats`, `ProfileViewMode`/`ProfileEditForm` (warunkowe), `DeleteAccountDialog`, `NotificationToast`.
 - **Interakcje**: toggle edycji (`isEditing`), otwarcie modalu usunięcia, refresh po zapisie/błędzie.
@@ -29,6 +30,7 @@ Strona dostępna na ścieżce `/profile`. Chroniona sesją Supabase (Bearer toke
 - **Props**: brak (własny hook `useProfile`).
 
 ### ProfileHeader
+
 - **Opis**: nagłówek z imieniem, nazwiskiem i placeholder dla awatara (przyszłość).
 - **Elementy**: avatar placeholder, heading (h1) z imieniem i nazwiskiem.
 - **Interakcje**: brak (statyczny).
@@ -37,6 +39,7 @@ Strona dostępna na ścieżce `/profile`. Chroniona sesją Supabase (Bearer toke
 - **Props**: `firstName`, `lastName`, opcjonalnie `avatarUrl`.
 
 ### ProfileStats
+
 - **Opis**: sekcja z meta-danymi (email read-only, data rejestracji, liczba aktywnych ofert).
 - **Elementy**: lista pól z etykietami i wartościami (email, `created_at` sformatowana, `active_offers_count`).
 - **Interakcje**: link do `/offers/my` przy kliknięciu liczby ofert (opcjonalne).
@@ -45,6 +48,7 @@ Strona dostępna na ścieżce `/profile`. Chroniona sesją Supabase (Bearer toke
 - **Props**: `email`, `createdAt`, `activeOffersCount`.
 
 ### ProfileViewMode
+
 - **Opis**: widok read-only z danymi profilu i przyciskami „Edytuj" oraz „Usuń konto".
 - **Elementy**: pola tekstowe (imię, nazwisko) jako statyczny tekst, przyciski akcji.
 - **Interakcje**: `onEdit` otwiera formularz edycji, `onDeleteRequest` otwiera `DeleteAccountDialog`.
@@ -53,31 +57,34 @@ Strona dostępna na ścieżce `/profile`. Chroniona sesją Supabase (Bearer toke
 - **Props**: `profile`, `onEdit`, `onDeleteRequest`.
 
 ### ProfileEditForm
+
 - **Opis**: inline formularz edycji imienia i nazwiska (email read-only zgodnie z Supabase Auth).
 - **Elementy**: pola `first_name`, `last_name` (input), przyciski „Zapisz" i „Anuluj".
 - **Interakcje**: submit → `PATCH /api/users/me`, cancel → powrót do `ProfileViewMode`.
-- **Walidacja**: 
+- **Walidacja**:
   - `first_name` 1-100 znaków (obowiązkowe).
   - `last_name` 1-100 znaków (obowiązkowe).
   - Frontend walidacja z `zod` + `react-hook-form`.
-- **Typy**: 
+- **Typy**:
   - `ProfileEditPayload = { first_name: string; last_name: string; }`.
   - `ProfileEditFormProps = { initialValues: ProfileEditPayload; onSubmit: (payload) => Promise<void>; onCancel: () => void; isSubmitting: boolean; }`.
 - **Props**: `initialValues`, `onSubmit`, `onCancel`, `isSubmitting`.
 
 ### DeleteAccountDialog
+
 - **Opis**: modal z ostrzeżeniem o nieodwracalności i polem hasła do re-autoryzacji.
 - **Elementy**: tekst ostrzegawczy, input hasła, przyciski „Usuń konto" (destrukcyjny) i „Anuluj".
 - **Interakcje**: submit → `DELETE /api/users/me` z `{ password }`, po sukcesie wylogowanie i redirect na `/login`.
-- **Walidacja**: 
+- **Walidacja**:
   - `password` wymagane (min 8 znaków, zgodnie z Supabase Auth).
   - Backend weryfikuje hasło przed usunięciem.
-- **Typy**: 
+- **Typy**:
   - `DeleteAccountPayload = { password: string; }`.
   - `DeleteAccountDialogProps = { isOpen: boolean; onCancel: () => void; onConfirm: (payload: DeleteAccountPayload) => Promise<void>; isDeleting: boolean; }`.
 - **Props**: `isOpen`, `onCancel`, `onConfirm`, `isDeleting`.
 
 ### NotificationToast
+
 - **Opis**: globalne powiadomienia (success przy zapisie, error przy błędzie).
 - **Interakcje**: auto-dismiss po 5s lub ręczne zamknięcie.
 - **Typy**: `NotificationMessage = { type: 'success' | 'error'; text: string; }`.

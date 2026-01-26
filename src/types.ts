@@ -374,6 +374,7 @@ export type ChatDetailsViewModel = {
     my: OfferSummary;
     their: OfferSummary;
   };
+  ordered_related_offers?: OrderedRelatedOffer[];
   realized_at?: string | null;
   /**
    * Read-only czat (np. gdy oferta powiązana z czatem została usunięta).
@@ -399,6 +400,15 @@ export type ChatMessagesApiResponse = Paginated<MessageViewModel>;
 export type OfferSummary = {
   id: string;
   title: string;
+};
+
+export type OrderedRelatedOffer = {
+  offer: OfferSummary;
+  owner: {
+    id: string;
+    name: string;
+  };
+  liked_at: string;
 };
 
 /**
@@ -446,6 +456,14 @@ export type ChatSummaryViewModel = ChatListItemDTO & {
  * ViewModel dla szczegółów czatu (prawa kolumna - nagłówek i kontekst)
  * Używany dla wyświetlenia informacji o uczestnikach i kontekście ofert
  */
+export type OrderedRelatedOfferViewModel = {
+  offerId: string;
+  offerTitle: string;
+  ownerId: string;
+  ownerName: string;
+  likedAt: string;
+};
+
 export type ChatDetailViewModel = {
   chatId: string;
   status: string;
@@ -466,6 +484,7 @@ export type ChatDetailViewModel = {
   };
   interestId?: string;
   realizationStatus: 'ACCEPTED' | 'REALIZED' | 'PROPOSED';
+  orderedRelatedOffers?: OrderedRelatedOfferViewModel[];
 };
 
 /**

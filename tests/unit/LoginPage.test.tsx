@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { LoginPage } from '@/components/LoginPage';
 import type { AuthTokensResponse } from '@/types';
 
@@ -20,7 +20,13 @@ vi.mock('@/utils/navigation', () => ({
 
 describe('LoginPage', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     mocks.hardNavigate.mockReset();
+    mocks.LoginForm.mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders heading and LoginForm', () => {
@@ -30,7 +36,7 @@ describe('LoginPage', () => {
     expect(screen.getByTestId('LoginForm')).toBeInTheDocument();
   });
 
-  it('redirects to safe redirect param on login success', () => {
+  it('redirects to safe redirect param on login success', async () => {
     window.history.pushState({}, '', '/login?redirect=/profile');
     render(<LoginPage />);
 
@@ -41,12 +47,19 @@ describe('LoginPage', () => {
       user: { id: 'u1', email: 'test@example.com' },
     };
 
-    props.onSuccess(tokens);
+    act(() => {
+      props.onSuccess(tokens);
+    });
+
+    // Advance timers to trigger the setTimeout (300ms delay)
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
 
     expect(mocks.hardNavigate).toHaveBeenCalledWith('/profile');
   });
 
-  it('falls back to /offers when redirect is unsafe', () => {
+  it('falls back to /offers when redirect is unsafe', async () => {
     window.history.pushState({}, '', '/login?redirect=https://evil.com');
     render(<LoginPage />);
 
@@ -57,7 +70,14 @@ describe('LoginPage', () => {
       user: { id: 'u1', email: 'test@example.com' },
     };
 
-    props.onSuccess(tokens);
+    act(() => {
+      props.onSuccess(tokens);
+    });
+
+    // Advance timers to trigger the setTimeout (300ms delay)
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
 
     expect(mocks.hardNavigate).toHaveBeenCalledWith('/offers');
   });

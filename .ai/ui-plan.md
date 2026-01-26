@@ -2,7 +2,7 @@
 
 ### 1. Przegląd struktury UI
 
-Interfejs użytkownika KAKAPO jest zorganizowany wokół głównych zasobów domenowych i API: `offers`, `users`, `interests`, `chats`, `messages` (plus przyszłościowe `exchange-history`). Architektura jest desktop-first, z prostymi, rozszerzalnymi layoutami, które można w przyszłości zaadaptować do widoków mobilnych. 
+Interfejs użytkownika KAKAPO jest zorganizowany wokół głównych zasobów domenowych i API: `offers`, `users`, `interests`, `chats`, `messages` (plus przyszłościowe `exchange-history`). Architektura jest desktop-first, z prostymi, rozszerzalnymi layoutami, które można w przyszłości zaadaptować do widoków mobilnych.
 
 Główne sekcje aplikacji:
 
@@ -41,6 +41,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Brak logiki autoryzacji (widok publiczny) – ale blokada wejścia dla zalogowanego (opcjonalne przekierowanie na `/offers`).
 
 **Powiązane historyjki użytkownika**:
+
 - **US-001 Rejestracja**: Widok Rejestracja (`/signup`).
 
 #### 2.2 Widok: Logowanie
@@ -65,6 +66,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Możliwość powrotu do logowania, gdy inne widoki dostaną `UNAUTHORIZED` (np. link „Zaloguj ponownie").
 
 **Powiązane historyjki użytkownika**:
+
 - **US-002 Logowanie do aplikacji**: Widok Logowanie (`/login`) + shell (przekierowanie po sukcesie).
 
 #### 2.3 Widok: Home / Lista globalnych ofert
@@ -90,6 +92,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Obsługa `401/403`: jasna informacja i link do `/login`.
 
 **Powiązane historyjki użytkownika**:
+
 - **US-003 Wyświetlenie strony głównej z listą ofert**: Widok Home / Lista globalnych ofert (`/offers`).
 - **US-024 Paginacja listy ofert**: Widok Home / Lista globalnych ofert (`/offers`).
 
@@ -115,6 +118,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Bezpośrednie wejście na `/offers/:id` ładuje zarówno szczegóły, jak i listę (dla spójności nawigacji).
 
 **Powiązane historyjki użytkownika**:
+
 - **US-004 Przeglądanie szczegółów oferty**: Widok Szczegóły oferty (`/offers/:id`).
 - **US-005 Kliknięcie „Jestem zainteresowany"**: Akcja w widoku Szczegóły oferty + karta oferty (Home).
 - **US-006 Anulowanie zainteresowania**: Ten sam kontekst co US-005 – przycisk zmieniający stan.
@@ -143,6 +147,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Lista zainteresowanych z linkami do profili (`/users/:user_id`) i ich ofert (`/users/:user_id/offers`), z zachowaniem zasad prywatności.
 
 **Powiązane historyjki użytkownika**:
+
 - **US-007 Przeglądanie moich ofert**: Widok Moje Oferty (`/offers/my`).
 - **US-009 Edycja własnej oferty**: Widok Edycja oferty (inline w `/offers/my`).
 - **US-010 Usunięcie własnej oferty**: Widok Moje Oferty – akcja „Usuń" + dialog potwierdzenia.
@@ -168,6 +173,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Obsługa `422` z mapowaniem na błędy pól.
 
 **Powiązane historyjki użytkownika**:
+
 - **US-008 Dodawanie nowej oferty**: Widok Dodawanie oferty (`/offers/new`).
 
 #### 2.7 Widok: Edycja oferty (stan w „Moich Ofertach")
@@ -187,6 +193,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Walidacja jak przy dodawaniu oferty.
 
 **Powiązane historyjki użytkownika**:
+
 - **US-009 Edycja własnej oferty**: Widok Edycja oferty (inline w `/offers/my`).
 
 #### 2.8 Widok: Profil użytkownika (mój profil)
@@ -215,6 +222,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Dane profilowe innych użytkowników nie są tu eksponowane – dotyczy wyłącznie zalogowanego użytkownika.
 
 **Powiązane historyjki użytkownika**:
+
 - **US-012 Przeglądanie mojego profilu**: Widok Mój profil (`/profile`).
 - **US-020 Usunięcie konta**: Widok Mój profil – przycisk „Usuń konto" + dialog.
 
@@ -236,6 +244,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Brak akcji administracyjnych; tylko przejścia do szczegółów ofert.
 
 **Powiązane historyjki użytkownika**:
+
 - **US-011 Przeglądanie ofert innego użytkownika**: Widok Profil innego użytkownika (`/users/:id` + `/users/:id/offers`).
 - **US-014 Oferent klika „Jestem zainteresowany" na ofercie zainteresowanego użytkownika**: Widok Szczegóły oferty + linkowanie z listy zainteresowanych.
 
@@ -262,6 +271,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Dane widoczne tylko dla uczestników czatu; przy `403` komunikat „Brak uprawnień do tego czatu".
 
 **Powiązane historyjki użytkownika**:
+
 - **US-015 Otwieranie czatu**: Widok Czaty (`/chats`) + wybór czatu w liście.
 
 #### 2.11 Widok: Szczegóły czatu / historia wiadomości
@@ -287,6 +297,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - **Anulowanie potwierdzenia**: Przycisk „Anuluj" wywołuje `PATCH /api/interests/:interest_id/unrealize` (tylko jeśli druga strona jeszcze nie potwierdziła).
 
 **Powiązane historyjki użytkownika**:
+
 - **US-016 Wysyłanie wiadomości w czacie**: Widok Szczegóły czatu (`/chats/:chat_id`).
 - **US-017 Przeglądanie historii czatu**: Widok Szczegóły czatu (lista wiadomości).
 - **US-018 Oznaczenie wymiany jako „Zrealizowana"**: Widok Szczegóły czatu – przycisk „Zrealizowana".
@@ -311,6 +322,7 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
   - Dla widoków chronionych brak ważnego JWT skutkuje przekierowaniem na `/login` lub wyświetleniem komunikatu z CTA.
 
 **Powiązane historyjki użytkownika**:
+
 - **US-021 Wylogowanie**: Główny layout – przycisk „Wyloguj".
 - **US-022 Nawigacja między stronami**: Główny layout – pasek nawigacji.
 - **US-023 Bezpieczny dostęp do danych innego użytkownika**: Wszystkie widoki chronione poprzez RLS i obsługę błędów.
@@ -346,8 +358,9 @@ Całość opiera się na podejściu „fetch on mount + ręczne odświeżanie”
    - Użytkownik przechodzi do zakładki „Chat” (`/chats`), widzi nowy czat w liście.
    - Wybiera czat, ogląda historię wiadomości (początkowo pustą), wysyła wiadomości.
 10. **Zakończenie wymiany (US-018, US-019)**:
-   - Po dokonaniu wymiany jedna osoba klika „Zrealizowana” w panelu czatu.
-   - Druga osoba widzi komunikat i również klika „Zrealizowana”; status zmienia się na REALIZED, czat może zostać ukryty z listy aktywnych (lub oznaczony jako zrealizowany).
+
+- Po dokonaniu wymiany jedna osoba klika „Zrealizowana” w panelu czatu.
+- Druga osoba widzi komunikat i również klika „Zrealizowana”; status zmienia się na REALIZED, czat może zostać ukryty z listy aktywnych (lub oznaczony jako zrealizowany).
 
 #### 3.2 Zarządzanie ofertami
 
@@ -506,6 +519,7 @@ Poniższe elementy zostały zidentyfikowane jako wymagające doprecyzowania lub 
 **Obecny stan**: Endpointy `GET /api/chats` i `GET /api/chats/:chat_id/messages` nie zwracają tych informacji zgodnie z planami w `.ai/endpoints/`.
 
 **Możliwe rozwiązania**:
+
 1. Rozszerzyć response `GET /api/chats` o pole `related_offers: { my_offer: {...}, their_offer: {...} }`
 2. Dodać osobny endpoint `GET /api/chats/:chat_id/context` zwracający powiązane oferty i statusy interests
 3. Frontend może wykonać dodatkowe zapytania do `GET /api/interests/my` i przefiltrować po statusie ACCEPTED/REALIZED dla danego użytkownika
@@ -519,6 +533,7 @@ Poniższe elementy zostały zidentyfikowane jako wymagające doprecyzowania lub 
 **Obecny stan**: Response z `GET /api/chats/:chat_id/messages` nie zawiera `interest_id`.
 
 **Możliwe rozwiązania**:
+
 1. Rozszerzyć response `GET /api/chats/:chat_id` o informacje o powiązanych interests (interest_id, status)
 2. Frontend może pobrać `interest_id` z wcześniejszego zapytania do `GET /api/chats` (jeśli zostanie rozszerzone)
 3. Dodać nowy endpoint `GET /api/chats/:chat_id/interests` zwracający oba interest rekordy dla danego czatu
@@ -530,12 +545,14 @@ Poniższe elementy zostały zidentyfikowane jako wymagające doprecyzowania lub 
 **Ważne**: W Astro zmienne środowiskowe dostępne po stronie klienta (browser) **muszą** mieć prefix `PUBLIC_`.
 
 **Wymagane zmienne w `.env`**:
+
 ```env
 PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 PUBLIC_SUPABASE_KEY=your-anon-key
 ```
 
 **Konfiguracja TypeScript** (`src/env.d.ts`):
+
 ```typescript
 interface ImportMetaEnv {
   readonly PUBLIC_SUPABASE_URL: string;
@@ -544,6 +561,7 @@ interface ImportMetaEnv {
 ```
 
 **Użycie w kodzie**:
+
 ```typescript
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
@@ -585,6 +603,7 @@ Następujące endpointy są opisane w `api-plan.md` ale brakuje szczegółowych 
 **Problem**: Widok Mój profil (2.8) wymaga wyświetlenia `email` i `active_offers_count`, ale plan `users-me-plan.md` nie zawiera tych pól w response.
 
 **Zalecenie**: Zaktualizować plan `users-me-plan.md` aby response zawierał:
+
 ```json
 {
   "id": "uuid",
@@ -601,5 +620,3 @@ Następujące endpointy są opisane w `api-plan.md` ale brakuje szczegółowych 
 Ta architektura UI jest ściśle dopasowana do PRD, planu API i ustaleń z sesji planowania, zapewniając prosty, spójny i rozszerzalny interfejs, który pokrywa wszystkie historyjki użytkownika, dba o dostępność i bezpieczeństwo oraz pozostawia przestrzeń na przyszłe rozszerzenia (mobile, real-time, rozbudowany stan globalny).
 
 **Uwaga**: Kwestie wymienione w sekcji 6 powinny zostać rozwiązane przed rozpoczęciem implementacji odpowiednich widoków UI.
-
-

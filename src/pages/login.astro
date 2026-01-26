@@ -5,15 +5,17 @@ import { LoginPage } from '@/components/LoginPage';
 // Wymusza renderowanie po stronie serwera (potrzebne dla middleware i request headers)
 export const prerender = false;
 
-// Opcjonalnie: sprawdź czy użytkownik jest już zalogowany
-// i przekieruj na /offers (wymaga implementacji auth context/cookies)
-// const user = Astro.locals.user;
-// if (user) {
-//   return Astro.redirect('/offers');
-// }
+// Jeśli sesja istnieje, od razu przekieruj
+const user = Astro.locals.user;
+if (user) {
+  throw Astro.redirect('/offers');
+}
 ---
 
-<Layout title="Logowanie - KAKAPO" description="Zaloguj się do KAKAPO i kontynuuj wymianę rzeczy z innymi użytkownikami">
+<Layout
+  title="Logowanie - KAKAPO"
+  description="Zaloguj się do KAKAPO i kontynuuj wymianę rzeczy z innymi użytkownikami"
+>
   <LoginPage client:only="react">
     <div slot="fallback" class="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-background">
       <div class="w-full max-w-md bg-card rounded-lg shadow-md p-8 border border-border text-center">
@@ -23,4 +25,3 @@ export const prerender = false;
     </div>
   </LoginPage>
 </Layout>
-

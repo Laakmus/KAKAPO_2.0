@@ -4,7 +4,7 @@ import { MyOffersPageLayout } from '@/components/MyOffersPageLayout';
 
 /**
  * Strona Moje Oferty
- * 
+ *
  * Dostępna pod /offers/my
  * Wymaga autoryzacji - pokazuje oferty zalogowanego użytkownika
  * Osadza Reactowy komponent MyOffersPageLayout jako "island"
@@ -23,4 +23,3 @@ const accessToken = undefined;
 <Layout title="KAKAPO - Moje Oferty">
   <MyOffersPageLayout client:only="react" currentPath={currentPath} initialToken={accessToken} />
 </Layout>
-

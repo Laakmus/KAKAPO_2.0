@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { OffersGrid } from '@/components/OffersGrid';
 import type { OfferListItemViewModel } from '@/types';
 
@@ -8,22 +7,18 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/components/OfferCard', () => ({
-  OfferCard: (props: {
-    offer: OfferListItemViewModel;
-    isSelected?: boolean;
-    onSelect: (offer: OfferListItemViewModel) => void;
-  }) => {
+  OfferCard: (props: { offer: OfferListItemViewModel }) => {
     mocks.OfferCard(props);
-    return (
-      <button type="button" onClick={() => props.onSelect(props.offer)}>
-        {props.offer.title} {props.isSelected ? '(selected)' : ''}
-      </button>
-    );
+    return <div data-testid={`offer-card-${props.offer.id}`}>{props.offer.title}</div>;
   },
 }));
 
 describe('OffersGrid', () => {
-  it('renders an OfferCard for each offer and passes selection flag', () => {
+  beforeEach(() => {
+    mocks.OfferCard.mockClear();
+  });
+
+  it('renders an OfferCard for each offer', () => {
     const offers: OfferListItemViewModel[] = [
       {
         id: 'o1',
@@ -53,37 +48,22 @@ describe('OffersGrid', () => {
       },
     ];
 
-    render(<OffersGrid offers={offers} selectedOfferId="o2" onSelectOffer={() => {}} />);
+    render(<OffersGrid offers={offers} />);
 
-    expect(screen.getByRole('button', { name: /Oferta 1/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Oferta 2 \(selected\)/ })).toBeInTheDocument();
+    expect(screen.getByTestId('offer-card-o1')).toBeInTheDocument();
+    expect(screen.getByTestId('offer-card-o2')).toBeInTheDocument();
+    expect(screen.getByText('Oferta 1')).toBeInTheDocument();
+    expect(screen.getByText('Oferta 2')).toBeInTheDocument();
 
     expect(mocks.OfferCard).toHaveBeenCalledTimes(2);
-    expect(mocks.OfferCard.mock.calls[0][0].isSelected).toBe(false);
-    expect(mocks.OfferCard.mock.calls[1][0].isSelected).toBe(true);
+    expect(mocks.OfferCard.mock.calls[0][0].offer.id).toBe('o1');
+    expect(mocks.OfferCard.mock.calls[1][0].offer.id).toBe('o2');
   });
 
-  it('calls onSelectOffer when a card is clicked', async () => {
-    const user = userEvent.setup();
-    const onSelectOffer = vi.fn();
+  it('renders empty grid when no offers provided', () => {
+    const { container } = render(<OffersGrid offers={[]} />);
 
-    const offer: OfferListItemViewModel = {
-      id: 'o1',
-      title: 'Oferta 1',
-      description: 'Opis',
-      image_url: null,
-      city: 'Gdańsk',
-      status: 'ACTIVE',
-      created_at: new Date('2025-01-01').toISOString(),
-      owner_id: 'u1',
-      owner_name: 'Jan',
-      interests_count: 0,
-      isOwnOffer: false,
-    };
-
-    render(<OffersGrid offers={[offer]} onSelectOffer={onSelectOffer} />);
-
-    await user.click(screen.getByRole('button', { name: /Oferta 1/ }));
-    expect(onSelectOffer).toHaveBeenCalledWith(offer);
+    expect(container.querySelector('.grid')).toBeInTheDocument();
+    expect(mocks.OfferCard).not.toHaveBeenCalled();
   });
 });

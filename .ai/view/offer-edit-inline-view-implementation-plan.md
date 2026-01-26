@@ -1,13 +1,16 @@
 # Plan implementacji widoku Edycja oferty (inline)
 
 ## 1. Przegląd
+
 Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/offers/my`. Użytkownik widzi dane oferty w miejscu karty, może przełączyć widok w tryb edycji, zmienić tytuł/opis/URL zdjęcia/miasto, a następnie zapisać lub anulować zmiany. Cel: pełna kontrola nad ofertą, zachowanie kontekstu listy i spójność z walidacją z PRD (taki sam poziom, komunikaty, ograniczenia miast).
 
 ## 2. Routing widoku
+
 - Strona główna edycji: `src/pages/offers/my.astro` (lub komponent renderowany w `src/pages/offers/my`), obsługuje listę `GET /api/offers/my`.
 - Opcjonalna ścieżka szczegółowa `/offers/:id/edit` powinna delegować na ten sam komponent listowy z prefetchowanym `offer_id`.
 
 ## 3. Struktura komponentów
+
 - `MyOffersPage` (Astro page) → ładuje `MyOffersList`.
 - `MyOffersList` → fetchuje dane, zarządza paginacją + stanem edytowanych wierszy.
 - `OfferRow` → prezentuje dane oferty; gdy `isEditing` → renderuje `InlineOfferEditor`.
@@ -18,6 +21,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 ## 4. Szczegóły komponentów
 
 ### MyOffersList
+
 - Opis: zarządza fetchowaniem `/api/offers/my`, trzyma `editingId`, `page`, `error`, `loading`.
 - Główne elementy: nagłówek „Moje oferty”, pętla `OfferRow`, `PaginationControls`, `GlobalNotification`.
 - Zdarzenia: `onEditStart(id)`, `onEditCancel()`, `onRefresh()`, `onPageChange`.
@@ -26,6 +30,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 - Propsy: `{ data: Paginated<OfferListItemDTO>, editingId?: string, onEditStart, onEditCancel, onSaveSuccess }`.
 
 ### OfferRow
+
 - Opis: pokazuje podstawowe dane + przycisk „Edycja” (jeśli owner). W trybie edycji renderuje `InlineOfferEditor`.
 - Elementy: tytuł, opis (skrócony), miasto, licznik zainteresowań, przyciski („Edycja”, „Usuń” opcjonalnie).
 - Zdarzenia: `onEditClick`, `onCancelClick`.
@@ -34,6 +39,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 - Propsy: `{ offer, isEditing, onEdit, onCancel }`.
 
 ### InlineOfferEditor
+
 - Opis: formularz z polami (tytuł, opis, upload zdjęcia, miasto) + „Zapisz/Anuluj". Używa `react-hook-form` + `zodResolver`.
 - Elementy: `input` (tytuł), `textarea` (opis), `ImageUpload` (komponent uploadu), `select` (miasto), `button` (Zapisz), `button` (Anuluj), status message area.
 - Zdarzenia: `onSubmit`, `onReset`, `onFieldBlur`.
@@ -42,6 +48,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 - Propsy: `{ initialValues: OfferEditFormValues, onSave: (payload) => Promise<UpdateOfferResponse>, onCancel }`.
 
 ### OfferEditorControls
+
 - Opis: prezentuje status zapisu, komunikaty success/error, wskaźnik „Tryb edycji”.
 - Elementy: badge „Edycja”, tekst success/error, spinner (przy zapisie).
 - Zdarzenia: brak (sterowane przez props).
@@ -50,8 +57,9 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 - Propsy: powyższe.
 
 ## 5. Typy
+
 - `OfferEditFormValues`: `{ title: string; description: string; image_url?: string; city: OfferCity; }`.
-- `OfferCity`: `z.enum` 16 miast (exportowany do wielokrotnego użytku). 
+- `OfferCity`: `z.enum` 16 miast (exportowany do wielokrotnego użytku).
 - `OfferEditViewState`: `{ isEditing: boolean; isSaving: boolean; error?: ApiFieldError | string; success?: string; isDirty: boolean; }`.
 - `InlineOfferEditorProps`: see above.
 - `UpdateOfferResponse`: z `src/types.ts` (odpowiedź z `OfferDetailDTO + message?`).
@@ -59,6 +67,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 - `ApiFieldError` (ztypes) mapowany do `field` i `message` w formularzu.
 
 ## 6. Zarządzanie stanem
+
 - `MyOffersList` przechowuje `editingId`, `page`, `offers`, `error`, `isLoading`.
 - `useForm` (react-hook-form) w `InlineOfferEditor` obsługuje `dirtyFields`, `reset` do anulowania.
 - `useOfferEditing` (custom hook) może inkapsulować: `startEditing(id, data)`, `submitEdit(payload)`, `cancel()`, `setError`, `setSuccess`.
@@ -67,6 +76,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 - `isSaving` blokuje przyciski i inputy.
 
 ## 7. Integracja API
+
 - `GET /api/offers/my?status=ACTIVE` → pobiera listę (bazowe dane).
 - `PATCH /api/offers/{offer_id}` (nowy endpoint) → body `UpdateOfferCommand` (title/description/image_url/city). Oczekiwane response `UpdateOfferResponse` (OfferDetailDTO + message). Backend: `OfferService.updateOffer(userId, offerId, data)` z walidacją Zod (ponownie `createOfferSchema`/`updateOfferSchema`).
 - Przykład request: `fetch('/api/offers/{id}', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })`.
@@ -74,6 +84,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 - Po success: odśwież row bez pełnej listy (uaktualnij `offer` w stanie). Można opcjonalnie wykonać `GET /api/offers/{offer_id}` żeby mieć pewność, ale nie jest wymagane.
 
 ## 8. Interakcje użytkownika
+
 - Klik „Edycja”: `OfferRow` zmienia `isEditing` (ustaw `editingId`), `InlineOfferEditor` renderowany.
 - Edycja pól: walidacja w czasie rzeczywistym (zod + react-hook-form). Zarządzanie `aria` i focus.
 - Klik „Zapisz”: `InlineOfferEditor` wykonuje `submit`, `isSaving=true`, wywołuje PATCH, po sukcesie wyświetla komunikat, resetuje `isDirty`, przełącza tryb widoku.
@@ -83,6 +94,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 - Zmiana strony paginacji: `editingId` resetowany (auto zastosuj `cancel`), nowa strona fetchowana.
 
 ## 9. Warunki i walidacja
+
 - **Tytuł**: `z.string().trim().min(5).max(100)`, `required`.
 - **Opis**: `z.string().trim().min(10).max(5000)`.
 - **Upload zdjęcia**: Obsługiwany przez komponent `ImageUpload`:
@@ -96,6 +108,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 - `OfferRow` w trybie edycji pokazuje `aria-live` z informacją o błędach.
 
 ## 10. Obsługa błędów
+
 - **400/422**: `ApiFieldError` + `message` z response. Pokazać pod polami, `GlobalNotification` z tekstem „Zweryfikuj pola w formularzu”.
 - **401**: przekierowanie do `/login` lub wyświetlenie `GlobalNotification` „Zaloguj się ponownie”.
 - **403**: komunikat „Nie masz uprawnień do edycji tej oferty” + wyjście z trybu edycji.
@@ -108,6 +121,7 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
   - _Niezawodność sieci_: `offerService` `retry` w UI (przycisk), `fetch` z timeout (custom hook).
 
 ## 11. Kroki implementacji
+
 1. Zdefiniować `OfferEditFormValues`, `OfferCity` i `OfferEditViewState` w plikach typów/komponentów (ponownie użyć `types.ts` i `schemas/offers.schema.ts`).
 2. Dodać `updateOfferSchema` (z `z.object` + walidacja) i metodę `OfferService.updateOffer(userId, offerId, payload)` zwracającą `UpdateOfferResponse`.
 3. Rozszerzyć `src/pages/api/offers/[offer_id].ts` o `PATCH` handler wykorzystujący Supabase, `OfferService.updateOffer` oraz `createErrorResponse`.
@@ -117,4 +131,3 @@ Widok umożliwia szybkie edytowanie własnej oferty bez opuszczania strony `/off
 7. Obsłużyć interakcje: `onEditStart`, `onSave`, `onCancel`, `onPageChange`, `retry`.
 8. Pokryć testami manualnymi: udana edycja, walidacje, błędy 400/403/500, anulowanie. Upewnić się o spójności komunikatów z PRD.
 9. Zweryfikować działanie z backendem (RLS, auth) i zapewnić, że UI nie renderuje „Edycja” dla oferty nie należącej do zalogowanego użytkownika.
-

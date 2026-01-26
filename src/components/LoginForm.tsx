@@ -52,6 +52,7 @@ type LoginFormProps = {
 export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = true }: LoginFormProps) {
   const { isLoading, notification, login, clearNotification } = useLogin();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Referencje do pól formularza (dla auto-focus)
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +77,28 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
   useEffect(() => {
     emailInputRef.current?.focus();
   }, []);
+
+  // Watchdog: jeśli isRedirecting jest true dłużej niż 2.5s, wymuszamy hard reload
+  useEffect(() => {
+    if (isRedirecting) {
+      console.warn('[LoginForm] Ustawiono isRedirecting=true, uruchamiam watchdog (2.5s)');
+      redirectTimeoutRef.current = setTimeout(() => {
+        console.error('[LoginForm] Watchdog: nawigacja nie nastąpiła w 2.5s — wymuszam reload');
+        // Ostateczny fallback: hard reload lub redirect do /offers
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+        const target = redirect && redirect.startsWith('/') && !redirect.startsWith('/login') ? redirect : '/offers';
+        window.location.href = target;
+      }, 2500);
+    }
+
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+    };
+  }, [isRedirecting]);
 
   // Auto-focus na pierwsze błędne pole po walidacji
   useEffect(() => {
@@ -106,13 +129,18 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
 
     if (result.success) {
       // Sukces - zablokuj formularz i pozwól stronie przekierować
+      console.warn('[LoginForm] Logowanie udane, ustawiam isRedirecting=true');
       setIsRedirecting(true);
       // Sukces - wywołaj callback z tokenami
       try {
+        console.warn('[LoginForm] Wywołuję onSuccess callback');
         onSuccess?.(result.data);
       } catch (e) {
         // Safety fallback - jeśli callback rzuci wyjątek, spróbuj prostego przekierowania
         console.error('Login success handler error:', e);
+        if (redirectTimeoutRef.current) {
+          clearTimeout(redirectTimeoutRef.current);
+        }
         window.location.href = '/offers';
       }
     } else {
@@ -161,6 +189,7 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
             id="email"
             type="email"
             placeholder="twoj@email.com"
+            autoComplete="email"
             disabled={isRedirecting || isLoading || isSubmitting}
             aria-invalid={!!errors.email}
             aria-describedby={errors.email ? 'email-error' : undefined}
@@ -186,6 +215,7 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
             id="password"
             type="password"
             placeholder="Minimum 6 znaków"
+            autoComplete="current-password"
             disabled={isRedirecting || isLoading || isSubmitting}
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? 'password-error' : undefined}

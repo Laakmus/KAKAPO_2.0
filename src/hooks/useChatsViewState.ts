@@ -212,6 +212,13 @@ export function useChatsViewState(initialChatId?: string) {
                 theirOfferTitle: chatDetails.related_offers.their?.title || '',
               }
             : undefined,
+          orderedRelatedOffers: chatDetails.ordered_related_offers?.map((item) => ({
+            offerId: item.offer.id,
+            offerTitle: item.offer.title,
+            ownerId: item.owner.id,
+            ownerName: item.owner.name,
+            likedAt: item.liked_at,
+          })),
           interestId: chatDetails.interest_id,
           realizationStatus: chatDetails.current_interest_status || 'PROPOSED',
         };
