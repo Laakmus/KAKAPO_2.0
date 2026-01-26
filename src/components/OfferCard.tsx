@@ -9,6 +9,10 @@ import { OfferImage } from './ImagePlaceholder';
  */
 type OfferCardProps = {
   offer: OfferListItemViewModel;
+  /** Czy oferta jest aktualnie wybrana (dla widoku listy z panelem bocznym) */
+  isSelected?: boolean;
+  /** Callback wywoływany przy kliknięciu karty (dla widoku listy z panelem bocznym) */
+  onSelect?: () => void;
 };
 
 /**
@@ -21,7 +25,7 @@ type OfferCardProps = {
  * - Przycisk "Zobacz szczegóły" prowadzący do pełnego widoku oferty
  * - Badge z liczbą zdjęć (jeśli > 1)
  */
-export function OfferCard({ offer }: OfferCardProps) {
+export function OfferCard({ offer, isSelected, onSelect }: OfferCardProps) {
   /**
    * Skróć opis do 120 znaków
    */
@@ -49,7 +53,10 @@ export function OfferCard({ offer }: OfferCardProps) {
   const imagesCount = offer.images_count ?? (offer.image_url ? 1 : 0);
 
   return (
-    <Card className="group relative p-4 transition-all hover:shadow-xl hover:scale-105 hover:z-10 flex flex-col h-full origin-top">
+    <Card
+      className={`group relative p-4 transition-all hover:shadow-xl hover:scale-105 hover:z-10 flex flex-col h-full origin-top ${isSelected ? 'ring-2 ring-primary' : ''} ${onSelect ? 'cursor-pointer' : ''}`}
+      onClick={onSelect}
+    >
       {/* Miniatura z badge liczby zdjęć */}
       <div className="relative mb-3">
         <OfferImage

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../db/database.types';
+import type { OfferStatus } from '../db/enums';
 import type {
   OfferDetailDTO,
   CreateOfferCommand,
@@ -83,7 +84,7 @@ export class OfferService {
       description: string;
       image_url?: string | null;
       city?: string;
-      status?: string;
+      status: OfferStatus;
       created_at?: string;
     };
 
@@ -165,7 +166,7 @@ export class OfferService {
         description: offer.description,
         image_url: offer.image_url ?? null,
         city: offer.city ?? '',
-        status: offer.status ?? '',
+        status: offer.status,
         created_at: offer.created_at ?? '',
         interests_count: Number(offer.interests_count) || 0,
         images_count: imagesCountMap.get(offer.id) || (offer.image_url ? 1 : 0),
@@ -441,7 +442,7 @@ export class OfferService {
       description: string;
       image_url: string | null;
       city: string;
-      status: string;
+      status: OfferStatus;
       created_at: string;
     };
 

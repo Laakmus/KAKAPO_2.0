@@ -109,21 +109,21 @@ export type Database = {
         Row: {
           created_at: string;
           id: string;
-          status: string;
+          status: Database['public']['Enums']['chat_status'];
           user_a: string;
           user_b: string;
         };
         Insert: {
           created_at?: string;
           id?: string;
-          status?: string;
+          status?: Database['public']['Enums']['chat_status'];
           user_a: string;
           user_b: string;
         };
         Update: {
           created_at?: string;
           id?: string;
-          status?: string;
+          status?: Database['public']['Enums']['chat_status'];
           user_a?: string;
           user_b?: string;
         };
@@ -209,7 +209,7 @@ export type Database = {
           id: string;
           offer_id: string;
           realized_at: string | null;
-          status: string;
+          status: Database['public']['Enums']['interest_status'];
           user_id: string;
         };
         Insert: {
@@ -218,7 +218,7 @@ export type Database = {
           id?: string;
           offer_id: string;
           realized_at?: string | null;
-          status?: string;
+          status?: Database['public']['Enums']['interest_status'];
           user_id: string;
         };
         Update: {
@@ -227,7 +227,7 @@ export type Database = {
           id?: string;
           offer_id?: string;
           realized_at?: string | null;
-          status?: string;
+          status?: Database['public']['Enums']['interest_status'];
           user_id?: string;
         };
         Relationships: [
@@ -337,7 +337,7 @@ export type Database = {
           image_url: string | null;
           owner_id: string;
           search_vector: unknown;
-          status: string;
+          status: Database['public']['Enums']['offer_status'];
           title: string;
         };
         Insert: {
@@ -348,7 +348,7 @@ export type Database = {
           image_url?: string | null;
           owner_id: string;
           search_vector?: unknown;
-          status?: string;
+          status?: Database['public']['Enums']['offer_status'];
           title: string;
         };
         Update: {
@@ -359,7 +359,7 @@ export type Database = {
           image_url?: string | null;
           owner_id?: string;
           search_vector?: unknown;
-          status?: string;
+          status?: Database['public']['Enums']['offer_status'];
           title?: string;
         };
         Relationships: [
@@ -407,7 +407,9 @@ export type Database = {
       archive_old_messages: { Args: { months_old?: number }; Returns: Json };
     };
     Enums: {
-      [_ in never]: never;
+      chat_status: 'ACTIVE' | 'ARCHIVED';
+      interest_status: 'PROPOSED' | 'ACCEPTED' | 'REALIZED';
+      offer_status: 'ACTIVE' | 'REMOVED';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -529,6 +531,10 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      chat_status: ['ACTIVE', 'ARCHIVED'],
+      interest_status: ['PROPOSED', 'ACCEPTED', 'REALIZED'],
+      offer_status: ['ACTIVE', 'REMOVED'],
+    },
   },
 } as const;

@@ -4,6 +4,7 @@
     "baseUrl": ".",
     "jsx": "react-jsx",
     "jsxImportSource": "react",
+    "types": ["vitest/globals"],
     "strictNullChecks": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,

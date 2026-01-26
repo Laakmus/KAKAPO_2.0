@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../db/database.types';
+import type { ChatStatus } from '../db/enums';
 import type {
   ChatListItemDTO,
   ChatDetailDTO,
@@ -165,7 +166,7 @@ export class ChatsService {
       for (const c of chats ?? []) {
         const chatRow = c as {
           id: string;
-          status: string;
+          status: ChatStatus;
           created_at: string;
           user_a?: string | null;
           user_b?: string | null;
@@ -431,7 +432,7 @@ export class ChatsService {
       // 3) Znajdź interest current user (gdzie current user jest zainteresowany ofertą drugiego użytkownika)
       const { data: currentUserInterests, error: currentInterestsError } = await this.supabase
         .from('interests')
-        .select('id, offer_id, status, realized_at')
+        .select('id, offer_id, status, realized_at, created_at')
         .eq('user_id', userId)
         .in('status', ['PROPOSED', 'ACCEPTED', 'REALIZED']);
 
@@ -452,7 +453,7 @@ export class ChatsService {
       // 6) Znajdź interest drugiego użytkownika (gdzie drugi użytkownik jest zainteresowany ofertą current usera)
       const { data: otherUserInterests, error: otherInterestsError } = await this.supabase
         .from('interests')
-        .select('id, offer_id, status, realized_at')
+        .select('id, offer_id, status, realized_at, created_at')
         .eq('user_id', otherUserId)
         .in('status', ['PROPOSED', 'ACCEPTED', 'REALIZED']);
 
@@ -473,6 +474,47 @@ export class ChatsService {
       // 9) Pobierz tytuły ofert
       const myOffer = currentUserOffers?.find((o) => o.id === otherUserInterest?.offer_id);
       const theirOffer = otherUserOffers?.find((o) => o.id === currentUserInterest?.offer_id);
+
+      const currentUser = chatDetails.user_a.id === userId ? chatDetails.user_a : chatDetails.user_b;
+      const otherUser = chatDetails.user_a.id === userId ? chatDetails.user_b : chatDetails.user_a;
+
+      const exchangeOrderCandidates = [
+        currentUserInterest && theirOffer
+          ? {
+              interest: currentUserInterest,
+              targetOffer: theirOffer,
+              owner: otherUser,
+            }
+          : null,
+        otherUserInterest && myOffer
+          ? {
+              interest: otherUserInterest,
+              targetOffer: myOffer,
+              owner: currentUser,
+            }
+          : null,
+      ].filter(Boolean) as {
+        interest: { created_at: string };
+        targetOffer: { id: string; title: string };
+        owner: { id: string; name: string };
+      }[];
+
+      const orderedRelatedOffers =
+        exchangeOrderCandidates.length === 2
+          ? exchangeOrderCandidates
+              .sort((a, b) => new Date(a.interest.created_at).getTime() - new Date(b.interest.created_at).getTime())
+              .map((entry) => ({
+                offer: {
+                  id: entry.targetOffer.id,
+                  title: entry.targetOffer.title,
+                },
+                owner: {
+                  id: entry.owner.id,
+                  name: entry.owner.name,
+                },
+                liked_at: entry.interest.created_at,
+              }))
+          : undefined;
 
       // 9a) Określ czy czat powinien być zablokowany (read-only)
       // (np. gdy oferta została usunięta -> status=REMOVED).
@@ -502,6 +544,7 @@ export class ChatsService {
                 },
               }
             : undefined,
+        ordered_related_offers: orderedRelatedOffers,
         realized_at: currentUserInterest?.realized_at,
         is_locked: isLocked,
       };

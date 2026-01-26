@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../db/database.types';
+import type { InterestStatus } from '../db/enums';
 import type { CreateInterestCommand, CreateInterestResponse } from '../types';
 
 /**
@@ -114,19 +115,14 @@ export class InterestsService {
         willUpdateStatus: 'ACCEPTED',
       });
 
-      const {
-        data: updateResult,
-        error: updateMutualError,
-        count,
-      } = await this.supabase
+      const { data: updateResult, error: updateMutualError } = await this.supabase
         .from('interests')
         .update({ status: 'ACCEPTED' })
         .eq('id', mutualInterestId)
-        .select('*', { count: 'exact' });
+        .select('*');
 
       console.log('[INTERESTS_SERVICE][UPDATE_RESULT]', {
         error: updateMutualError,
-        count,
         updatedRows: updateResult,
       });
 
@@ -237,7 +233,7 @@ export class InterestsService {
       id: string;
       offer_id: string;
       user_id: string;
-      status: string;
+      status: InterestStatus;
       created_at: string;
     };
 
@@ -249,15 +245,6 @@ export class InterestsService {
       created_at: insertedAny.created_at,
       message: mutualMatch ? 'Wzajemne zainteresowanie! Chat został otwarty' : 'Zainteresowanie zostało wyrażone',
       chat_id: chatId ?? null,
-      // DEBUG INFO - usuń to po naprawie
-      _debug: {
-        mutualMatch,
-        mutualInterestId,
-        requesterOfferIds,
-        initialStatus,
-        requesterId,
-        offerOwnerId,
-      } as any,
     };
 
     return response;

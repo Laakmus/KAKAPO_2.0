@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+/// <reference types="vitest" />
 
 const mocks = vi.hoisted(() => ({
   sendMessage: vi.fn(),
@@ -43,3 +43,4 @@ describe('POST /api/chats/:chat_id/messages', () => {
   });
 });
 
+export {};

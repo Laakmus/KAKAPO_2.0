@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+/// <reference types="vitest" />
 
 const mocks = vi.hoisted(() => ({
   removeOffer: vi.fn(),
@@ -47,3 +47,4 @@ describe('DELETE /api/offers/:offer_id', () => {
   });
 });
 
+export {};
