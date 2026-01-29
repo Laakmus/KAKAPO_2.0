@@ -201,6 +201,15 @@ export type OffersListQuery = PaginationParams & {
 };
 
 // Item returned in listings (augmented with computed fields)
+export type OfferExchangeInfo = {
+  my_offer_title?: string;
+  their_offer_title?: string;
+  my_user_name?: string;
+  other_user_name?: string;
+  realized_at?: string | null;
+  chat_id?: string | null;
+};
+
 export type OfferListItemDTO = Pick<
   OfferRow,
   'id' | 'title' | 'description' | 'image_url' | 'city' | 'status' | 'created_at' | 'owner_id'
@@ -209,6 +218,7 @@ export type OfferListItemDTO = Pick<
   interests_count: number;
   images_count?: number; // number of images for this offer
   thumbnail_url?: string | null; // thumbnail of main image for list views
+  exchange?: OfferExchangeInfo;
 };
 
 export type OfferDetailDTO = OfferRow & {

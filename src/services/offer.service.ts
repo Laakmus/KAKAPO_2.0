@@ -506,6 +506,142 @@ export class OfferService {
       }
     }
 
+    const exchangeByOfferId = new Map<
+      string,
+      {
+        my_offer_title?: string;
+        their_offer_title?: string;
+        my_user_name?: string;
+        other_user_name?: string;
+        realized_at?: string | null;
+        chat_id?: string | null;
+      }
+    >();
+
+    if (status === 'REMOVED') {
+      try {
+        type ExchangeRecord = {
+          chat_id: string | null;
+          offer_a_id: string | null;
+          offer_a_title: string;
+          offer_b_id: string | null;
+          offer_b_title: string;
+          realized_at: string;
+          user_a: string | null;
+          user_b: string | null;
+        };
+
+        const offerIds = offersWithCounts.map((offer) => offer.id);
+        const [exchangeA, exchangeB] = await Promise.all([
+          this.supabase
+            .from('exchange_history')
+            .select('chat_id, offer_a_id, offer_a_title, offer_b_id, offer_b_title, realized_at, user_a, user_b')
+            .in('offer_a_id', offerIds),
+          this.supabase
+            .from('exchange_history')
+            .select('chat_id, offer_a_id, offer_a_title, offer_b_id, offer_b_title, realized_at, user_a, user_b')
+            .in('offer_b_id', offerIds),
+        ]);
+
+        if (exchangeA.error) {
+          console.error('[GET_EXCHANGE_HISTORY_OFFER_A_ERROR]', exchangeA.error);
+        }
+        if (exchangeB.error) {
+          console.error('[GET_EXCHANGE_HISTORY_OFFER_B_ERROR]', exchangeB.error);
+        }
+
+        const exchangeRecords: ExchangeRecord[] = [
+          ...(((exchangeA.data as ExchangeRecord[]) || []) as ExchangeRecord[]),
+          ...(((exchangeB.data as ExchangeRecord[]) || []) as ExchangeRecord[]),
+        ];
+
+        if (exchangeRecords.length > 0) {
+          const exchangeOfferIds = new Set<string>();
+          const exchangeUserIds = new Set<string>();
+
+          for (const record of exchangeRecords) {
+            if (record.offer_a_id) exchangeOfferIds.add(record.offer_a_id);
+            if (record.offer_b_id) exchangeOfferIds.add(record.offer_b_id);
+            if (record.user_a) exchangeUserIds.add(record.user_a);
+            if (record.user_b) exchangeUserIds.add(record.user_b);
+          }
+
+          const { data: exchangeOffers, error: exchangeOffersError } = await this.supabase
+            .from('offers')
+            .select('id, owner_id')
+            .in('id', Array.from(exchangeOfferIds));
+
+          if (exchangeOffersError) {
+            console.error('[GET_EXCHANGE_HISTORY_OFFERS_ERROR]', exchangeOffersError);
+          }
+
+          const ownerIdByOfferId = new Map<string, string>();
+          for (const offer of exchangeOffers || []) {
+            ownerIdByOfferId.set(offer.id, offer.owner_id);
+            exchangeUserIds.add(offer.owner_id);
+          }
+
+          exchangeUserIds.add(userId);
+
+          const { data: exchangeUsers, error: exchangeUsersError } = await this.supabase
+            .from('users')
+            .select('id, first_name, last_name')
+            .in('id', Array.from(exchangeUserIds));
+
+          if (exchangeUsersError) {
+            console.error('[GET_EXCHANGE_HISTORY_USERS_ERROR]', exchangeUsersError);
+          }
+
+          const userNameById = new Map<string, string>();
+          for (const user of exchangeUsers || []) {
+            const name = user.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : undefined;
+            if (name) {
+              userNameById.set(user.id, name);
+            }
+          }
+
+          const resolveUserName = (primaryId?: string | null, fallbackId?: string | null) => {
+            if (primaryId && userNameById.has(primaryId)) {
+              return userNameById.get(primaryId);
+            }
+            if (fallbackId && userNameById.has(fallbackId)) {
+              return userNameById.get(fallbackId);
+            }
+            return undefined;
+          };
+
+          for (const record of exchangeRecords) {
+            const offerAOwnerName = resolveUserName(ownerIdByOfferId.get(record.offer_a_id ?? ''), record.user_a);
+            const offerBOwnerName = resolveUserName(ownerIdByOfferId.get(record.offer_b_id ?? ''), record.user_b);
+
+            if (record.offer_a_id) {
+              exchangeByOfferId.set(record.offer_a_id, {
+                my_offer_title: record.offer_a_title,
+                their_offer_title: record.offer_b_title,
+                my_user_name: offerAOwnerName,
+                other_user_name: offerBOwnerName,
+                realized_at: record.realized_at,
+                chat_id: record.chat_id,
+              });
+            }
+
+            if (record.offer_b_id) {
+              exchangeByOfferId.set(record.offer_b_id, {
+                my_offer_title: record.offer_b_title,
+                their_offer_title: record.offer_a_title,
+                my_user_name: offerBOwnerName,
+                other_user_name: offerAOwnerName,
+                realized_at: record.realized_at,
+                chat_id: record.chat_id,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[GET_EXCHANGE_HISTORY_EXCEPTION]', err);
+      }
+    }
+
     // Map to DTO
     const items: OfferListItemDTO[] = offersWithCounts.map((offer) => ({
       id: offer.id,
@@ -520,6 +656,7 @@ export class OfferService {
       interests_count: Number(offer.interests_count) || 0,
       images_count: imagesCountMap.get(offer.id) || (offer.image_url ? 1 : 0),
       thumbnail_url: thumbnailMap.get(offer.id) || null,
+      exchange: exchangeByOfferId.get(offer.id),
     }));
 
     return items;

@@ -8,8 +8,12 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { InterestListPanel } from './InterestListPanel';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { MessagesList } from './MessagesList';
+import { LoadingSkeleton } from './LoadingSkeleton';
+import { useChatDetails } from '@/hooks/useChatDetails';
+import { useChatMessages } from '@/hooks/useChatMessages';
 import { useToast } from '@/contexts/ToastContext';
-import type { UpdateOfferCommand } from '@/types';
+import type { OfferListItemDTO, UpdateOfferCommand } from '@/types';
 
 type SeenInterestsCountByOfferId = Record<string, number>;
 
@@ -72,6 +76,8 @@ export function MyOffersPage() {
 
   // Stan dialogu usuwania (oferta do usunięcia)
   const [offerToDelete, setOfferToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [selectedRemovedChatId, setSelectedRemovedChatId] = useState<string | null>(null);
+  const [selectedRemovedOfferId, setSelectedRemovedOfferId] = useState<string | null>(null);
 
   /**
    * Handler zmiany filtra statusu
@@ -82,6 +88,8 @@ export function MyOffersPage() {
     setEditingOfferId(null);
     setInterestPanelOfferId(null);
     setOfferToDelete(null);
+    setSelectedRemovedChatId(null);
+    setSelectedRemovedOfferId(null);
   };
 
   /**
@@ -103,6 +111,84 @@ export function MyOffersPage() {
       ...prev,
       [offerId]: Math.max(0, Number(totalInterests) || 0),
     }));
+  };
+
+  const buildExchangeLabel = (exchange: OfferListItemDTO['exchange']) => {
+    if (!exchange?.my_offer_title || !exchange?.their_offer_title) {
+      return undefined;
+    }
+
+    const otherOwner = exchange.other_user_name ?? 'Druga strona';
+
+    return `Ja: ${exchange.my_offer_title} 🤝 ${otherOwner}: ${exchange.their_offer_title}`;
+  };
+
+  const formatExchangeDate = (isoDate?: string | null) => {
+    if (!isoDate) return undefined;
+    const parsed = new Date(isoDate);
+    if (Number.isNaN(parsed.getTime())) return undefined;
+
+    const formatted = parsed.toLocaleString('pl-PL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return formatted.replace(',', '');
+  };
+
+  const ExchangeChatPanel = ({ chatId }: { chatId: string }) => {
+    const {
+      chatDetails,
+      otherUser,
+      isLoading: isLoadingDetails,
+      error: detailsError,
+      refetch: refetchDetails,
+    } = useChatDetails(chatId);
+    const {
+      messages,
+      isLoading: isLoadingMessages,
+      error: messagesError,
+      messagesEndRef,
+      refetch: refetchMessages,
+    } = useChatMessages(chatId, { limit: 100, order: 'asc' });
+
+    if (detailsError || messagesError) {
+      return (
+        <ErrorBanner
+          message="Nie udało się załadować czatu"
+          onRetry={() => {
+            refetchDetails();
+            refetchMessages();
+          }}
+          isAuthError={
+            detailsError?.status === 401 ||
+            detailsError?.status === 403 ||
+            messagesError?.status === 401 ||
+            messagesError?.status === 403
+          }
+        />
+      );
+    }
+
+    return (
+      <Card className="h-full flex flex-col">
+        <div className="border-b border-border p-4">
+          {isLoadingDetails && !chatDetails ? (
+            <LoadingSkeleton height="h-5" className="w-40" />
+          ) : (
+            <h3 className="text-base font-semibold truncate">{otherUser?.name || 'Czat'}</h3>
+          )}
+        </div>
+        <MessagesList
+          messages={messages}
+          currentUserId={chatDetails?.current_user_id || ''}
+          messagesEndRef={messagesEndRef}
+          isLoading={isLoadingMessages}
+        />
+      </Card>
+    );
   };
 
   /**
@@ -257,7 +343,58 @@ export function MyOffersPage() {
       )}
 
       {/* Stan success - lista ofert */}
-      {!isLoading && !error && offers.length > 0 && (
+      {!isLoading && !error && offers.length > 0 && statusFilter === 'REMOVED' && (
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="space-y-3 md:col-span-3">
+            {offers.map((offer, index) => {
+              const exchangeLabel = buildExchangeLabel(offer.exchange);
+              const exchangeDate = formatExchangeDate(offer.exchange?.realized_at);
+              const rowNumber = `${index + 1})`;
+              const chatId = offer.exchange?.chat_id ?? null;
+              const isSelected = chatId && selectedRemovedChatId === chatId;
+
+              return (
+                <Card
+                  key={offer.id}
+                  className={`group relative p-4 transition-all hover:shadow-xl hover:scale-105 hover:z-10 origin-top bg-muted/40 hover:bg-green-50 border ${
+                    chatId ? 'cursor-pointer' : 'cursor-default'
+                  } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+                  onClick={() => {
+                    setSelectedRemovedOfferId(offer.id);
+                    if (!chatId) {
+                      setSelectedRemovedChatId(null);
+                      return;
+                    }
+                    setSelectedRemovedChatId(chatId);
+                  }}
+                >
+                  <div className="flex flex-col gap-1">
+                    <p className="mt-1 truncate text-sm font-medium text-foreground">
+                      {exchangeLabel
+                        ? `${rowNumber} ${exchangeLabel}`
+                        : `${rowNumber} ${offer.title} — Oferta została usunięta przez ciebie`}
+                    </p>
+                    {exchangeLabel && (
+                      <p className="text-sm font-medium text-foreground">{`Data wymiany: ${exchangeDate ?? '-'}`}</p>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+          <div className="min-h-[400px] md:col-span-2">
+            {selectedRemovedChatId ? (
+              <ExchangeChatPanel chatId={selectedRemovedChatId} />
+            ) : selectedRemovedOfferId ? (
+              <Card className="h-full flex items-center justify-center p-6 text-center text-base font-medium text-muted-foreground">
+                Ta oferta została usunięta ręcznie — brak czatu.
+              </Card>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {!isLoading && !error && offers.length > 0 && statusFilter === 'ACTIVE' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {offers.map((offer) => {
             const isEditing = editingOfferId === offer.id;
