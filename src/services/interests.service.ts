@@ -553,17 +553,6 @@ export class InterestsService {
               if (archiveError) {
                 console.error('[INTERESTS_SERVICE][ARCHIVE_CHAT_ERROR]', archiveError);
               }
-
-              // Oznacz obie oferty jako REMOVED — wymiana zakończona
-              const { error: removeOffersError } = await this.supabase
-                .from('offers')
-                .update({ status: 'REMOVED' })
-                .in('id', offerIds)
-                .neq('status', 'REMOVED');
-
-              if (removeOffersError) {
-                console.error('[INTERESTS_SERVICE][REMOVE_OFFERS_ERROR]', removeOffersError);
-              }
             }
           }
         } catch (err) {
