@@ -345,6 +345,17 @@ export class OfferService {
       }
       throw new Error('Nie udało się usunąć oferty');
     }
+
+    // Usuń osierocone PROPOSED interests
+    const { error: cleanupError } = await this.supabase
+      .from('interests')
+      .delete()
+      .eq('offer_id', offerId)
+      .eq('status', 'PROPOSED');
+
+    if (cleanupError) {
+      console.error('[REMOVE_OFFER_CLEANUP_ERROR]', cleanupError);
+    }
   }
 
   /**

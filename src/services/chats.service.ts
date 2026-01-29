@@ -28,15 +28,20 @@ export class ChatsService {
    */
   private async isChatLocked(chatId: string): Promise<boolean> {
     try {
-      // 1) Pobierz informacje o czacie (user_a, user_b)
+      // 1) Pobierz informacje o czacie (user_a, user_b, status)
       const { data: chat, error: chatError } = await this.supabase
         .from('chats')
-        .select('user_a, user_b')
+        .select('user_a, user_b, status')
         .eq('id', chatId)
         .maybeSingle();
 
       if (chatError || !chat) {
         console.error('[ChatsService.isChatLocked] chat error:', chatError);
+        return true;
+      }
+
+      // Early return: zarchiwizowany czat jest zawsze zablokowany
+      if (chat.status === 'ARCHIVED') {
         return true;
       }
 
@@ -56,12 +61,20 @@ export class ChatsService {
         .select('id, title, owner_id, status')
         .eq('owner_id', userB);
 
-      // 4) Znajdź interest user_a w ofercie user_b (najnowszy ACCEPTED lub REALIZED)
+      // 4) Znajdź interest user_a w ofercie user_b
+      // Preferuj interesty dla ACTIVE ofert (nowa wymiana) nad REMOVED (stara wymiana)
       const userBOfferIds = (userBOffers ?? []).map((o) => o.id);
+      const userBActiveOfferIds = new Set(
+        (userBOffers ?? []).filter((o) => String(o.status) === 'ACTIVE').map((o) => o.id),
+      );
       const userAInterest = (userAInterests ?? [])
         .filter((i) => userBOfferIds.includes(i.offer_id))
         .sort((a, b) => {
-          // Priorytet: REALIZED > ACCEPTED > PROPOSED
+          // Najpierw preferuj interesty dla ACTIVE ofert
+          const aActive = userBActiveOfferIds.has(a.offer_id) ? 1 : 0;
+          const bActive = userBActiveOfferIds.has(b.offer_id) ? 1 : 0;
+          if (bActive !== aActive) return bActive - aActive;
+          // Potem priorytet: REALIZED > ACCEPTED > PROPOSED
           const statusOrder = { REALIZED: 3, ACCEPTED: 2, PROPOSED: 1 };
           return (
             (statusOrder[b.status as keyof typeof statusOrder] || 0) -
@@ -82,11 +95,20 @@ export class ChatsService {
         .select('id, title, owner_id, status')
         .eq('owner_id', userA);
 
-      // 7) Znajdź interest user_b w ofercie user_a (najnowszy ACCEPTED lub REALIZED)
+      // 7) Znajdź interest user_b w ofercie user_a
+      // Preferuj interesty dla ACTIVE ofert (nowa wymiana) nad REMOVED (stara wymiana)
       const userAOfferIds = (userAOffers ?? []).map((o) => o.id);
+      const userAActiveOfferIds = new Set(
+        (userAOffers ?? []).filter((o) => String(o.status) === 'ACTIVE').map((o) => o.id),
+      );
       const userBInterest = (userBInterests ?? [])
         .filter((i) => userAOfferIds.includes(i.offer_id))
         .sort((a, b) => {
+          // Najpierw preferuj interesty dla ACTIVE ofert
+          const aActive = userAActiveOfferIds.has(a.offer_id) ? 1 : 0;
+          const bActive = userAActiveOfferIds.has(b.offer_id) ? 1 : 0;
+          if (bActive !== aActive) return bActive - aActive;
+          // Potem priorytet: REALIZED > ACCEPTED > PROPOSED
           const statusOrder = { REALIZED: 3, ACCEPTED: 2, PROPOSED: 1 };
           return (
             (statusOrder[b.status as keyof typeof statusOrder] || 0) -
@@ -447,8 +469,14 @@ export class ChatsService {
       if (otherOffersError) throw otherOffersError;
 
       // 5) Filtruj interest current usera który dotyczy oferty drugiego użytkownika
+      // Preferuj interesty dla ACTIVE ofert (nowa wymiana) nad REMOVED (stara)
       const otherUserOfferIds = (otherUserOffers ?? []).map((o) => o.id);
-      const currentUserInterest = (currentUserInterests ?? []).find((i) => otherUserOfferIds.includes(i.offer_id));
+      const otherUserActiveOfferIds = new Set(
+        (otherUserOffers ?? []).filter((o) => String(o.status) === 'ACTIVE').map((o) => o.id),
+      );
+      const currentUserInterest =
+        (currentUserInterests ?? []).find((i) => otherUserActiveOfferIds.has(i.offer_id)) ??
+        (currentUserInterests ?? []).find((i) => otherUserOfferIds.includes(i.offer_id));
 
       // 6) Znajdź interest drugiego użytkownika (gdzie drugi użytkownik jest zainteresowany ofertą current usera)
       const { data: otherUserInterests, error: otherInterestsError } = await this.supabase
@@ -468,8 +496,14 @@ export class ChatsService {
       if (currentOffersError) throw currentOffersError;
 
       // 8) Filtruj interest drugiego użytkownika który dotyczy oferty current usera
+      // Preferuj interesty dla ACTIVE ofert (nowa wymiana) nad REMOVED (stara)
       const currentUserOfferIds = (currentUserOffers ?? []).map((o) => o.id);
-      const otherUserInterest = (otherUserInterests ?? []).find((i) => currentUserOfferIds.includes(i.offer_id));
+      const currentUserActiveOfferIds = new Set(
+        (currentUserOffers ?? []).filter((o) => String(o.status) === 'ACTIVE').map((o) => o.id),
+      );
+      const otherUserInterest =
+        (otherUserInterests ?? []).find((i) => currentUserActiveOfferIds.has(i.offer_id)) ??
+        (otherUserInterests ?? []).find((i) => currentUserOfferIds.includes(i.offer_id));
 
       // 9) Pobierz tytuły ofert
       const myOffer = currentUserOffers?.find((o) => o.id === otherUserInterest?.offer_id);

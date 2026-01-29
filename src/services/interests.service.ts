@@ -74,11 +74,12 @@ export class InterestsService {
     }
 
     // 4) Wykryj mutual match
-    // Pobierz oferty requestera
+    // Pobierz AKTYWNE oferty requestera (REMOVED nie liczą się do matchu)
     const { data: requesterOffers, error: requesterOffersError } = await this.supabase
       .from('offers')
       .select('id')
-      .eq('owner_id', requesterId);
+      .eq('owner_id', requesterId)
+      .eq('status', 'ACTIVE');
 
     if (requesterOffersError) {
       console.error('[INTERESTS_SERVICE][REQUESTER_OFFERS_ERROR]', requesterOffersError);
@@ -90,11 +91,13 @@ export class InterestsService {
     let mutualMatch = false;
     let mutualInterestId: string | null = null;
     if (requesterOfferIds.length > 0) {
+      // Szukaj tylko PROPOSED interests — ACCEPTED/REALIZED to stare (już zmatchowane) wymiany
       const { data: mutual, error: mutualError } = await this.supabase
         .from('interests')
         .select('id')
         .in('offer_id', requesterOfferIds)
         .eq('user_id', offerOwnerId)
+        .eq('status', 'PROPOSED')
         .limit(1);
 
       if (mutualError) {
@@ -194,7 +197,45 @@ export class InterestsService {
           .single();
 
         if (chatError) {
-          console.error('[INTERESTS_SERVICE][CHAT_INSERT_ERROR]', chatError);
+          // UNIQUE conflict — czat między tymi użytkownikami już istnieje, reaktywuj go
+          const chatErrorCode = (chatError as unknown as { code?: string }).code;
+          if (chatErrorCode === '23505') {
+            const [existingUserA, existingUserB] = [requesterId, offerOwnerId].sort();
+            const { data: existingChat } = await this.supabase
+              .from('chats')
+              .select('id')
+              .eq('user_a', existingUserA)
+              .eq('user_b', existingUserB)
+              .maybeSingle();
+
+            if (existingChat) {
+              chatId = (existingChat as unknown as { id: string }).id;
+
+              // Reaktywuj zarchiwizowany czat
+              await this.supabase.from('chats').update({ status: 'ACTIVE' }).eq('id', chatId);
+
+              // Wyczyść chat_id ze starych REALIZED interestów — nie należą do nowej wymiany
+              await this.supabase
+                .from('interests')
+                .update({ chat_id: null } as any)
+                .eq('chat_id', chatId)
+                .eq('status', 'REALIZED');
+
+              // Ustaw chat_id na nowych interestach
+              const insertedAny = insertedInterest as unknown as { id: string } | null;
+              if (insertedAny?.id) {
+                await this.supabase
+                  .from('interests')
+                  .update({ status: 'ACCEPTED', chat_id: chatId })
+                  .eq('id', insertedAny.id);
+              }
+              if (mutualInterestId) {
+                await this.supabase.from('interests').update({ chat_id: chatId }).eq('id', mutualInterestId);
+              }
+            }
+          } else {
+            console.error('[INTERESTS_SERVICE][CHAT_INSERT_ERROR]', chatError);
+          }
         } else {
           const chatAny = chat as unknown as { id?: string } | null;
           if (chatAny?.id) {
@@ -456,6 +497,7 @@ export class InterestsService {
         .select('id, user_id, status, offer_id')
         .eq('chat_id', chatId)
         .neq('id', interestId)
+        .in('status', ['ACCEPTED', 'REALIZED'])
         .limit(1)
         .maybeSingle();
 
@@ -501,6 +543,16 @@ export class InterestsService {
               console.error('[INTERESTS_SERVICE][EXCHANGE_HISTORY_INSERT_ERROR]', historyError);
             } else if (history && (history as any).id) {
               exchangeHistoryId = (history as any).id;
+
+              // Archiwizuj czat — wymiana zakończona
+              const { error: archiveError } = await this.supabase
+                .from('chats')
+                .update({ status: 'ARCHIVED' })
+                .eq('id', chatId);
+
+              if (archiveError) {
+                console.error('[INTERESTS_SERVICE][ARCHIVE_CHAT_ERROR]', archiveError);
+              }
             }
           }
         } catch (err) {
@@ -532,10 +584,10 @@ export class InterestsService {
    * @param interestId - UUID rekordu interest
    */
   async unrealizeInterest(actorId: string, interestId: string) {
-    // Pobierz interest aby sprawdzić stan i właściciela
+    // Pobierz interest z powiązanymi danymi
     const { data: interest, error: interestError } = await this.supabase
       .from('interests')
-      .select('id, user_id, status, realized_at')
+      .select('id, user_id, status, realized_at, offer_id, chat_id')
       .eq('id', interestId)
       .maybeSingle();
 
@@ -552,18 +604,59 @@ export class InterestsService {
       throw e;
     }
 
-    // Jeśli już zrealizowane -> nie można cofnąć
-    if ((interest as any).status === 'REALIZED' || (interest as any).realized_at) {
-      const e = new Error('Nie można cofnąć potwierdzenia — wymiana została już zrealizowana');
-      Object.assign(e, { code: 'ALREADY_REALIZED' });
+    // Interest musi być REALIZED aby je cofnąć
+    if ((interest as any).status !== 'REALIZED') {
+      const e = new Error('Status musi być REALIZED aby cofnąć potwierdzenie');
+      Object.assign(e, { code: 'BAD_STATUS' });
       throw e;
     }
 
-    // Tylko inicjator (user_id) może cofnąć swoje potwierdzenie
-    if ((interest as any).user_id !== actorId) {
+    // Pobierz ofertę aby sprawdzić właściciela (owner) — analogicznie do realizeInterest
+    const { data: offer, error: offerError } = await this.supabase
+      .from('offers')
+      .select('id, owner_id')
+      .eq('id', (interest as any).offer_id)
+      .maybeSingle();
+
+    if (offerError) {
+      console.error('[INTERESTS_SERVICE][GET_OFFER_ERROR]', offerError);
+      const e = new Error('Błąd pobierania oferty powiązanej z zainteresowaniem');
+      Object.assign(e, { code: 'DB_ERROR' });
+      throw e;
+    }
+
+    const offerOwnerId = (offer as any)?.owner_id as string | undefined;
+
+    // Sprawdź uprawnienia: interest.user_id LUB offer.owner_id
+    const isParticipant =
+      String((interest as any).user_id) === String(actorId) ||
+      (offerOwnerId && String(offerOwnerId) === String(actorId));
+
+    if (!isParticipant) {
       const e = new Error('Brak uprawnień do cofnięcia potwierdzenia');
       Object.assign(e, { code: 'FORBIDDEN' });
       throw e;
+    }
+
+    // Sprawdź czy druga strona też REALIZED (wymiana zakończona = nieodwracalna)
+    const chatId = (interest as any).chat_id as string | null | undefined;
+    if (chatId) {
+      const { data: other, error: otherError } = await this.supabase
+        .from('interests')
+        .select('id, status')
+        .eq('chat_id', chatId)
+        .neq('id', interestId)
+        .in('status', ['ACCEPTED', 'REALIZED'])
+        .limit(1)
+        .maybeSingle();
+
+      if (otherError) {
+        console.error('[INTERESTS_SERVICE][CHECK_OTHER_REALIZED_ERROR]', otherError);
+      } else if (other && (other as any).status === 'REALIZED') {
+        const e = new Error('Nie można cofnąć potwierdzenia — wymiana została już zrealizowana przez obie strony');
+        Object.assign(e, { code: 'ALREADY_REALIZED' });
+        throw e;
+      }
     }
 
     // Wykonaj aktualizację - ustaw status ACCEPTED i realized_at = null
