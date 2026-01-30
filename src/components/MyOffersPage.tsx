@@ -99,13 +99,6 @@ export function MyOffersPage() {
     refetch();
   };
 
-  /**
-   * Handler odświeżenia
-   */
-  const handleRefresh = () => {
-    refetch();
-  };
-
   const markInterestsAsViewed = (offerId: string, totalInterests: number) => {
     setSeenInterestsCountByOfferId((prev) => ({
       ...prev,
@@ -276,9 +269,6 @@ export function MyOffersPage() {
           >
             Usunięte
           </Button>
-          <Button variant="ghost" onClick={handleRefresh} size="sm" disabled={isLoading || isRefreshing}>
-            Odśwież
-          </Button>
         </div>
       </div>
 
@@ -383,7 +373,11 @@ export function MyOffersPage() {
               <Card className="h-full flex items-center justify-center p-6 text-center text-base font-medium text-muted-foreground">
                 Ta oferta została usunięta ręcznie — brak czatu.
               </Card>
-            ) : null}
+            ) : (
+              <div className="rounded-xl border bg-card shadow h-full flex items-center justify-center p-6 text-center text-base font-medium text-muted-foreground">
+                Historia czatu
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -98,7 +98,6 @@ export function HomeOffersPage() {
         <OffersFilterPanel
           values={filter}
           onChange={handleFilterChange}
-          onRefresh={handleRefresh}
           isLoading={isLoading || isRefreshing}
         />
       </div>

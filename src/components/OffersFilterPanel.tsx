@@ -10,7 +10,6 @@ import { Card } from './ui/card';
 type OffersFilterPanelProps = {
   values: HomeFilterState;
   onChange: (values: HomeFilterState) => void;
-  onRefresh: () => void;
   isLoading?: boolean;
 };
 
@@ -21,10 +20,9 @@ type OffersFilterPanelProps = {
  * - Wybór miasta (16 miast)
  * - Sortowanie (data/tytuł)
  * - Kierunek sortowania (asc/desc)
- * - Przycisk odświeżenia
  * - Przycisk wyczyszczenia filtrów
  */
-export function OffersFilterPanel({ values, onChange, onRefresh, isLoading = false }: OffersFilterPanelProps) {
+export function OffersFilterPanel({ values, onChange, isLoading = false }: OffersFilterPanelProps) {
   /**
    * Handler zmiany miasta
    */
@@ -130,9 +128,6 @@ export function OffersFilterPanel({ values, onChange, onRefresh, isLoading = fal
               Wyczyść
             </Button>
           )}
-          <Button type="button" variant="default" onClick={onRefresh} disabled={isLoading}>
-            {isLoading ? 'Odświeżanie...' : 'Odśwież'}
-          </Button>
         </div>
       </div>
     </Card>
