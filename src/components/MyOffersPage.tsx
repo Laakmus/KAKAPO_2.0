@@ -258,12 +258,6 @@ export function MyOffersPage() {
             <p className="text-muted-foreground mt-1">Zarządzaj swoimi ofertami wymiany</p>
           </div>
 
-          {/* CTA - Dodaj nową ofertę */}
-          <Button asChild size="default">
-            <a href="/offers/new" data-testid="my-offers-add-offer">
-              Dodaj ofertę
-            </a>
-          </Button>
         </div>
 
         {/* Filtr statusu */}
