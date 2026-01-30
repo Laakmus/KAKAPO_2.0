@@ -159,17 +159,16 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
         const myStatus = interestContext.realizationStatus;
         const otherStatus = interestContext.otherRealizationStatus;
         const bothRealized = myStatus === 'REALIZED' && otherStatus === 'REALIZED';
-        const iAmWaiting = myStatus === 'REALIZED' && otherStatus !== 'REALIZED';
 
         return {
           can_realize: myStatus === 'ACCEPTED',
-          can_unrealize: myStatus === 'REALIZED' && !bothRealized,
-          other_confirmed: otherStatus === 'REALIZED',
-          status: iAmWaiting ? 'WAITING' : myStatus,
+          can_unrealize: myStatus === 'WAITING',
+          other_confirmed: otherStatus === 'WAITING' || otherStatus === 'REALIZED',
+          status: myStatus,
           message:
             myStatus === 'ACCEPTED'
               ? 'Wymiana została zaakceptowana. Możesz potwierdzić realizację.'
-              : iAmWaiting
+              : myStatus === 'WAITING'
                 ? 'Potwierdziłeś realizację. Oczekiwanie na drugą stronę.'
                 : bothRealized
                   ? 'Wymiana została zrealizowana przez obie strony!'

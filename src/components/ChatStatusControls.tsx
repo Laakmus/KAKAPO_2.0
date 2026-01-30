@@ -241,7 +241,7 @@ export function ChatStatusControls({
         </div>
       )}
 
-      {state.status === 'REALIZED' && !state.other_confirmed && (
+      {state.status === 'WAITING' && (
         <p className="text-xs text-muted-foreground">
           ⏳ Oczekiwanie na potwierdzenie drugiej strony. Możesz anulować swoje potwierdzenie do momentu potwierdzenia
           przez drugą stronę.

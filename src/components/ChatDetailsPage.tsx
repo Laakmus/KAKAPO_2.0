@@ -65,15 +65,15 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
 
     return {
       can_realize: currentStatus === 'ACCEPTED',
-      can_unrealize: currentStatus === 'REALIZED' && !bothRealized,
-      other_confirmed: otherStatus === 'REALIZED',
+      can_unrealize: currentStatus === 'WAITING',
+      other_confirmed: otherStatus === 'WAITING' || otherStatus === 'REALIZED',
       status: currentStatus,
       message:
         currentStatus === 'ACCEPTED'
           ? 'Wymiana została zaakceptowana. Możesz potwierdzić realizację.'
-          : currentStatus === 'REALIZED' && !bothRealized
+          : currentStatus === 'WAITING'
             ? 'Potwierdziłeś realizację. Oczekiwanie na drugą stronę.'
-            : currentStatus === 'REALIZED' && bothRealized
+            : bothRealized
               ? 'Wymiana została zrealizowana przez obie strony!'
               : undefined,
     };

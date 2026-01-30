@@ -40,8 +40,8 @@ describe('OfferDetailsPanel', () => {
 
     expect(screen.getByLabelText('3 zdjęć')).toBeInTheDocument();
 
-    const ownerLink = screen.getByRole('link', { name: 'Zobacz profil użytkownika Jan' });
-    expect(ownerLink).toHaveAttribute('href', '/users/u1');
+    const ownerOffersLink = screen.getByRole('link', { name: 'Zobacz oferty Jan' });
+    expect(ownerOffersLink).toHaveAttribute('href', '/users/u1#user-offers-heading');
 
     await user.click(screen.getByRole('button', { name: 'Zamknij szczegóły' }));
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -71,6 +71,6 @@ describe('OfferDetailsPanel', () => {
     );
 
     expect(screen.getByText('Jan')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Zobacz profil użytkownika/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Zobacz oferty/ })).not.toBeInTheDocument();
   });
 });

@@ -238,7 +238,10 @@ export const listInterestsSchema = z.object({
   offer_id: z.string().uuid({ message: 'Nieprawidłowy format ID oferty' }).describe('UUID oferty'),
   page: z.coerce.number().int().min(1).default(1).describe('Numer strony (1-based)'),
   limit: z.coerce.number().int().min(1).max(100).default(20).describe('Liczba elementów na stronę (max 100)'),
-  status: z.enum(['PROPOSED', 'ACCEPTED', 'REALIZED']).optional().describe('Status zainteresowania do filtrowania'),
+  status: z
+    .enum(['PROPOSED', 'ACCEPTED', 'WAITING', 'REALIZED'])
+    .optional()
+    .describe('Status zainteresowania do filtrowania'),
 });
 
 export type ListInterestsInput = z.infer<typeof listInterestsSchema>;

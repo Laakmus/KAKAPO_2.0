@@ -242,23 +242,6 @@ function OwnerLinks({ ownerId, ownerName, isOwner }: OwnerLinksProps) {
         {isOwner ? 'Twoja oferta' : 'Oferent'}
       </h3>
       <div className="flex flex-wrap gap-3">
-        {/* Link do profilu */}
-        <a
-          href={`/users/${ownerId}`}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
-          aria-label={`Zobacz profil ${displayName}`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
-          <span>Profil {isOwner ? '' : displayName}</span>
-        </a>
-
         {/* Link do ofert użytkownika - prowadzi do profilu z ofertami */}
         {!isOwner && (
           <a

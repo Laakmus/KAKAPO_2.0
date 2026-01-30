@@ -32,7 +32,7 @@ export function useChatMessages(
   const [error, setError] = useState<ApiErrorViewModel | undefined>();
 
   // Ref do scrollowania
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null!);
 
   /**
    * Funkcja fetchująca wiadomości
@@ -137,7 +137,7 @@ export function useChatMessages(
    * Scroll do dołu
    */
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
   }, []);
 
   /**
@@ -146,15 +146,6 @@ export function useChatMessages(
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
-
-  /**
-   * Efekt - scroll do dołu przy nowych wiadomościach
-   */
-  useEffect(() => {
-    if (messages.length > 0 && !isLoading) {
-      scrollToBottom();
-    }
-  }, [messages.length, isLoading, scrollToBottom]);
 
   return {
     messages,

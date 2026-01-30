@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabaseClient } from '@/db/supabase.client';
 import type {
   ChatsViewState,
   ChatSummaryViewModel,
@@ -7,6 +8,7 @@ import type {
   ChatMessageViewModel,
   InterestActionContext,
   ChatListItemDTO,
+  MessageDTO,
   MessageViewModel,
   Paginated,
 } from '@/types';
@@ -47,7 +49,7 @@ export function useChatsViewState(initialChatId?: string) {
   /**
    * Formatuje datę dla UI
    */
-  const formatMessageDate = (dateString: string): string => {
+  const formatMessageDate = useCallback((dateString: string): string => {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -62,15 +64,33 @@ export function useChatsViewState(initialChatId?: string) {
     if (diffDays < 7) return `${diffDays} dni temu`;
 
     return date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
-  };
+  }, []);
+
+  /**
+   * Ustaw sesję na kliencie Supabase (potrzebne do Realtime + RLS).
+   * W tym projekcie tokeny są trzymane w localStorage, więc ustawiamy sesję jawnie.
+   */
+  const ensureAuthSession = useCallback(async () => {
+    if (!token) return;
+    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') || '' : '';
+
+    const { error: sessionError } = await supabaseClient.auth.setSession({
+      access_token: token,
+      refresh_token: refreshToken,
+    });
+
+    if (sessionError) {
+      console.error('[useChatsViewState] Session error:', sessionError);
+    }
+  }, [token]);
 
   /**
    * Formatuje czas wiadomości (godzina:minuta)
    */
-  const formatMessageTime = (dateString: string): string => {
+  const formatMessageTime = useCallback((dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-  };
+  }, []);
 
   /**
    * Fetch listy czatów
@@ -158,7 +178,7 @@ export function useChatsViewState(initialChatId?: string) {
       }
       return [];
     }
-  }, [token]);
+  }, [token, formatMessageDate]);
 
   /**
    * Fetch szczegółów czatu
@@ -334,8 +354,110 @@ export function useChatsViewState(initialChatId?: string) {
         }
       }
     },
-    [token],
+    [token, formatMessageTime],
   );
+
+  /**
+   * Realtime - dopisywanie wiadomości bez refetchu (jak Messenger/Telegram).
+   *
+   * Nasłuchujemy INSERT na `public.messages` tylko dla wybranego czatu i dopisujemy
+   * nową wiadomość do stanu, bez przełączania w "loading" i bez podmiany całej listy.
+   */
+  useEffect(() => {
+    if (!token || !state.selectedChatId) return;
+
+    let isCancelled = false;
+    const chatId = state.selectedChatId;
+    let channel: ReturnType<typeof supabaseClient.channel> | undefined;
+
+    // Najpierw ustawiamy sesję (JWT) na kliencie Supabase, dopiero potem subskrybujemy Realtime.
+    void (async () => {
+      await ensureAuthSession();
+      if (isCancelled) return;
+
+      channel = supabaseClient
+        .channel(`chat:${chatId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
+          (payload) => {
+            if (isCancelled) return;
+
+            const row = payload.new as unknown as {
+              id: string;
+              chat_id: string;
+              sender_id: string;
+              body: string;
+              created_at: string;
+            };
+
+            const isOwn = String(row.sender_id) === String(user?.id ?? '');
+            const senderName = isOwn
+              ? `${(user?.first_name ?? '').trim()} ${(user?.last_name ?? '').trim()}`.trim() || 'Ty'
+              : (state.selectedChat?.participants.other.name ?? 'Użytkownik');
+
+            const messageVm: MessageViewModel = {
+              id: row.id,
+              chat_id: row.chat_id,
+              sender_id: row.sender_id,
+              sender_name: senderName,
+              body: row.body,
+              created_at: row.created_at,
+              isOwn,
+            };
+
+            const chatMessageVm: ChatMessageViewModel = {
+              ...messageVm,
+              formattedTime: formatMessageTime(messageVm.created_at),
+            };
+
+            setState((prev) => {
+              if (prev.selectedChatId !== row.chat_id) return prev;
+              if (prev.messages.some((m) => m.id === row.id)) return prev;
+
+              const nextMessages = [...prev.messages, chatMessageVm].sort(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+              );
+
+              const nextChats = prev.chats.map((c) => {
+                if (c.id !== row.chat_id) return c;
+                const last_message = { body: row.body, sender_id: row.sender_id, created_at: row.created_at };
+                return {
+                  ...c,
+                  last_message,
+                  formattedLastMessageAt: formatMessageDate(row.created_at),
+                };
+              });
+
+              return {
+                ...prev,
+                chats: nextChats,
+                messages: nextMessages,
+              };
+            });
+          },
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      isCancelled = true;
+      if (channel) {
+        supabaseClient.removeChannel(channel);
+      }
+    };
+    // celowo zależymy od selectedChatId + token; senderName dla other bierzemy z aktualnego selectedChat
+  }, [
+    token,
+    state.selectedChatId,
+    state.selectedChat,
+    user?.id,
+    user?.first_name,
+    user?.last_name,
+    ensureAuthSession,
+    formatMessageDate,
+    formatMessageTime,
+  ]);
 
   /**
    * Wybór czatu
@@ -435,10 +557,54 @@ export function useChatsViewState(initialChatId?: string) {
           return;
         }
 
-        // Po sukcesie odśwież wiadomości
-        await fetchMessages(state.selectedChatId);
+        // Sukces: dopisz nową wiadomość lokalnie (bez refetchu całej listy).
+        const created = (await response.json()) as MessageDTO;
+        const senderName = `${(user?.first_name ?? '').trim()} ${(user?.last_name ?? '').trim()}`.trim() || 'Ty';
 
-        setState((prev) => ({ ...prev, isSending: false, actionError: undefined }));
+        const messageVm: MessageViewModel = {
+          id: created.id,
+          chat_id: created.chat_id,
+          sender_id: created.sender_id,
+          sender_name: created.sender_name ?? senderName,
+          body: created.body,
+          created_at: created.created_at,
+          isOwn: true,
+        };
+
+        const chatMessageVm: ChatMessageViewModel = {
+          ...messageVm,
+          formattedTime: formatMessageTime(messageVm.created_at),
+        };
+
+        setState((prev) => {
+          const nextMessages = prev.messages.some((m) => m.id === messageVm.id)
+            ? prev.messages
+            : [...prev.messages, chatMessageVm].sort(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+              );
+
+          const nextChats = prev.chats.map((c) => {
+            if (c.id !== messageVm.chat_id) return c;
+            const last_message = {
+              body: messageVm.body,
+              sender_id: messageVm.sender_id,
+              created_at: messageVm.created_at,
+            };
+            return {
+              ...c,
+              last_message,
+              formattedLastMessageAt: formatMessageDate(messageVm.created_at),
+            };
+          });
+
+          return {
+            ...prev,
+            chats: nextChats,
+            messages: nextMessages,
+            isSending: false,
+            actionError: undefined,
+          };
+        });
       } catch (_err) {
         setState((prev) => ({
           ...prev,
@@ -450,7 +616,7 @@ export function useChatsViewState(initialChatId?: string) {
         }));
       }
     },
-    [token, state.selectedChatId, fetchMessages],
+    [token, state.selectedChatId, user?.first_name, user?.last_name, formatMessageDate, formatMessageTime],
   );
 
   /**

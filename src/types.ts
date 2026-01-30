@@ -374,8 +374,8 @@ export type ChatDetailsViewModel = {
   interest_id: string;
   other_interest_id?: string;
   current_user_id: string;
-  current_interest_status: 'PROPOSED' | 'ACCEPTED' | 'REALIZED';
-  other_interest_status?: 'PROPOSED' | 'ACCEPTED' | 'REALIZED';
+  current_interest_status: 'PROPOSED' | 'ACCEPTED' | 'WAITING' | 'REALIZED';
+  other_interest_status?: 'PROPOSED' | 'ACCEPTED' | 'WAITING' | 'REALIZED';
   other_user: {
     id: string;
     name: string;
@@ -428,7 +428,7 @@ export type InterestRealizationState = {
   can_realize: boolean;
   can_unrealize: boolean;
   other_confirmed: boolean;
-  status: 'PROPOSED' | 'ACCEPTED' | 'REALIZED' | string;
+  status: 'PROPOSED' | 'ACCEPTED' | 'WAITING' | 'REALIZED';
   message?: string;
 };
 
@@ -513,8 +513,8 @@ export type InterestActionContext = {
   interestId: string;
   otherUserName: string;
   offerTitle: string;
-  realizationStatus: 'PROPOSED' | 'ACCEPTED' | 'REALIZED';
-  otherRealizationStatus?: 'PROPOSED' | 'ACCEPTED' | 'REALIZED';
+  realizationStatus: 'PROPOSED' | 'ACCEPTED' | 'WAITING' | 'REALIZED';
+  otherRealizationStatus?: 'PROPOSED' | 'ACCEPTED' | 'WAITING' | 'REALIZED';
 };
 
 /**

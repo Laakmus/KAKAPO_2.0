@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createMessageSchema } from '@/schemas/chats.schema';
@@ -54,6 +54,22 @@ export function MessageComposer({ onSend, isSending, leftAction }: MessageCompos
     },
   });
 
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const shouldRestoreFocusRef = useRef(false);
+  const { ref: bodyRegisterRef, ...bodyRegisterProps } = register('body');
+
+  useEffect(() => {
+    if (isSending) return;
+    if (!shouldRestoreFocusRef.current) return;
+
+    // Focus dopiero gdy textarea przestanie być disabled (po zakończeniu wysyłki i renderze).
+    // requestAnimationFrame daje gwarancję, że DOM jest już w aktualnym stanie.
+    shouldRestoreFocusRef.current = false;
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+  }, [isSending]);
+
   // Watch body dla licznika znaków
   const bodyValue = watch('body');
   React.useEffect(() => {
@@ -68,6 +84,7 @@ export function MessageComposer({ onSend, isSending, leftAction }: MessageCompos
       await onSend(data.body);
       reset(); // Wyczyść formularz po sukcesie
       setCharCount(0);
+      shouldRestoreFocusRef.current = true;
     } catch (error) {
       console.error('[MessageComposer] Send error:', error);
     }
@@ -88,13 +105,17 @@ export function MessageComposer({ onSend, isSending, leftAction }: MessageCompos
       {/* Textarea */}
       <div className="relative">
         <Textarea
-          {...register('body')}
+          {...bodyRegisterProps}
           placeholder="Napisz wiadomość... (Shift+Enter dla nowej linii)"
           rows={3}
           disabled={isSending}
           onKeyDown={handleKeyDown}
           className={errors.body ? 'border-destructive' : ''}
           aria-label="Treść wiadomości"
+          ref={(el) => {
+            bodyRegisterRef(el);
+            textareaRef.current = el;
+          }}
         />
 
         {/* Licznik znaków */}

@@ -53,7 +53,7 @@ export class ChatsService {
         .from('interests')
         .select('id, offer_id, status, realized_at')
         .eq('user_id', userA)
-        .in('status', ['PROPOSED', 'ACCEPTED', 'REALIZED']);
+        .in('status', ['PROPOSED', 'ACCEPTED', 'WAITING', 'REALIZED']);
 
       // 3) Pobierz oferty user_b
       const { data: userBOffers } = await this.supabase
@@ -74,8 +74,8 @@ export class ChatsService {
           const aActive = userBActiveOfferIds.has(a.offer_id) ? 1 : 0;
           const bActive = userBActiveOfferIds.has(b.offer_id) ? 1 : 0;
           if (bActive !== aActive) return bActive - aActive;
-          // Potem priorytet: REALIZED > ACCEPTED > PROPOSED
-          const statusOrder = { REALIZED: 3, ACCEPTED: 2, PROPOSED: 1 };
+          // Potem priorytet: REALIZED > WAITING > ACCEPTED > PROPOSED
+          const statusOrder = { REALIZED: 4, WAITING: 3, ACCEPTED: 2, PROPOSED: 1 };
           return (
             (statusOrder[b.status as keyof typeof statusOrder] || 0) -
             (statusOrder[a.status as keyof typeof statusOrder] || 0)
@@ -87,7 +87,7 @@ export class ChatsService {
         .from('interests')
         .select('id, offer_id, status, realized_at')
         .eq('user_id', userB)
-        .in('status', ['PROPOSED', 'ACCEPTED', 'REALIZED']);
+        .in('status', ['PROPOSED', 'ACCEPTED', 'WAITING', 'REALIZED']);
 
       // 6) Pobierz oferty user_a
       const { data: userAOffers } = await this.supabase
@@ -108,8 +108,8 @@ export class ChatsService {
           const aActive = userAActiveOfferIds.has(a.offer_id) ? 1 : 0;
           const bActive = userAActiveOfferIds.has(b.offer_id) ? 1 : 0;
           if (bActive !== aActive) return bActive - aActive;
-          // Potem priorytet: REALIZED > ACCEPTED > PROPOSED
-          const statusOrder = { REALIZED: 3, ACCEPTED: 2, PROPOSED: 1 };
+          // Potem priorytet: REALIZED > WAITING > ACCEPTED > PROPOSED
+          const statusOrder = { REALIZED: 4, WAITING: 3, ACCEPTED: 2, PROPOSED: 1 };
           return (
             (statusOrder[b.status as keyof typeof statusOrder] || 0) -
             (statusOrder[a.status as keyof typeof statusOrder] || 0)
@@ -456,7 +456,7 @@ export class ChatsService {
         .from('interests')
         .select('id, offer_id, status, realized_at, created_at')
         .eq('user_id', userId)
-        .in('status', ['PROPOSED', 'ACCEPTED', 'REALIZED']);
+        .in('status', ['PROPOSED', 'ACCEPTED', 'WAITING', 'REALIZED']);
 
       if (currentInterestsError) throw currentInterestsError;
 
@@ -483,7 +483,7 @@ export class ChatsService {
         .from('interests')
         .select('id, offer_id, status, realized_at, created_at')
         .eq('user_id', otherUserId)
-        .in('status', ['PROPOSED', 'ACCEPTED', 'REALIZED']);
+        .in('status', ['PROPOSED', 'ACCEPTED', 'WAITING', 'REALIZED']);
 
       if (otherInterestsError) throw otherInterestsError;
 
@@ -562,8 +562,14 @@ export class ChatsService {
         interest_id: currentUserInterest?.id ?? '',
         other_interest_id: otherUserInterest?.id,
         current_user_id: userId,
-        current_interest_status: (currentUserInterest?.status as 'PROPOSED' | 'ACCEPTED' | 'REALIZED') ?? 'PROPOSED',
-        other_interest_status: otherUserInterest?.status as 'PROPOSED' | 'ACCEPTED' | 'REALIZED' | undefined,
+        current_interest_status:
+          (currentUserInterest?.status as 'PROPOSED' | 'ACCEPTED' | 'WAITING' | 'REALIZED') ?? 'PROPOSED',
+        other_interest_status: otherUserInterest?.status as
+          | 'PROPOSED'
+          | 'ACCEPTED'
+          | 'WAITING'
+          | 'REALIZED'
+          | undefined,
         other_user: chatDetails.user_a.id === userId ? chatDetails.user_b : chatDetails.user_a,
         related_offers:
           myOffer && theirOffer

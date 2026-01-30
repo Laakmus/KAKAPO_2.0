@@ -55,6 +55,9 @@ export const PATCH: APIRoute = async ({ request: _request, params, locals }) => 
       if (code === 'FORBIDDEN') {
         return createErrorResponse('FORBIDDEN', 'Brak uprawnień', 403);
       }
+      if (code === 'BAD_STATUS') {
+        return createErrorResponse('BAD_REQUEST', 'Status musi być WAITING aby cofnąć potwierdzenie', 400);
+      }
       // Jeżeli już zrealizowane -> 400 Bad Request
       if (code === 'ALREADY_REALIZED') {
         return createErrorResponse('BAD_REQUEST', 'Nie można anulować - wymiana już została zrealizowana', 400);

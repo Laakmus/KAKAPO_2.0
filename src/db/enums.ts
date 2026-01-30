@@ -27,7 +27,7 @@ import type { Database } from './database.types';
 /** Offer status: 'ACTIVE' | 'REMOVED' */
 export type OfferStatus = Database['public']['Enums']['offer_status'];
 
-/** Interest status: 'PROPOSED' | 'ACCEPTED' | 'REALIZED' */
+/** Interest status: 'PROPOSED' | 'ACCEPTED' | 'WAITING' | 'REALIZED' */
 export type InterestStatus = Database['public']['Enums']['interest_status'];
 
 /** Chat status: 'ACTIVE' | 'ARCHIVED' */
@@ -51,11 +51,13 @@ export const OfferStatus = {
  * Interest status values
  * - PROPOSED: Initial state when user expresses interest
  * - ACCEPTED: Mutual match detected (both users interested)
- * - REALIZED: User confirmed receipt of goods
+ * - WAITING: One party confirmed, waiting for the other
+ * - REALIZED: Both parties confirmed exchange
  */
 export const InterestStatus = {
   PROPOSED: 'PROPOSED',
   ACCEPTED: 'ACCEPTED',
+  WAITING: 'WAITING',
   REALIZED: 'REALIZED',
 } as const satisfies Record<string, InterestStatus>;
 

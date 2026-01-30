@@ -184,7 +184,7 @@ export function MyOffersPage() {
         <MessagesList
           messages={messages}
           currentUserId={chatDetails?.current_user_id || ''}
-          messagesEndRef={messagesEndRef}
+          messagesEndRef={messagesEndRef as React.RefObject<HTMLDivElement>}
           isLoading={isLoadingMessages}
         />
       </Card>
@@ -382,7 +382,7 @@ export function MyOffersPage() {
               );
             })}
           </div>
-          <div className="min-h-[400px] md:col-span-2">
+          <div className="min-h-[400px] md:col-span-2 h-[480px]">
             {selectedRemovedChatId ? (
               <ExchangeChatPanel chatId={selectedRemovedChatId} />
             ) : selectedRemovedOfferId ? (

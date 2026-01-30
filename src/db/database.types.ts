@@ -408,7 +408,7 @@ export type Database = {
     };
     Enums: {
       chat_status: 'ACTIVE' | 'ARCHIVED';
-      interest_status: 'PROPOSED' | 'ACCEPTED' | 'REALIZED';
+      interest_status: 'PROPOSED' | 'ACCEPTED' | 'WAITING' | 'REALIZED';
       offer_status: 'ACTIVE' | 'REMOVED';
     };
     CompositeTypes: {
@@ -533,7 +533,7 @@ export const Constants = {
   public: {
     Enums: {
       chat_status: ['ACTIVE', 'ARCHIVED'],
-      interest_status: ['PROPOSED', 'ACCEPTED', 'REALIZED'],
+      interest_status: ['PROPOSED', 'ACCEPTED', 'WAITING', 'REALIZED'],
       offer_status: ['ACTIVE', 'REMOVED'],
     },
   },

@@ -1,4 +1,4 @@
-import React, { type RefObject } from 'react';
+import React, { type RefObject, useCallback, useLayoutEffect, useRef } from 'react';
 import type { MessageViewModel } from '@/types';
 import { MessageBubble } from './MessageBubble';
 
@@ -24,6 +24,38 @@ type MessagesListProps = {
  * @param isLoading - czy trwa ładowanie wiadomości
  */
 export function MessagesList({ messages, currentUserId, messagesEndRef, isLoading }: MessagesListProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const didInitialScrollRef = useRef(false);
+  const shouldStickToBottomRef = useRef(true);
+
+  const updateStickToBottom = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Jeśli użytkownik jest blisko dołu (np. < 80px), traktujemy to jako "jest na dole".
+    const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldStickToBottomRef.current = distanceToBottom < 80;
+  }, []);
+
+  useLayoutEffect(() => {
+    if (isLoading || messages.length === 0) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      // 1) Przy pierwszym załadowaniu zawsze pokaż najnowsze wiadomości.
+      // 2) Przy kolejnych aktualizacjach przewijaj tylko wtedy, gdy użytkownik był przy dole.
+      if (!didInitialScrollRef.current || shouldStickToBottomRef.current) {
+        container.scrollTop = container.scrollHeight;
+        didInitialScrollRef.current = true;
+      }
+      return;
+    }
+
+    messagesEndRef?.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+  }, [messages, isLoading, messagesEndRef]);
+
   // Placeholder gdy brak wiadomości
   if (!isLoading && messages.length === 0) {
     return (
@@ -54,7 +86,7 @@ export function MessagesList({ messages, currentUserId, messagesEndRef, isLoadin
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 scroll-smooth">
+    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4" onScroll={updateStickToBottom}>
       {/* Lista wiadomości */}
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} isOwn={message.sender_id === currentUserId} />

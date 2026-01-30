@@ -15,7 +15,10 @@ export type CreateInterestInput = z.infer<typeof createInterestSchema>;
  * - status: optional enum('PROPOSED'|'ACCEPTED'|'REALIZED')
  */
 export const myInterestsQuerySchema = z.object({
-  status: z.enum(['PROPOSED', 'ACCEPTED', 'REALIZED']).optional().describe('Status zainteresowania do filtrowania'),
+  status: z
+    .enum(['PROPOSED', 'ACCEPTED', 'WAITING', 'REALIZED'])
+    .optional()
+    .describe('Status zainteresowania do filtrowania'),
 });
 
 export type MyInterestsQuery = z.infer<typeof myInterestsQuerySchema>;
