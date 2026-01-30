@@ -7,9 +7,11 @@ import { ProfileStats } from './ProfileStats';
 import { ProfileViewMode } from './ProfileViewMode';
 import { ProfileEditForm } from './ProfileEditForm';
 import { DeleteAccountDialog } from './DeleteAccountDialog';
+import { ChangePasswordCard } from './ChangePasswordCard';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { ErrorBanner } from './ErrorBanner';
-import type { ProfileEditPayload, DeleteAccountCommand } from '@/types';
+import { Button } from './ui/button';
+import type { ProfileEditPayload, DeleteAccountCommand, ChangePasswordCommand } from '@/types';
 
 /**
  * Główny komponent strony Profilu użytkownika
@@ -26,13 +28,25 @@ export function ProfilePage() {
   const { profile, isLoading, error, refetch } = useProfile();
 
   // Akcje profilu
-  const { editProfile, deleteAccount, isSubmitting, isDeleting, error: actionError } = useProfileActions();
+  const {
+    editProfile,
+    deleteAccount,
+    changePassword,
+    isSubmitting,
+    isDeleting,
+    isChangingPassword,
+    error: actionError,
+    changePasswordError,
+  } = useProfileActions();
 
   // Toast notifications
   const { push: showToast } = useToast();
 
   // Stan edycji (toggle między view a edit mode)
   const [isEditing, setIsEditing] = useState(false);
+
+  // Stan widoczności zmiany hasła
+  const [isChangingPasswordOpen, setIsChangingPasswordOpen] = useState(false);
 
   // Stan modalu usuwania
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -49,6 +63,14 @@ export function ProfilePage() {
    */
   const handleEditCancel = () => {
     setIsEditing(false);
+  };
+
+  const handleChangePasswordToggle = () => {
+    setIsChangingPasswordOpen((prev) => !prev);
+  };
+
+  const handleChangePasswordCancel = () => {
+    setIsChangingPasswordOpen(false);
   };
 
   /**
@@ -100,6 +122,22 @@ export function ProfilePage() {
       });
     }
     // Błąd zostanie wyświetlony w modalu (error prop z useProfileActions)
+  };
+
+  /**
+   * Handler zmiany hasła
+   */
+  const handleChangePassword = async (payload: ChangePasswordCommand): Promise<boolean> => {
+    const success = await changePassword(payload);
+
+    if (success) {
+      showToast({
+        type: 'success',
+        text: 'Hasło zostało zmienione. Zaloguj się ponownie.',
+      });
+    }
+
+    return success;
   };
 
   /**
@@ -158,7 +196,30 @@ export function ProfilePage() {
           isSubmitting={isSubmitting}
         />
       ) : (
-        <ProfileViewMode profile={profile} onEdit={handleEditStart} onDeleteRequest={handleDeleteRequest} />
+        <>
+          <ProfileViewMode profile={profile} onEdit={handleEditStart} onDeleteRequest={handleDeleteRequest} />
+          <div className="mt-6">
+            <Button
+              type="button"
+              variant="default"
+              size="default"
+              className="w-full sm:w-auto"
+              onClick={handleChangePasswordToggle}
+            >
+              {isChangingPasswordOpen ? 'Ukryj zmianę hasła' : 'Zmień hasło'}
+            </Button>
+          </div>
+          {isChangingPasswordOpen && (
+            <div className="mt-4">
+              <ChangePasswordCard
+                onSubmit={handleChangePassword}
+                onCancel={handleChangePasswordCancel}
+                isSubmitting={isChangingPassword}
+                error={changePasswordError}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Modal usunięcia konta */}

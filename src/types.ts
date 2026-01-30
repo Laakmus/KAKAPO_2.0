@@ -88,6 +88,12 @@ export type DeleteAccountCommand = {
   password: string;
 };
 
+export type ChangePasswordCommand = {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+};
+
 export type ProfilePageState = {
   profile: UserProfileDTO | null;
   isEditing: boolean;

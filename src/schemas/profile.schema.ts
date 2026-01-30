@@ -24,3 +24,37 @@ export const deleteAccountFormSchema = z.object({
 });
 
 export type DeleteAccountFormValues = z.infer<typeof deleteAccountFormSchema>;
+
+/**
+ * Schema walidacji formularza zmiany hasła
+ */
+export const changePasswordFormSchema = z
+  .object({
+    current_password: z
+      .string({ required_error: 'Obecne hasło jest wymagane' })
+      .min(8, 'Obecne hasło musi mieć co najmniej 8 znaków'),
+    new_password: z
+      .string({ required_error: 'Nowe hasło jest wymagane' })
+      .min(8, 'Nowe hasło musi mieć co najmniej 8 znaków'),
+    confirm_password: z
+      .string({ required_error: 'Potwierdzenie hasła jest wymagane' })
+      .min(8, 'Potwierdzenie hasła musi mieć co najmniej 8 znaków'),
+  })
+  .superRefine((data, ctx) => {
+    if (data.new_password !== data.confirm_password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['confirm_password'],
+        message: 'Hasła nie są zgodne',
+      });
+    }
+    if (data.new_password === data.current_password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['new_password'],
+        message: 'Nowe hasło musi różnić się od obecnego',
+      });
+    }
+  });
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordFormSchema>;
