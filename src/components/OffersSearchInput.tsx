@@ -60,6 +60,7 @@ export function OffersSearchInput({
       {/* Input */}
       <Input
         type="text"
+        data-testid="offers-search-input"
         value={localValue}
         onChange={handleChange}
         placeholder={placeholder}

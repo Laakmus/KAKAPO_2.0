@@ -84,7 +84,10 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-background">
+    <div
+      data-testid="login-page"
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-background"
+    >
       {/* Nagłówek */}
       <div className="w-full max-w-md mb-8 text-center">
         <h1 className="text-3xl font-bold text-foreground mb-2">Zaloguj się</h1>

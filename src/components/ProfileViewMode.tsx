@@ -25,7 +25,7 @@ export function ProfileViewMode({ profile, onEdit, onDeleteRequest }: ProfileVie
     <Card className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Dane profilu</h2>
-        <Button onClick={onEdit} variant="outline" size="sm">
+        <Button data-testid="profile-edit-button" onClick={onEdit} variant="outline" size="sm">
           Edytuj profil
         </Button>
       </div>
@@ -34,13 +34,17 @@ export function ProfileViewMode({ profile, onEdit, onDeleteRequest }: ProfileVie
         {/* Imię */}
         <div>
           <label className="text-sm font-medium text-muted-foreground">Imię</label>
-          <p className="text-base mt-1">{profile.first_name}</p>
+          <p data-testid="profile-first-name" className="text-base mt-1">
+            {profile.first_name}
+          </p>
         </div>
 
         {/* Nazwisko */}
         <div>
           <label className="text-sm font-medium text-muted-foreground">Nazwisko</label>
-          <p className="text-base mt-1">{profile.last_name}</p>
+          <p data-testid="profile-last-name" className="text-base mt-1">
+            {profile.last_name}
+          </p>
         </div>
       </div>
 
@@ -53,7 +57,7 @@ export function ProfileViewMode({ profile, onEdit, onDeleteRequest }: ProfileVie
         <p className="text-sm text-muted-foreground mb-4">
           Usunięcie konta jest nieodwracalne. Wszystkie Twoje dane zostaną trwale usunięte.
         </p>
-        <Button onClick={onDeleteRequest} variant="destructive" size="sm">
+        <Button data-testid="profile-delete-button" onClick={onDeleteRequest} variant="destructive" size="sm">
           Usuń konto
         </Button>
       </div>

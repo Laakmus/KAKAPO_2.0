@@ -146,7 +146,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
       <GlobalNotification message={notification} />
 
       {/* Formularz */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form data-testid="signup-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {/* Pole: Email */}
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium">
@@ -154,6 +154,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
           </Label>
           <Input
             id="email"
+            data-testid="signup-email-input"
             type="email"
             placeholder="twoj@email.com"
             disabled={isSuccess || isLoading || isSubmitting}
@@ -166,7 +167,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
             }}
           />
           {errors.email && (
-            <p id="email-error" className="text-sm text-red-600" role="alert">
+            <p id="email-error" data-testid="signup-email-error" className="text-sm text-red-600" role="alert">
               {errors.email.message}
             </p>
           )}
@@ -179,6 +180,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
           </Label>
           <Input
             id="password"
+            data-testid="signup-password-input"
             type="password"
             placeholder="Minimum 8 znaków"
             disabled={isSuccess || isLoading || isSubmitting}
@@ -191,7 +193,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
             }}
           />
           {errors.password && (
-            <p id="password-error" className="text-sm text-red-600" role="alert">
+            <p id="password-error" data-testid="signup-password-error" className="text-sm text-red-600" role="alert">
               {errors.password.message}
             </p>
           )}
@@ -204,6 +206,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
           </Label>
           <Input
             id="first_name"
+            data-testid="signup-firstname-input"
             type="text"
             placeholder="Jan"
             disabled={isSuccess || isLoading || isSubmitting}
@@ -216,7 +219,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
             }}
           />
           {errors.first_name && (
-            <p id="first_name-error" className="text-sm text-red-600" role="alert">
+            <p id="first_name-error" data-testid="signup-firstname-error" className="text-sm text-red-600" role="alert">
               {errors.first_name.message}
             </p>
           )}
@@ -229,6 +232,7 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
           </Label>
           <Input
             id="last_name"
+            data-testid="signup-lastname-input"
             type="text"
             placeholder="Kowalski"
             disabled={isSuccess || isLoading || isSubmitting}
@@ -241,14 +245,19 @@ export function RegistrationForm({ onSuccess, onError, initialValues }: Registra
             }}
           />
           {errors.last_name && (
-            <p id="last_name-error" className="text-sm text-red-600" role="alert">
+            <p id="last_name-error" data-testid="signup-lastname-error" className="text-sm text-red-600" role="alert">
               {errors.last_name.message}
             </p>
           )}
         </div>
 
         {/* Przycisk submit */}
-        <Button type="submit" className="w-full" disabled={isSuccess || isLoading || isSubmitting}>
+        <Button
+          type="submit"
+          data-testid="signup-submit-button"
+          className="w-full"
+          disabled={isSuccess || isLoading || isSubmitting}
+        >
           {isSuccess ? 'Zarejestrowano' : isLoading || isSubmitting ? 'Rejestracja...' : 'Zarejestruj się'}
         </Button>
       </form>

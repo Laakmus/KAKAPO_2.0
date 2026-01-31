@@ -54,12 +54,13 @@ export function ProfileEditForm({ initialValues, onSubmit, onCancel, isSubmittin
     <Card className="p-6">
       <h2 className="text-xl font-semibold mb-4">Edytuj profil</h2>
 
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+      <form data-testid="profile-edit-form" onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         {/* Imię */}
         <div>
           <Label htmlFor="first_name">Imię</Label>
           <Input
             id="first_name"
+            data-testid="profile-edit-firstname"
             {...register('first_name')}
             placeholder="Twoje imię"
             disabled={isSubmitting}
@@ -73,6 +74,7 @@ export function ProfileEditForm({ initialValues, onSubmit, onCancel, isSubmittin
           <Label htmlFor="last_name">Nazwisko</Label>
           <Input
             id="last_name"
+            data-testid="profile-edit-lastname"
             {...register('last_name')}
             placeholder="Twoje nazwisko"
             disabled={isSubmitting}
@@ -86,10 +88,16 @@ export function ProfileEditForm({ initialValues, onSubmit, onCancel, isSubmittin
 
         {/* Akcje */}
         <div className="flex gap-2 justify-end pt-2">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button
+            data-testid="profile-edit-cancel"
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             Anuluj
           </Button>
-          <Button type="submit" disabled={isSubmitting || !isDirty}>
+          <Button data-testid="profile-edit-save" type="submit" disabled={isSubmitting || !isDirty}>
             {isSubmitting ? 'Zapisywanie...' : 'Zapisz zmiany'}
           </Button>
         </div>

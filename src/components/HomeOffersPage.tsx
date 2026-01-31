@@ -87,7 +87,7 @@ export function HomeOffersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div data-testid="offers-page" className="container mx-auto px-4 py-6">
       {/* Pole wyszukiwania */}
       <div className="mb-6">
         <OffersSearchInput value={filter.search || ''} onChange={handleSearchChange} />
@@ -95,11 +95,7 @@ export function HomeOffersPage() {
 
       {/* Panel filtrowania */}
       <div className="mb-6">
-        <OffersFilterPanel
-          values={filter}
-          onChange={handleFilterChange}
-          isLoading={isLoading || isRefreshing}
-        />
+        <OffersFilterPanel values={filter} onChange={handleFilterChange} isLoading={isLoading || isRefreshing} />
       </div>
 
       {/* Stan loading - skeleton */}

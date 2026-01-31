@@ -242,7 +242,7 @@ export function MyOffersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div data-testid="my-offers-page" className="container mx-auto px-4 py-6">
       {/* Nagłówek i filtry */}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
@@ -250,12 +250,12 @@ export function MyOffersPage() {
             <h1 className="text-3xl font-bold">Moje Oferty</h1>
             <p className="text-muted-foreground mt-1">Zarządzaj swoimi ofertami wymiany</p>
           </div>
-
         </div>
 
         {/* Filtr statusu */}
         <div className="flex gap-2">
           <Button
+            data-testid="my-offers-status-active"
             variant={statusFilter === 'ACTIVE' ? 'default' : 'outline'}
             onClick={() => handleStatusChange('ACTIVE')}
             size="sm"
@@ -263,6 +263,7 @@ export function MyOffersPage() {
             Aktywne
           </Button>
           <Button
+            data-testid="my-offers-status-removed"
             variant={statusFilter === 'REMOVED' ? 'default' : 'outline'}
             onClick={() => handleStatusChange('REMOVED')}
             size="sm"
@@ -391,7 +392,7 @@ export function MyOffersPage() {
             const hasNewInterests = (offer.interests_count ?? 0) > lastSeenCount;
 
             return (
-              <Card key={offer.id} className="p-4">
+              <Card key={offer.id} data-testid="my-offer-card" className="p-4">
                 {/* Miniatura */}
                 {offer.image_url && !isEditing && (
                   <div className="mb-3 rounded-md overflow-hidden aspect-video bg-muted">
@@ -444,6 +445,7 @@ export function MyOffersPage() {
                     {/* Akcje */}
                     <div className="flex gap-2 flex-wrap">
                       <Button
+                        data-testid="my-offer-edit-button"
                         variant="outline"
                         size="sm"
                         onClick={() => setEditingOfferId(offer.id)}
@@ -452,6 +454,7 @@ export function MyOffersPage() {
                         Edytuj
                       </Button>
                       <Button
+                        data-testid="my-offer-delete-button"
                         variant="outline"
                         size="sm"
                         onClick={() => setOfferToDelete({ id: offer.id, title: offer.title })}

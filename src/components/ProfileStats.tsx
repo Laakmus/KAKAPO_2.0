@@ -27,7 +27,7 @@ export function ProfileStats({ email, createdAt, activeOffersCount }: ProfileSta
   });
 
   return (
-    <Card className="p-6 mb-6">
+    <Card data-testid="profile-stats" className="p-6 mb-6">
       <h2 className="text-xl font-semibold mb-4">Informacje o koncie</h2>
 
       <div className="space-y-3">

@@ -39,7 +39,7 @@ export function RealizeButton({ onRealize, isProcessing, disabled }: RealizeButt
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button disabled={isProcessing || disabled} variant="default">
+        <Button data-testid="realize-button" disabled={isProcessing || disabled} variant="default">
           {isProcessing ? (
             <>
               <svg
@@ -144,7 +144,7 @@ export function ChatStatusControls({
   }
 
   return (
-    <div className="bg-card border rounded-lg p-4 space-y-3">
+    <div data-testid="chat-status-controls" className="bg-card border rounded-lg p-4 space-y-3">
       {/* Status message */}
       {state.message && (
         <div className="text-sm text-muted-foreground">
@@ -182,7 +182,7 @@ export function ChatStatusControls({
           {hasRealizeAction && <RealizeButton onRealize={onRealize} isProcessing={isProcessing} />}
 
           {state.can_unrealize && (
-            <Button onClick={onUnrealize} disabled={isProcessing} variant="outline">
+            <Button data-testid="unrealize-button" onClick={onUnrealize} disabled={isProcessing} variant="outline">
               {isProcessing ? (
                 <>
                   <svg

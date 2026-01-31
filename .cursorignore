@@ -1,6 +1,7 @@
 # Reduce cursor indexing on generated or sensitive files per docs
 .env
 .env.*
+.env.test
 *.log
 credentials.json
 secrets.json

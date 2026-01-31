@@ -86,7 +86,12 @@ export function MessagesList({ messages, currentUserId, messagesEndRef, isLoadin
   }
 
   return (
-    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4" onScroll={updateStickToBottom}>
+    <div
+      data-testid="messages-list"
+      ref={scrollContainerRef}
+      className="flex-1 overflow-y-auto p-4"
+      onScroll={updateStickToBottom}
+    >
       {/* Lista wiadomości */}
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} isOwn={message.sender_id === currentUserId} />

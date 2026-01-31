@@ -117,7 +117,7 @@ export function OfferDetailPanel({
       <BackToListLink />
 
       {/* Main card */}
-      <Card className="overflow-hidden">
+      <Card data-testid="offer-detail-panel" className="overflow-hidden">
         {/* Galeria zdjęć */}
         <ImageGallery images={images} title={offer.title} />
 

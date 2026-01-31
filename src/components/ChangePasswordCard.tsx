@@ -40,11 +40,12 @@ export function ChangePasswordCard({ onSubmit, onCancel, isSubmitting, error }: 
     <Card className="p-6">
       <h2 className="text-xl font-semibold mb-4">Zmień hasło</h2>
 
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+      <form data-testid="change-password-form" onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <div>
           <Label htmlFor="current_password">Obecne hasło</Label>
           <Input
             id="current_password"
+            data-testid="change-password-current"
             type="password"
             {...register('current_password')}
             placeholder="Wprowadź obecne hasło"
@@ -61,6 +62,7 @@ export function ChangePasswordCard({ onSubmit, onCancel, isSubmitting, error }: 
           <Label htmlFor="new_password">Nowe hasło</Label>
           <Input
             id="new_password"
+            data-testid="change-password-new"
             type="password"
             {...register('new_password')}
             placeholder="Wprowadź nowe hasło"
@@ -75,6 +77,7 @@ export function ChangePasswordCard({ onSubmit, onCancel, isSubmitting, error }: 
           <Label htmlFor="confirm_password">Potwierdź nowe hasło</Label>
           <Input
             id="confirm_password"
+            data-testid="change-password-confirm"
             type="password"
             {...register('confirm_password')}
             placeholder="Powtórz nowe hasło"
@@ -101,7 +104,7 @@ export function ChangePasswordCard({ onSubmit, onCancel, isSubmitting, error }: 
               Anuluj
             </Button>
           )}
-          <Button type="submit" disabled={isSubmitting}>
+          <Button data-testid="change-password-submit" type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Zapisywanie...' : 'Zmień hasło'}
           </Button>
         </div>

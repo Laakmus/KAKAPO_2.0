@@ -106,6 +106,7 @@ export function MessageComposer({ onSend, isSending, leftAction }: MessageCompos
       <div className="relative">
         <Textarea
           {...bodyRegisterProps}
+          data-testid="message-composer-textarea"
           placeholder="Napisz wiadomość... (Shift+Enter dla nowej linii)"
           rows={3}
           disabled={isSending}
@@ -136,7 +137,12 @@ export function MessageComposer({ onSend, isSending, leftAction }: MessageCompos
         <p className="text-xs text-muted-foreground">Shift+Enter dla nowej linii, Enter aby wysłać</p>
         <div className="flex items-center gap-2">
           {leftAction}
-          <Button type="submit" disabled={!isValid || isSending || charCount === 0} size="default">
+          <Button
+            data-testid="message-composer-send"
+            type="submit"
+            disabled={!isValid || isSending || charCount === 0}
+            size="default"
+          >
             {isSending ? (
               <>
                 <svg

@@ -76,21 +76,26 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 
 #### Zarządzanie ofertami
 
-- Dodawanie nowych ofert (tytuł, opis, opcjonalne zdjęcie, miasto)
+- Dodawanie nowych ofert (tytuł, opis, opcjonalne zdjęcia do 5 sztuk, miasto)
 - Przeglądanie wszystkich aktywnych ofert z wszystkich miast
 - Przeglądanie szczegółów oferty (oferent, wszystkie dane)
-- Usuwanie własnej oferty
-- Wyświetlanie liczby zainteresowanych na kazdej ofercie
-- Edycja własnej oferty (tytuł, opis, zdjęcie, miasto)
+- Usuwanie własnej oferty (soft delete - status REMOVED)
+- Wyświetlanie liczby zainteresowanych na każdej ofercie
+- Edycja własnej oferty (tytuł, opis, zdjęcia, miasto)
+- Wyszukiwanie pełnotekstowe ofert
+- Filtrowanie ofert po mieście
+- Upload wielu zdjęć z możliwością zmiany kolejności i usuwania
 
 #### System zainteresowania
 
 - Kliknięcie przycisku "Jestem zainteresowany" na ofercie
-- Status zainteresowania: PROPOSED (przed potwierdzeniem oferenta)
+- Flow statusów zainteresowania: PROPOSED → ACCEPTED → WAITING → REALIZED
 - Oferent widzi listę osób zainteresowanych jego ofertą
 - Oferent może kliknąć na zainteresowanego i zobaczyć jego profil
 - Oferent może zobaczyć oferty zainteresowanego użytkownika
 - Anulowanie zainteresowania przez zainteresowanego użytkownika
+- Zapobieganie duplikatom (nie można wyrazić zainteresowania tą samą ofertą dwukrotnie)
+- Zapobieganie auto-zainteresowaniu (nie można wyrazić zainteresowania własną ofertą)
 
 #### System dopasowania (Matching)
 
@@ -102,16 +107,21 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 
 - Chat pojawia się TYLKO gdy istnieje wzajemne zainteresowanie (status ACCEPTED)
 - Wysyłanie wiadomości tekstowych
-- Historia wiadomości
+- Historia wiadomości z paginacją (50 wiadomości na stronę)
 - Każdy może wysyłać wiadomości
 - Oznaczenie wymiany jako "Zrealizowana" (wymaga potwierdzenia obydwu)
-- Po obu potwierdzeniach → status REALIZED i chat się zamyka
+- Po obu potwierdzeniach → status REALIZED i chat się zamyka (blokada wysyłania)
+- Chat blokowany (read-only) gdy oferta zostanie usunięta (status REMOVED)
+- Jeden czat na parę użytkowników, reużywany dla kolejnych wymian
 
 #### Profil użytkownika
 
 - Wyświetlanie imienia i nazwiska
+- Wyświetlanie adresu email
 - Wyświetlanie liczby aktywnych ofert
 - Wyświetlanie daty rejestracji
+- Edycja imienia i nazwiska
+- Zmiana hasła (wymaga podania aktualnego hasła)
 
 #### Przeglądanie moich ofert
 
@@ -126,8 +136,8 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 
 - Tytuł: 5-100 znaków, obowiązkowe
 - Opis: 10-5000 znaków, obowiązkowe
-- Zdjęcie: Plik (JPG, PNG, WebP), opcjonalne, upload do Supabase Storage
-- Miasto: Wybór z 10 miast z dropdown'u, obowiązkowe
+- Zdjęcia: Do 5 plików (JPG, PNG, WebP), opcjonalne, max 10 MB każde, upload do Supabase Storage
+- Miasto: Wybór z 16 miast z dropdown'u, obowiązkowe
 
 #### Wiadomości
 
@@ -174,16 +184,13 @@ Desktop tylko (brak aplikacji mobilnej w MVP)
 - Rating i opinie użytkowników
 - Komentarze na ofertach
 - Powiadomienia (email, push, in-app)
-- Zaawansowane filtry i wyszukiwarka
 - Kategorie produktów
 - Strony informacyjne (O nas, Kontakt, Polityka)
 - Notyfikacje real-time
-- Historia wymian (archiwum)
 - Aplikacja mobilna
 - Weryfikacja użytkowników poza emailem
 - Blokowanie użytkowników
 - Follow, like, social features
-- Edycja profilu poza imieniem/nazwiskiem
 - Data wygaśnięcia oferty
 - Ograniczenie liczby ofert dziennie
 
@@ -247,6 +254,8 @@ Kryteria akceptacji:
 
 - Strona główna wyświetla listę ofert w formacie karty/grid
 - Każda karta zawiera: tytuł, opis (skrócony), zdjęcie (jeśli dostępne), miasto, imię oferenta
+- Wyszukiwanie pełnotekstowe ofert
+- Filtrowanie ofert po mieście
 - Karty są sortowalne: od najnowszych lub alfabetycznie
 - Liczba zainteresowanych wyświetlona na karcie
 - Po kliknięciu na kartę użytkownik przenoszony jest do szczegółów oferty
@@ -336,10 +345,11 @@ aby inni użytkownicy mogli widzieć co chciałbym wymienić.
 
 Kryteria akceptacji:
 
-- Formularz zawiera pola: Tytuł (5-100 znaków), Opis (10-5000 znaków), Upload Zdjęcia (opcjonalne), Miasto (dropdown)
+- Formularz zawiera pola: Tytuł (5-100 znaków), Opis (10-5000 znaków), Upload Zdjęć (opcjonalne, do 5 sztuk), Miasto (dropdown)
 - Walidacja frontend dla każdego pola
-- Upload zdjęcia: format JPG, PNG, WebP; maksymalny rozmiar 10 MB
-- Zdjęcie jest najpierw uploadowane do Supabase Storage, następnie URL zapisywany w bazie danych
+- Upload zdjęć: format JPG, PNG, WebP; maksymalny rozmiar 10 MB na zdjęcie
+- Zdjęcia są uploadowane do Supabase Storage, URL-e zapisywane w tabeli offer_images z kolejnością
+- Możliwość zmiany kolejności zdjęć i usuwania pojedynczych zdjęć
 - Po kliknięciu "Dodaj ofertę" dane są wysyłane do backend
 - Backend waliduje dane ponownie
 - Oferta jest dodawana do bazy danych z statusem ACTIVE
@@ -359,7 +369,7 @@ Kryteria akceptacji:
 
 - Przycisk "Edycja" na ofercie lub stronie szczegółów
 - Formularz edycji zawiera aktualne dane oferty
-- Użytkownik może zmienić tytuł, opis, zdjęcie (upload nowego), miasto
+- Użytkownik może zmienić tytuł, opis, zdjęcia (upload nowych, zmiana kolejności, usuwanie), miasto
 - Walidacja identyczna jak przy dodawaniu
 - Po kliknięciu "Zapisz" zmiany są wysyłane na backend
 - Oferta jest aktualizowana w bazie danych
@@ -378,9 +388,8 @@ Kryteria akceptacji:
 
 - Przycisk "Usuń" na ofercie lub stronie szczegółów
 - Pojawia się dialog potwierdzenia "Czy na pewno chcesz usunąć tę ofertę?"
-- Po potwierdzeniu oferta jest usuwana z bazy danych
-- Wszystkie zainteresowania na tej ofercie są usuwane
-- Wszystkie powiązane czaty są zamykane
+- Po potwierdzeniu oferta zmienia status na REMOVED (soft delete)
+- Powiązane czaty są blokowane (read-only)
 - Oferta znika z listy dla wszystkich użytkowników
 - Użytkownik widzi komunikat "Oferta usunięta pomyślnie!"
 
@@ -411,10 +420,13 @@ aby sprawdzić swoje dane i oferty.
 Kryteria akceptacji:
 
 - Strona "Profil" wyświetla moje imię i nazwisko
+- Wyświetlany jest adres email
 - Wyświetlana jest data rejestracji
 - Liczba moich aktywnych ofert
+- Możliwość edycji imienia i nazwiska
+- Możliwość zmiany hasła (wymaga podania aktualnego hasła i potwierdzenia nowego)
 - Przycisk "Usuń konto" dostępny z tej strony
-- Moje dane są ukryte przed innymi użytkownikami (jeśli mają inne hasło)
+- Moje dane wrażliwe są ukryte przed innymi użytkownikami
 
 ---
 
@@ -514,13 +526,14 @@ aby zamknąć wymianę i czat.
 Kryteria akceptacji:
 
 - Przycisk "Zrealizowana" dostępny w czacie
-- Po kliknięciu moje zainteresowanie zmienia status na "REALIZOWANI" (pending)
+- Po kliknięciu moje zainteresowanie zmienia status na WAITING
 - Druga osoba widzi komunikat "Druga osoba potwierdza że wymiana się odbyła"
 - Druga osoba może kliknąć "Zrealizowana" aby potwierdzić
 - Gdy obydwaj klikną "Zrealizowana" status zmienia się na REALIZED dla obydwu
-- Chat się zamyka (nie pojawia się w liście aktywnych czatów)
+- Chat się zamyka (blokada wysyłania wiadomości)
+- Wpis w tabeli exchange_history jest tworzony automatycznie
 - Obydwaj widzą komunikat "Wymiana została zrealizowana!"
-- Jeśli tylko jedna osoba kliknie, chat pozostaje otwarty
+- Jeśli tylko jedna osoba kliknie, chat pozostaje otwarty (status WAITING)
 
 ---
 
@@ -644,8 +657,8 @@ Kryteria akceptacji:
 ### Metryki funkcjonalności
 
 - Wszystkie 25 historii użytkownika zaimplementowane i testowalne: 100%
-- API endpoints działające dla CRUD operacji: 20/20
-- RLS policies skonfigurowane i działające: 5/5 tabel
+- API endpoints działające dla CRUD operacji: 25+
+- RLS policies skonfigurowane i działające: wszystkie tabele
 - Autentykacja i weryfikacja emaila funkcjonalne: 100%
 
 ### Metryki techniczne
@@ -696,9 +709,10 @@ Kryteria akceptacji:
 
 - Formularz logowania (US-002)
 
-### Strona 3: Home
+### Strona 3: Home (/offers)
 
 - Lista wszystkich ofert (US-003)
+- Wyszukiwanie pełnotekstowe i filtrowanie po mieście
 - Paginacja (US-024)
 - Kliknięcie "Jestem zainteresowany" (US-005)
 
@@ -719,6 +733,8 @@ Kryteria akceptacji:
 ### Strona 6: Profil
 
 - Mój profil (US-012)
+- Edycja imienia i nazwiska
+- Zmiana hasła
 - Przycisk "Usuń konto" (US-020)
 
 ### Strona 7: Chat

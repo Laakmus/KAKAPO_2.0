@@ -179,13 +179,14 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
       <GlobalNotification message={notification} />
 
       {/* Formularz */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form data-testid="login-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {/* Pole: Email */}
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium">
             Email
           </Label>
           <Input
+            data-testid="login-email-input"
             id="email"
             type="email"
             placeholder="twoj@email.com"
@@ -200,7 +201,7 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
             }}
           />
           {errors.email && (
-            <p id="email-error" className="text-sm text-red-600" role="alert">
+            <p data-testid="login-email-error" id="email-error" className="text-sm text-red-600" role="alert">
               {errors.email.message}
             </p>
           )}
@@ -212,6 +213,7 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
             Hasło
           </Label>
           <Input
+            data-testid="login-password-input"
             id="password"
             type="password"
             placeholder="Minimum 6 znaków"
@@ -226,14 +228,19 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
             }}
           />
           {errors.password && (
-            <p id="password-error" className="text-sm text-red-600" role="alert">
+            <p data-testid="login-password-error" id="password-error" className="text-sm text-red-600" role="alert">
               {errors.password.message}
             </p>
           )}
         </div>
 
         {/* Przycisk submit */}
-        <Button type="submit" className="w-full" disabled={isRedirecting || isLoading || isSubmitting}>
+        <Button
+          data-testid="login-submit-button"
+          type="submit"
+          className="w-full"
+          disabled={isRedirecting || isLoading || isSubmitting}
+        >
           {isRedirecting ? 'Przekierowywanie...' : isLoading || isSubmitting ? 'Logowanie...' : 'Zaloguj się'}
         </Button>
       </form>
@@ -242,7 +249,11 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
       {showFooterLink && (
         <p className="text-center text-sm text-gray-600 mt-6">
           Nie masz konta?{' '}
-          <a href="/signup" className="font-medium text-primary hover:underline focus:underline focus:outline-none">
+          <a
+            data-testid="login-signup-link"
+            href="/signup"
+            className="font-medium text-primary hover:underline focus:underline focus:outline-none"
+          >
             Zarejestruj się
           </a>
         </p>

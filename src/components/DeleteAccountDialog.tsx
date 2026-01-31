@@ -58,7 +58,7 @@ export function DeleteAccountDialog({ isOpen, onCancel, onConfirm, isDeleting, e
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-      <AlertDialogContent>
+      <AlertDialogContent data-testid="delete-account-dialog">
         <AlertDialogHeader>
           <AlertDialogTitle>Czy na pewno chcesz usunąć swoje konto?</AlertDialogTitle>
           <AlertDialogDescription asChild>
@@ -78,6 +78,7 @@ export function DeleteAccountDialog({ isOpen, onCancel, onConfirm, isDeleting, e
             <Label htmlFor="password">Hasło</Label>
             <Input
               id="password"
+              data-testid="delete-account-password"
               type="password"
               {...register('password')}
               placeholder="Wprowadź swoje hasło"
@@ -96,10 +97,16 @@ export function DeleteAccountDialog({ isOpen, onCancel, onConfirm, isDeleting, e
           )}
 
           <AlertDialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel} disabled={isDeleting}>
+            <Button
+              data-testid="delete-account-cancel"
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isDeleting}
+            >
               Anuluj
             </Button>
-            <Button type="submit" variant="destructive" disabled={isDeleting}>
+            <Button data-testid="delete-account-confirm" type="submit" variant="destructive" disabled={isDeleting}>
               {isDeleting ? 'Usuwanie...' : 'Usuń konto'}
             </Button>
           </AlertDialogFooter>

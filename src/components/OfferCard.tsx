@@ -54,6 +54,7 @@ export function OfferCard({ offer, isSelected, onSelect }: OfferCardProps) {
 
   return (
     <Card
+      data-testid="offer-card"
       className={`group relative p-4 transition-all hover:shadow-xl hover:scale-105 hover:z-10 flex flex-col h-full origin-top ${isSelected ? 'ring-2 ring-primary' : ''} ${onSelect ? 'cursor-pointer' : ''}`}
       onClick={onSelect}
     >

@@ -233,7 +233,7 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 h-screen flex flex-col">
+    <div data-testid="chat-details-page" className="container mx-auto px-4 py-4 h-screen flex flex-col">
       {/* Header czatu */}
       <div className="bg-card border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -253,7 +253,9 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
             </svg>
           </a>
           <div>
-            <h1 className="text-lg font-semibold">{otherUser?.name ?? 'Użytkownik'}</h1>
+            <h1 data-testid="chat-header-username" className="text-lg font-semibold">
+              {otherUser?.name ?? 'Użytkownik'}
+            </h1>
             <p className="text-xs text-muted-foreground">
               Status:{' '}
               {chatDetails.is_locked ? 'Zamknięty' : chatDetails.status === 'ACTIVE' ? 'Aktywny' : 'Zarchiwizowany'}

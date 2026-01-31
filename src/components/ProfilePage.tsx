@@ -173,7 +173,7 @@ export function ProfilePage() {
 
   // Główny widok
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
+    <div data-testid="profile-page" className="container mx-auto max-w-4xl px-4 py-8">
       {/* Nagłówek */}
       <ProfileHeader firstName={profile.first_name} lastName={profile.last_name} />
 
@@ -204,6 +204,7 @@ export function ProfilePage() {
               variant="default"
               size="default"
               className="w-full sm:w-auto"
+              data-testid="profile-change-password-toggle"
               onClick={handleChangePasswordToggle}
             >
               {isChangingPasswordOpen ? 'Ukryj zmianę hasła' : 'Zmień hasło'}

@@ -177,6 +177,7 @@ export function InterestToggleCTA({
     <div className="space-y-3">
       {/* Przycisk główny */}
       <Button
+        data-testid="interest-toggle-button"
         onClick={handleClick}
         disabled={isDisabled}
         variant={variant}

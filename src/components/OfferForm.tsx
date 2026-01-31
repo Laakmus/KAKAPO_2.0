@@ -257,7 +257,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, onFormError)} className="space-y-6" noValidate>
+    <form data-testid="offer-form" onSubmit={handleSubmit(onSubmit, onFormError)} className="space-y-6" noValidate>
       {/* Komunikat o błędzie walidacji formularza */}
       {formValidationError && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
@@ -284,6 +284,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
         </Label>
         <Input
           id="title"
+          data-testid="offer-title-input"
           type="text"
           placeholder="Np. Laptop Dell w zamian za rower"
           disabled={isLoading || isSubmitting}
@@ -299,7 +300,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
           Tytuł musi mieć od 5 do 100 znaków
         </p>
         {errors.title && (
-          <p id="title-error" className="text-sm text-red-600" role="alert">
+          <p id="title-error" data-testid="offer-title-error" className="text-sm text-red-600" role="alert">
             {errors.title.message}
           </p>
         )}
@@ -312,6 +313,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
         </Label>
         <Textarea
           id="description"
+          data-testid="offer-description-input"
           placeholder="Opisz swoją ofertę: stan przedmiotu, powód wymiany, czego szukasz w zamian..."
           rows={6}
           disabled={isLoading || isSubmitting}
@@ -327,7 +329,7 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
           Opis musi mieć od 10 do 5000 znaków
         </p>
         {errors.description && (
-          <p id="description-error" className="text-sm text-red-600" role="alert">
+          <p id="description-error" data-testid="offer-description-error" className="text-sm text-red-600" role="alert">
             {errors.description.message}
           </p>
         )}
@@ -380,7 +382,13 @@ export function OfferForm({ onSuccess, onError }: OfferFormProps) {
       </div>
 
       {/* Przycisk submit */}
-      <Button type="submit" className="w-full" disabled={isLoading || isSubmitting} size="lg">
+      <Button
+        data-testid="offer-submit-button"
+        type="submit"
+        className="w-full"
+        disabled={isLoading || isSubmitting}
+        size="lg"
+      >
         {isLoading || isSubmitting ? 'Dodawanie oferty...' : 'Dodaj ofertę'}
       </Button>
     </form>

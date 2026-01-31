@@ -22,7 +22,7 @@ export function ProfileHeader({ firstName, lastName, avatarUrl }: ProfileHeaderP
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   return (
-    <div className="flex items-center gap-4 mb-6">
+    <div data-testid="profile-header" className="flex items-center gap-4 mb-6">
       {/* Avatar placeholder */}
       <Avatar className="h-20 w-20 bg-primary text-primary-foreground text-2xl font-semibold flex items-center justify-center">
         {avatarUrl ? (

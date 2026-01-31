@@ -16,7 +16,10 @@ type OffersGridProps = {
  */
 export function OffersGrid({ offers }: OffersGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 isolate">
+    <div
+      data-testid="offers-grid"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 isolate"
+    >
       {offers.map((offer) => (
         <OfferCard key={offer.id} offer={offer} />
       ))}

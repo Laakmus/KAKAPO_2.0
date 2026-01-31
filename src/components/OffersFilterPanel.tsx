@@ -72,6 +72,7 @@ export function OffersFilterPanel({ values, onChange, isLoading = false }: Offer
             </label>
             <select
               id="city-filter"
+              data-testid="offers-filter-city"
               value={values.city || ''}
               onChange={handleCityChange}
               disabled={isLoading}
@@ -93,6 +94,7 @@ export function OffersFilterPanel({ values, onChange, isLoading = false }: Offer
             </label>
             <select
               id="sort-filter"
+              data-testid="offers-filter-sort"
               value={values.sort}
               onChange={handleSortChange}
               disabled={isLoading}
@@ -110,6 +112,7 @@ export function OffersFilterPanel({ values, onChange, isLoading = false }: Offer
             </label>
             <select
               id="order-filter"
+              data-testid="offers-filter-order"
               value={values.order}
               onChange={handleOrderChange}
               disabled={isLoading}
@@ -124,7 +127,13 @@ export function OffersFilterPanel({ values, onChange, isLoading = false }: Offer
         {/* Akcje */}
         <div className="flex gap-2">
           {hasFilters && (
-            <Button type="button" variant="outline" onClick={handleClear} disabled={isLoading}>
+            <Button
+              data-testid="offers-filter-clear"
+              type="button"
+              variant="outline"
+              onClick={handleClear}
+              disabled={isLoading}
+            >
               Wyczyść
             </Button>
           )}

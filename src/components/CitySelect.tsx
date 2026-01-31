@@ -68,6 +68,7 @@ export function CitySelect({ value, onChange, error, disabled, id = 'city' }: Ci
       <Select value={value} onValueChange={(val) => onChange(val as CityName)} disabled={disabled}>
         <SelectTrigger
           id={id}
+          data-testid="offer-city-select"
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}
           className={error ? 'border-red-500' : ''}
