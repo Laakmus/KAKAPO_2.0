@@ -31,12 +31,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run test:unit -- --coverage
-      - uses: actions/upload-artifact@v4
-        if: ${{ success() }}
-        with:
-          name: vitest-coverage
-          path: coverage
+      - run: npm run test:unit
 
   e2e-test:
     name: Playwright E2E (integration)
@@ -61,13 +56,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run pw:install
-      - run: npm run test:e2e -- --coverage
-      - uses: actions/upload-artifact@v4
-        if: ${{ success() }}
-        with:
-          name: playwright-coverage
-          path: coverage
+      - run: npx playwright install --with-deps
+      - run: npm run test:e2e
 
   status-comment:
     name: PR Status Comment
