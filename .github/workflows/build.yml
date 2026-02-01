@@ -2,9 +2,9 @@ name: Hello World Workflow
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, branch_01022026 ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, branch_01022026 ]
 
 jobs:
   hello:
