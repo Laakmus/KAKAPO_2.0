@@ -146,12 +146,12 @@ describe('MessagesList', () => {
       expect(messagesContainer).toBeInTheDocument();
     });
 
-    it('applies scroll-smooth class for smooth scrolling', () => {
+    it('applies overflow-y-auto class for scrolling', () => {
       // Arrange & Act
       const { container } = render(<MessagesList messages={mockMessages} currentUserId="user-1" />);
 
       // Assert
-      const scrollContainer = container.querySelector('.scroll-smooth');
+      const scrollContainer = container.querySelector('.overflow-y-auto');
       expect(scrollContainer).toBeInTheDocument();
     });
   });

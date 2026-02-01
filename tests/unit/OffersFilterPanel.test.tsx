@@ -11,13 +11,13 @@ describe('OffersFilterPanel', () => {
   };
 
   it('does not show "Wyczyść" when filters are default', () => {
-    render(<OffersFilterPanel values={baseValues} onChange={vi.fn()} onRefresh={vi.fn()} />);
+    render(<OffersFilterPanel values={baseValues} onChange={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Wyczyść' })).not.toBeInTheDocument();
   });
 
   it('calls onChange when city/sort/order changes', () => {
     const onChange = vi.fn();
-    render(<OffersFilterPanel values={baseValues} onChange={onChange} onRefresh={vi.fn()} />);
+    render(<OffersFilterPanel values={baseValues} onChange={onChange} />);
 
     fireEvent.change(screen.getByLabelText('Miasto'), { target: { value: 'Warszawa' } });
     expect(onChange).toHaveBeenLastCalledWith({ ...baseValues, city: 'Warszawa' });
@@ -34,7 +34,7 @@ describe('OffersFilterPanel', () => {
     const onChange = vi.fn();
     const values: HomeFilterState = { city: 'Kraków', sort: 'title', order: 'asc' };
 
-    render(<OffersFilterPanel values={values} onChange={onChange} onRefresh={vi.fn()} />);
+    render(<OffersFilterPanel values={values} onChange={onChange} />);
 
     const clear = screen.getByRole('button', { name: 'Wyczyść' });
     await user.click(clear);
@@ -46,24 +46,11 @@ describe('OffersFilterPanel', () => {
     });
   });
 
-  it('calls onRefresh when clicking "Odśwież"', async () => {
-    const user = userEvent.setup();
-    const onRefresh = vi.fn();
-
-    render(<OffersFilterPanel values={baseValues} onChange={vi.fn()} onRefresh={onRefresh} />);
-    await user.click(screen.getByRole('button', { name: 'Odśwież' }));
-
-    expect(onRefresh).toHaveBeenCalledTimes(1);
-  });
-
-  it('disables controls and shows loading label when isLoading is true', () => {
-    render(<OffersFilterPanel values={baseValues} onChange={vi.fn()} onRefresh={vi.fn()} isLoading={true} />);
+  it('disables controls when isLoading is true', () => {
+    render(<OffersFilterPanel values={baseValues} onChange={vi.fn()} isLoading={true} />);
 
     expect(screen.getByLabelText('Miasto')).toBeDisabled();
     expect(screen.getByLabelText('Sortuj według')).toBeDisabled();
     expect(screen.getByLabelText('Kolejność')).toBeDisabled();
-
-    const refresh = screen.getByRole('button', { name: 'Odświeżanie...' });
-    expect(refresh).toBeDisabled();
   });
 });
