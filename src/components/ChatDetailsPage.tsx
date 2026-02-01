@@ -1,15 +1,18 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useChatDetails } from '@/hooks/useChatDetails';
 import { useChatMessages } from '@/hooks/useChatMessages';
 import { useRealizationActions } from '@/hooks/useRealizationActions';
+import { useRealizationHandlers } from '@/hooks/useRealizationHandlers';
+import { useSendMessage } from '@/hooks/useSendMessage';
+import { buildRealizationState } from '@/utils/realization';
+import { ChevronLeft, RefreshCw } from 'lucide-react';
 import { MessagesList } from './MessagesList';
 import { MessageComposer } from './MessageComposer';
 import { ChatStatusControls, RealizeButton } from './ChatStatusControls';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { ErrorBanner } from './ErrorBanner';
-import type { InterestRealizationState } from '@/types';
 
 /**
  * Props dla komponentu ChatDetailsPage
@@ -33,11 +36,8 @@ type ChatDetailsPageProps = {
  * @param chatId - ID czatu
  */
 export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const { push: pushToast } = useToast();
-
-  // Stan wysyłania wiadomości
-  const [isSending, setIsSending] = useState(false);
 
   // Pobierz szczegóły czatu (z interests)
   const {
@@ -56,28 +56,13 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
   } = useRealizationActions(chatDetails?.interest_id ?? '');
 
   // Oblicz stan realizacji
-  const realizationState = useMemo((): InterestRealizationState | undefined => {
-    if (!chatDetails || !chatDetails.interest_id) return undefined;
-
-    const currentStatus = chatDetails.current_interest_status;
-    const otherStatus = chatDetails.other_interest_status;
-    const bothRealized = currentStatus === 'REALIZED' && otherStatus === 'REALIZED';
-
-    return {
-      can_realize: currentStatus === 'ACCEPTED',
-      can_unrealize: currentStatus === 'WAITING',
-      other_confirmed: otherStatus === 'WAITING' || otherStatus === 'REALIZED',
-      status: currentStatus,
-      message:
-        currentStatus === 'ACCEPTED'
-          ? 'Wymiana została zaakceptowana. Możesz potwierdzić realizację.'
-          : currentStatus === 'WAITING'
-            ? 'Potwierdziłeś realizację. Oczekiwanie na drugą stronę.'
-            : bothRealized
-              ? 'Wymiana została zrealizowana przez obie strony!'
-              : undefined,
-    };
-  }, [chatDetails]);
+  const realizationState = useMemo(
+    () =>
+      chatDetails?.interest_id
+        ? buildRealizationState(chatDetails.current_interest_status, chatDetails.other_interest_status)
+        : undefined,
+    [chatDetails],
+  );
 
   // Pobierz wiadomości
   const {
@@ -93,98 +78,28 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
     order: 'asc',
   });
 
-  /**
-   * Obsługa wysyłania wiadomości
-   */
+  // Wysyłanie wiadomości
+  const onSendSuccess = useCallback(() => {
+    refetchMessages();
+    setTimeout(() => scrollToBottom(), 100);
+  }, [refetchMessages, scrollToBottom]);
+
+  const { send, isSending } = useSendMessage(chatId, onSendSuccess);
+
   const handleSendMessage = useCallback(
     async (body: string) => {
-      if (!token) {
-        pushToast({
-          type: 'error',
-          text: 'Brak autoryzacji. Zaloguj się ponownie.',
-        });
-        return;
-      }
-
-      setIsSending(true);
-
-      try {
-        const response = await fetch(`/api/chats/${chatId}/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ body }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message ?? 'Nie udało się wysłać wiadomości');
-        }
-
-        // Odśwież listę wiadomości i przewiń do dołu
-        await refetchMessages();
-        setTimeout(() => scrollToBottom(), 100);
-
-        pushToast({
-          type: 'success',
-          text: 'Wiadomość wysłana',
-        });
-      } catch (error) {
-        console.error('[ChatDetailsPage] Send message error:', error);
-        pushToast({
-          type: 'error',
-          text: error instanceof Error ? error.message : 'Nie udało się wysłać wiadomości',
-        });
-      } finally {
-        setIsSending(false);
+      const result = await send(body);
+      if (result.success) {
+        pushToast({ type: 'success', text: 'Wiadomość wysłana' });
+      } else {
+        pushToast({ type: 'error', text: result.message });
       }
     },
-    [token, chatId, refetchMessages, scrollToBottom, pushToast],
+    [send, pushToast],
   );
 
-  /**
-   * Obsługa realizacji wymiany
-   */
-  const handleRealize = useCallback(async () => {
-    const result = await realize();
-
-    if (result.success) {
-      pushToast({
-        type: 'success',
-        text: result.message ?? 'Potwierdzenie realizacji zostało zapisane',
-      });
-      // Odśwież szczegóły czatu aby zaktualizować status
-      refetchChat();
-    } else {
-      pushToast({
-        type: 'error',
-        text: result.message ?? 'Nie udało się potwierdzić realizacji',
-      });
-    }
-  }, [realize, pushToast, refetchChat]);
-
-  /**
-   * Obsługa cofnięcia realizacji
-   */
-  const handleUnrealize = useCallback(async () => {
-    const result = await unrealize();
-
-    if (result.success) {
-      pushToast({
-        type: 'success',
-        text: result.message ?? 'Potwierdzenie zostało anulowane',
-      });
-      // Odśwież szczegóły czatu aby zaktualizować status
-      refetchChat();
-    } else {
-      pushToast({
-        type: 'error',
-        text: result.message ?? 'Nie udało się anulować potwierdzenia',
-      });
-    }
-  }, [unrealize, pushToast, refetchChat]);
+  // Handlery realizacji (toast + refetch)
+  const { handleRealize, handleUnrealize } = useRealizationHandlers(realize, unrealize, refetchChat);
 
   // Obsługa błędów - 403/404
   if (chatError) {
@@ -242,15 +157,7 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
             className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Wróć do listy czatów"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ChevronLeft className="h-6 w-6" />
           </a>
           <div>
             <h1 data-testid="chat-header-username" className="text-lg font-semibold">
@@ -272,20 +179,7 @@ export function ChatDetailsPage({ chatId }: ChatDetailsPageProps) {
           className="p-2 rounded-md hover:bg-muted transition-colors"
           aria-label="Odśwież"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
+          <RefreshCw className="h-5 w-5" />
         </button>
       </div>
 

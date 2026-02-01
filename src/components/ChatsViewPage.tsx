@@ -2,6 +2,8 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useChatsViewState } from '@/hooks/useChatsViewState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useRealizationHandlers } from '@/hooks/useRealizationHandlers';
+import { buildRealizationState } from '@/utils/realization';
 import { ChatListColumn } from './ChatListColumn';
 import { MessagesList } from './MessagesList';
 import { MessageComposer } from './MessageComposer';
@@ -9,7 +11,7 @@ import { ChatStatusControls, RealizeButton } from './ChatStatusControls';
 import { ErrorBanner } from './ErrorBanner';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { EmptyState } from './EmptyState';
-import type { InterestRealizationState } from '@/types';
+import { ChevronLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -101,43 +103,12 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
     [sendMessage, pushToast],
   );
 
-  /**
-   * Obsługa realizacji wymiany
-   */
-  const handleRealize = useCallback(async () => {
-    const result = await realizeInterest();
-    if (result.success) {
-      pushToast({
-        type: 'success',
-        text: result.message || 'Potwierdzono realizację wymiany',
-      });
-      refreshMessages();
-    } else {
-      pushToast({
-        type: 'error',
-        text: result.message || 'Nie udało się potwierdzić realizacji',
-      });
-    }
-  }, [realizeInterest, pushToast, refreshMessages]);
-
-  /**
-   * Obsługa anulowania realizacji
-   */
-  const handleUnrealize = useCallback(async () => {
-    const result = await unrealizeInterest();
-    if (result.success) {
-      pushToast({
-        type: 'success',
-        text: result.message || 'Cofnięto potwierdzenie realizacji',
-      });
-      refreshMessages();
-    } else {
-      pushToast({
-        type: 'error',
-        text: result.message || 'Nie udało się cofnąć potwierdzenia',
-      });
-    }
-  }, [unrealizeInterest, pushToast, refreshMessages]);
+  // Handlery realizacji (toast + refresh)
+  const { handleRealize, handleUnrealize } = useRealizationHandlers(
+    realizeInterest,
+    unrealizeInterest,
+    refreshMessages,
+  );
 
   /**
    * Efekt - wyświetlanie toastów dla błędów akcji
@@ -151,30 +122,9 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
     }
   }, [actionError, pushToast]);
 
-  /**
-   * Przygotuj stan realizacji dla ChatStatusControls
-   */
-  const realizationState: InterestRealizationState | undefined = interestContext
-    ? (() => {
-        const myStatus = interestContext.realizationStatus;
-        const otherStatus = interestContext.otherRealizationStatus;
-        const bothRealized = myStatus === 'REALIZED' && otherStatus === 'REALIZED';
-
-        return {
-          can_realize: myStatus === 'ACCEPTED',
-          can_unrealize: myStatus === 'WAITING',
-          other_confirmed: otherStatus === 'WAITING' || otherStatus === 'REALIZED',
-          status: myStatus,
-          message:
-            myStatus === 'ACCEPTED'
-              ? 'Wymiana została zaakceptowana. Możesz potwierdzić realizację.'
-              : myStatus === 'WAITING'
-                ? 'Potwierdziłeś realizację. Oczekiwanie na drugą stronę.'
-                : bothRealized
-                  ? 'Wymiana została zrealizowana przez obie strony!'
-                  : undefined,
-        };
-      })()
+  // Stan realizacji dla ChatStatusControls
+  const realizationState = interestContext
+    ? buildRealizationState(interestContext.realizationStatus, interestContext.otherRealizationStatus)
     : undefined;
 
   const exchangeLabel = (() => {
@@ -254,15 +204,7 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
                   className="md:hidden flex-shrink-0"
                   aria-label="Powrót do listy czatów"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
+                  <ChevronLeft className="h-5 w-5" />
                 </Button>
 
                 <div className="flex-1 min-w-0">
@@ -288,20 +230,7 @@ export function ChatsViewPage({ initialChatId }: ChatsViewPageProps) {
                 className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                 aria-label="Odśwież wiadomości"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`h-5 w-5 ${isLoadingMessages ? 'animate-spin' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
+                <RefreshCw className={`h-5 w-5 ${isLoadingMessages ? 'animate-spin' : ''}`} />
               </button>
             </div>
 
