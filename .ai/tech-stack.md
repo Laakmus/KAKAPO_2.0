@@ -12,33 +12,33 @@ Ten dokument zbiera rozszerzony kontekst techniczny użytego stacku dla projektu
 
 ### 2. Ogólny stack (skrót)
 
-- Frontend: `Astro` + `React` + `TypeScript` + `Tailwind CSS` + `shadcn/ui` (lub podobny komponentowy zestaw).
-- Backend / Baza danych: `Supabase` (Postgres + Auth + Storage + RLS).
+- Frontend: `Astro 5` + `React 19` + `TypeScript 5` + `Tailwind CSS 3` + `shadcn/ui` (Radix UI primitives).
+- Backend / Baza danych: `Supabase` (Postgres + Auth + Storage + RLS). API realizowane przez **Astro API routes** (`src/pages/api/`), nie Edge Functions.
 - CI/CD: `GitHub Actions`.
-- Hosting: `DigitalOcean` (pierwotnie) — rozważ `Vercel` dla prostego hostingu i CDN.
+- Hosting: do ustalenia (Vercel rekomendowany dla prostoty deployu frontendu).
 
 ### 3. Dlaczego taki wybór (mapowanie do PRD)
 
 - Supabase dostarcza: Auth z weryfikacją email (US-001, US-002), Postgres z SQL i RLS (US-023), storage do zdjęć ofert (US-008). Pozwala szybko zrealizować backend MVP bez pisania pełnego serwera.
-- Astro pozwala budować szybkie strony (TTFP) i używać React tylko tam, gdzie jest potrzebny (islands), co pomaga osiągnąć cele wydajnościowe PRD.
+- Astro 5 pozwala budować szybkie strony (TTFP) i używać React tylko tam, gdzie jest potrzebny (islands), co pomaga osiągnąć cele wydajnościowe PRD.
 - TypeScript zapewnia bezpieczeństwo typów (łatwiejsze utrzymanie).
 - Tailwind + `shadcn/ui` przyspieszają budowę spójnego UI (komponenty + design system).
-- GitHub Actions + DigitalOcean: prosty pipeline i kontrola infra; Vercel może upraszczać deploy frontendu (automatyczne CD, edge CDN).
+- GitHub Actions: prosty pipeline CI/CD.
 
 ### 4. Szczegóły i rekomendacje implementacyjne
 
-4.1 Frontend
+#### 4.1 Frontend
 
-- Repo i struktura: `src/pages/` (Astro pages), `src/components/` (UI), `src/layouts/`.
-- Konfiguracja TypeScript: `tsconfig.json` — ścisłe ustawienia (strict: true).
-- Tailwind: zainicjuj `tailwind.config.cjs` i załaduj do `src/styles.css`. Włącz JIT.
-- `shadcn/ui`: traktować jako zestaw komponentów — upewnić się, że wersja jest kompatybilna z Tailwind i React w Astro. Jeśli używacie `shadcn/ui`, stosuj patterny ich docs (wagę ma generowanie komponentów w repo).
-- Formularze: używać `react-hook-form` (lekki + TypeScript). Walidacja: `zod` na frontend i backend.
-- Autoryzacja: token Supabase (anon/public) do odczytu ofert, ale operacje modyfikujące (create/edit/delete) powinny być wykonywane przez supabase client z JWT sesji lub poprzez server-side function (edge function) dla wrażliwych operacji.
+- Repo i struktura: `src/pages/` (Astro pages + API routes), `src/components/` (UI), `src/components/ui/` (shadcn/ui), `src/layouts/`.
+- Konfiguracja TypeScript: `tsconfig.json` — `astro/tsconfigs/strict`. Path alias `@/*` → `./src/*`.
+- Tailwind: konfiguracja w `tailwind.config.mjs`. Motyw kolorów oparty o CSS variables (HSL).
+- `shadcn/ui`: dodawanie komponentów przez `npm run shadcn`. Komponenty w `src/components/ui/`.
+- Formularze: `react-hook-form` + `@hookform/resolvers`. Walidacja: `zod` na frontend i backend.
+- Autoryzacja: token Supabase (anon/public) do odczytu ofert, operacje modyfikujące wykonywane przez Supabase client z JWT sesji. Middleware (`src/middleware/index.ts`) wyciąga token i ustawia `context.locals.user`.
 
-  4.2 Backend / Supabase
+#### 4.2 Backend / Supabase
 
-- Modele minimalne (tabele rekomendowane wg PRD): `users` (profile), `offers`, `interests` (zainteresowania), `chats`, `messages`.
+- Modele (tabele): `users` (profile), `offers`, `interests` (zainteresowania), `chats`, `messages`.
 - Kluczowe kolumny:
   - `users`: id (uuid), email, first_name, last_name, created_at
   - `offers`: id, owner_id (fk users), title, description, image_url, city, status (ACTIVE/REMOVED), created_at
@@ -47,74 +47,86 @@ Ten dokument zbiera rozszerzony kontekst techniczny użytego stacku dla projektu
   - `messages`: id, chat_id, sender_id, body, created_at
 - RLS (row level security):
   - `users`: pozwól aktualizować tylko swój profil (policy by auth.uid() == id).
-  - `offers`: CRUD tylko dla owner_id; public SELECT dla listy ofert (ale ograniczyć widok pól wrażliwych).
+  - `offers`: CRUD tylko dla owner_id; public SELECT dla listy ofert.
   - `interests` i `messages`: dostęp tylko jeśli uczestnikiem jest auth.uid() powiązane z ofertą/chatem.
-- Auth: włączyć weryfikację email. Nigdy nie przechowuj `service_role` key w frontendzie.
-- Storage: rekomendowane użycie Supabase Storage do zdjęć ofert; przechowywać tylko URL w `offers`.
+- Logika biznesowa w triggerach PostgreSQL:
+  - Mutual match → automatyczne tworzenie chatu.
+  - Obie strony potwierdzają wymianę → tworzenie exchange history.
+  - Zapobieganie self-interest.
+  - Jeden chat per para użytkowników (reuse).
+- Auth: weryfikacja email włączona. Nigdy nie przechowuj `service_role` key w frontendzie.
+- Storage: Supabase Storage do zdjęć ofert; URL w `offers.image_url`.
 
-  4.3 Chat (MVP)
+#### 4.3 Chat (MVP)
 
-- PRD zakłada brak real-time jako konieczność — MVP może działać przez polling lub fetch przy odświeżeniu. W przyszłości rozważyć Supabase Realtime lub WebSockets.
-- Otwieranie chat tylko przy mutual match: logika w triggerach/func: jeżeli `interests` między dwoma użytkownikami są wzajemne → utworzyć `chat` i ustawić status ACCEPTED.
+- MVP działa przez polling / fetch przy odświeżeniu — bez real-time.
+- W przyszłości rozważyć Supabase Realtime lub WebSockets.
+- Otwieranie chat tylko przy mutual match — logika w triggerach DB.
 
-  4.4 CI/CD i hosting
+#### 4.4 CI/CD i hosting
 
-- GitHub Actions: pipeline minimalny:
-  - testy (lint, typecheck), build frontendu (astro build), deploy (push do DigitalOcean / Vercel).
-- Secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (do read), `SUPABASE_SERVICE_ROLE_KEY` (Tylko w jobach serwerowych — nigdy expose), `DO_TOKEN` lub `VERCEL_TOKEN`.
-- DigitalOcean: jeśli team ma infra skills — App Platform lub droplet. Dla szybkiego MVP polecam `Vercel` (mniej operacyjnego overheadu).
+- GitHub Actions: lint, typecheck, testy, build (`astro build`), deploy.
+- Secrets: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_KEY` (do read), `SUPABASE_SERVICE_ROLE_KEY` (tylko w jobach serwerowych — nigdy expose), token hostingu.
 
-### 5. Narzędzia developerskie i wersje (zalecane)
+### 5. Narzędzia developerskie i wersje
 
-- Node.js LTS (np. 18+ lub 20 LTS)
-- pnpm lub npm (repo używa `package.json`)
-- Astro (pinowana wersja w `package.json`)
-- TypeScript >= 4.9
-- TailwindCSS >= 3.x
+- Node.js LTS (20+)
+- npm (menedżer pakietów projektu)
+- Astro 5.x (pinowana wersja w `package.json`)
+- TypeScript >= 5.9
+- TailwindCSS 3.x
+- React 19
 - Supabase CLI (lokalna praca z DB/migrations)
-- Postman / Insomnia do testowania API
 - VSCode + rozszerzenia: ESLint, Prettier, Tailwind CSS IntelliSense, TypeScript
 
-### 6. Skonfigurowane skrypty (przykładowe w `package.json`)
+### 6. Skonfigurowane skrypty (`package.json`)
 
-- `dev`: uruchamia Astro w trybie development
-- `build`: `astro build`
-- `preview`: `astro preview`
-- `lint`: `eslint . --ext .ts,.tsx,.astro`
-- `typecheck`: `tsc --noEmit`
+- `dev` — uruchamia Astro w trybie development (localhost:4321)
+- `dev:e2e` — uruchamia Astro w trybie test
+- `build` — `astro build`
+- `preview` — `astro preview`
+- `lint` / `lint:fix` — ESLint na plikach .js, .ts, .astro
+- `format` / `format:check` — Prettier
+- `typecheck` — `tsc --noEmit`
+- `shadcn` — dodaje komponent shadcn/ui + auto-fix lint
+- `test` — uruchamia testy unit + E2E
+- `test:unit` / `test:unit:watch` / `test:unit:ui` — Vitest
+- `test:e2e` / `test:e2e:ui` / `test:e2e:headed` / `test:e2e:debug` — Playwright
+- `pw:install` — instalacja przeglądarek Playwright
 
 ### 7. Environment variables (lista)
 
-- `SUPABASE_URL` (public)
-- `SUPABASE_ANON_KEY` (public, ograniczone uprawnienia)
-- `SUPABASE_SERVICE_ROLE_KEY` (tylko w bezpiecznych jobach/serwerze)
-- `DATABASE_URL` (jeśli korzystasz z direct DB access w CI)
+- `PUBLIC_SUPABASE_URL` — URL projektu Supabase (prefix `PUBLIC_` wymagany przez Astro dla dostępu client-side)
+- `PUBLIC_SUPABASE_KEY` — klucz anonimowy Supabase (public, ograniczone uprawnienia)
+- `SUPABASE_SERVICE_ROLE_KEY` — tylko w bezpiecznych jobach/serwerze
 - `NODE_ENV`
-- `VITE_` prefixed vars jeśli używasz Vite/Env w kliencie (Astro korzysta z VITE-style env)
+
+**Uwaga**: W Astro zmienne bez prefixu `PUBLIC_` nie są dostępne w kodzie klienckim (przeglądarka).
 
 ### 8. Bezpieczeństwo i dobre praktyki
 
 - Nigdy nie commituj secretów. Używaj GH Secrets.
 - RLS jako pierwsza linia obrony w Supabase — zaimplementuj i przetestuj polityki (US-023).
-- Walidacja: `zod` lub `yup` na frontend i backend (dublować walidację).
+- Walidacja: `zod` na frontend i backend (dublować walidację).
 - CSP, sanitization wejść (XSS), limit rozmiaru uploadów.
 - Rate limiting (dla endpointów wrażliwych, np. loginy).
 - Audyt logów i monitorowanie kosztów Supabase (queries, storage, egress).
+- `console.log` zabroniony w kodzie (ESLint rule) — używać `console.error` / `console.warn`.
 
 ### 9. Testy, monitoring, backup
 
-- Testy jednostkowe / integracyjne (**rekomendowane**):
-  - **Vitest** (runner) + środowisko **jsdom** dla komponentów React w Astro.
-  - **React Testing Library** (testy komponentów z perspektywy użytkownika).
-  - **MSW (Mock Service Worker)** (mockowanie zapytań sieciowych, np. do API/Supabase).
-- Testy E2E (**rekomendowane**):
-  - **Playwright** (scenariusze end-to-end, w tym łatwe testowanie wielu kontekstów przeglądarki — np. chat między dwoma użytkownikami).
+- Testy jednostkowe / integracyjne:
+  - **Vitest** (runner) + środowisko **jsdom** dla komponentów React.
+  - **React Testing Library** + **@testing-library/user-event** (testy komponentów z perspektywy użytkownika).
+- Testy E2E:
+  - **Playwright** (scenariusze end-to-end, w tym testowanie wielu kontekstów przeglądarki — np. chat między dwoma użytkownikami).
+  - Konfiguracja w `playwright.config.ts`, testy w `tests/e2e/`.
 - Backup bazy: uzgodnić politykę backupów Supabase lub eksport schematów/migrations.
-- Monitoring: Sentry (errors), Prometheus/Datadog (w miarę rozwoju).
+- Monitoring: Sentry (errors) — do wdrożenia w miarę rozwoju.
 
 ### 10. Deployment i skalowanie — droga migracji
 
-- Faza MVP: host frontend statically (Astro build) na Vercel lub DigitalOcean App Platform; Supabase managed.
+- Faza MVP: host frontend (Astro build) na Vercel lub innym hostingu; Supabase managed.
 - Kiedy rośnie ruch:
   - zwiększyć plan Supabase (IO i CPU), rozważyć dedykowany Postgres lub read replicas,
   - rozdzielić uploads (CDN) i jej egress,
@@ -124,21 +136,23 @@ Ten dokument zbiera rozszerzony kontekst techniczny użytego stacku dla projektu
 
 - Lokalnie:
   - Node LTS zainstalowany
-  - `npm install` / `pnpm install`
-  - Ustawić `.env` z `SUPABASE_URL` i `SUPABASE_ANON_KEY`
+  - `npm install`
+  - Ustawić `.env` z `PUBLIC_SUPABASE_URL` i `PUBLIC_SUPABASE_KEY`
   - Uruchomić `npm run dev`
 - Przed deployem:
-  - GH Secrets skonfigurowane (`SUPABASE_SERVICE_ROLE_KEY`, `DO_TOKEN`/`VERCEL_TOKEN`)
-  - Testy uruchomione (`lint`, `typecheck`, `unit tests`)
+  - GH Secrets skonfigurowane (`SUPABASE_SERVICE_ROLE_KEY`, token hostingu)
+  - Testy uruchomione (`lint`, `typecheck`, `test:unit`, `test:e2e`)
   - Build przetestowany lokalnie (`npm run build` + `npm run preview`)
 
-### 12. Notatki końcowe / decyzje do potwierdzenia
+### 12. Architektura kodu
 
-- Potwierdź którą bibliotekę UI ostatecznie używamy (`shadcn/ui` vs inny).
-- Decision: `Vercel` vs `DigitalOcean` (preferencja: Vercel dla prostoty deployu frontendu).
-- Zdefiniować dokładne schematy tabel i RLS przed pisaniem migrationów; użyć Supabase CLI do migrations.
+- **Warstwa serwisowa** (`src/services/`): cała logika biznesowa i zapytania do DB. Serwisy otrzymują `SupabaseClient` przez konstruktor.
+- **API routes** (`src/pages/api/`): każdy endpoint wymaga `export const prerender = false`. Walidacja Zod, obsługa błędów przez `src/utils/errors.ts`.
+- **Schemas** (`src/schemas/`): schematy Zod dla walidacji requestów.
+- **Middleware** (`src/middleware/index.ts`): ekstrakcja tokenu JWT i walidacja użytkownika (non-blocking async).
+
+Szczegółowe plany API i DB: `.ai/api-plan.md`, `.ai/db-plan.md`, `.ai/endpoints/*.md`.
 
 ---
 
-Plik ten powinien być aktualizowany w czasie — dodawaj tu migration notes, schematy tabel i przykłady RLS policy gdy powstaną.  
-Jeśli chcesz, mogę w następnym kroku: wygenerować szkielet tabel SQL dla Supabase + przykładowe RLS policies lub przygotować przykładowy `github/workflows/deploy.yml`.
+Plik ten powinien być aktualizowany w czasie — dodawaj tu migration notes, schematy tabel i przykłady RLS policy gdy powstaną.

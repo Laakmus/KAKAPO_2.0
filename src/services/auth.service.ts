@@ -64,6 +64,14 @@ export class AuthService {
       throw err;
     }
 
+    // Supabase returns a user with empty identities array for duplicate emails
+    // (email enumeration protection - returns 200 instead of error)
+    if (data.user.identities && data.user.identities.length === 0) {
+      const err = new Error('EMAIL_EXISTS') as Error & { status: number };
+      err.status = 400;
+      throw err;
+    }
+
     const userWithMeta = data.user as typeof data.user & {
       confirmed_at?: string | null;
       email_confirmed_at?: string | null;

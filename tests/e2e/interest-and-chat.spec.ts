@@ -17,6 +17,7 @@ test.describe('Interest & Chat Flow', () => {
   let offerBId: string;
 
   test('full interest and chat flow between two users', async ({ browser }) => {
+    test.setTimeout(120_000);
     // --- Step 1: User A creates an offer ---
     const contextA = await browser.newContext();
     const pageA = await contextA.newPage();

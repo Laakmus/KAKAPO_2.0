@@ -18,8 +18,8 @@ type ProfileHeaderProps = {
  * - Imię i nazwisko jako h1
  */
 export function ProfileHeader({ firstName, lastName, avatarUrl }: ProfileHeaderProps) {
-  const fullName = `${firstName} ${lastName}`;
-  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Użytkownik';
+  const initials = `${(firstName || '?').charAt(0)}${(lastName || '?').charAt(0)}`.toUpperCase();
 
   return (
     <div data-testid="profile-header" className="flex items-center gap-4 mb-6">

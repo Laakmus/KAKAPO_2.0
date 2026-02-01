@@ -20,7 +20,7 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   webServer: {
-    command: `npm run dev -- --host 127.0.0.1 --port ${PORT}`,
+    command: `PUBLIC_SUPABASE_URL=${process.env.PUBLIC_SUPABASE_URL} PUBLIC_SUPABASE_KEY=${process.env.PUBLIC_SUPABASE_KEY} npm run dev -- --host 127.0.0.1 --port ${PORT}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
@@ -29,6 +29,11 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      teardown: 'cleanup db',
+    },
+    {
+      name: 'cleanup db',
+      testMatch: /global\.teardown\.ts/,
     },
   ],
 });

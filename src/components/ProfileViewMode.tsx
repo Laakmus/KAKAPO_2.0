@@ -35,7 +35,7 @@ export function ProfileViewMode({ profile, onEdit, onDeleteRequest }: ProfileVie
         <div>
           <label className="text-sm font-medium text-muted-foreground">Imię</label>
           <p data-testid="profile-first-name" className="text-base mt-1">
-            {profile.first_name}
+            {profile.first_name || 'Nie podano'}
           </p>
         </div>
 
@@ -43,7 +43,7 @@ export function ProfileViewMode({ profile, onEdit, onDeleteRequest }: ProfileVie
         <div>
           <label className="text-sm font-medium text-muted-foreground">Nazwisko</label>
           <p data-testid="profile-last-name" className="text-base mt-1">
-            {profile.last_name}
+            {profile.last_name || 'Nie podano'}
           </p>
         </div>
       </div>
