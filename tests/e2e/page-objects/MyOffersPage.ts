@@ -5,12 +5,14 @@ export class MyOffersPage {
   readonly container: Locator;
   readonly statusActive: Locator;
   readonly statusRemoved: Locator;
+  readonly addOfferButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
     this.container = page.getByTestId('my-offers-page');
     this.statusActive = page.getByTestId('my-offers-status-active');
     this.statusRemoved = page.getByTestId('my-offers-status-removed');
+    this.addOfferButton = page.getByTestId('my-offers-add-offer');
   }
 
   async goto() {

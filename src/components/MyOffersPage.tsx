@@ -46,6 +46,11 @@ export function MyOffersPage() {
             <h1 className="text-3xl font-bold">Moje Oferty</h1>
             <p className="text-muted-foreground mt-1">Zarządzaj swoimi ofertami wymiany</p>
           </div>
+          <Button asChild size="sm">
+            <a href="/offers/new" data-testid="my-offers-add-offer">
+              Dodaj ofertę
+            </a>
+          </Button>
         </div>
 
         {/* Filtr statusu */}
