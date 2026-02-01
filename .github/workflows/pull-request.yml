@@ -1,0 +1,119 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [ main, branch_01022026 ]
+    types: [ opened, reopened, synchronize, ready_for_review ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run lint
+
+  unit-test:
+    name: Unit tests + coverage
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run test:unit -- --coverage
+      - uses: actions/upload-artifact@v4
+        if: ${{ success() }}
+        with:
+          name: vitest-coverage
+          path: coverage
+
+  e2e-test:
+    name: Playwright E2E (integration)
+    needs: lint
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: integration
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      E2E_USERNAME_2: ${{ secrets.E2E_USERNAME_2 }}
+      E2E_PASSWORD_2: ${{ secrets.E2E_PASSWORD_2 }}
+      E2E_USERNAME_ID: ${{ secrets.E2E_USERNAME_ID }}
+      E2E_USERNAME_2_ID: ${{ secrets.E2E_USERNAME_2_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run pw:install
+      - run: npm run test:e2e -- --coverage
+      - uses: actions/upload-artifact@v4
+        if: ${{ success() }}
+        with:
+          name: playwright-coverage
+          path: coverage
+
+  status-comment:
+    name: Report PR status
+    needs: [unit-test, e2e-test]
+    if: ${{ github.event_name == 'pull_request' && needs.unit-test.result == 'success' && needs['e2e-test'].result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- pull-request-status -->';
+            const prNumber = context.payload.pull_request?.number;
+            if (!prNumber) {
+              core.info('No pull request number available; skipping status comment.');
+              return;
+            }
+
+            const body = `${marker}
+✅ **Pull request checks completed**
+
+| Job | Details |
+| --- | --- |
+| lint | ESLint across the repository |
+| unit-test | Vitest with coverage collected |
+| e2e-test | Playwright in \`integration\` mode with browsers installed (coverage collected) |
+
+Coverage artifacts uploaded for both suites.
+`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: prNumber,
+            });
+
+            const existing = comments.find((comment) => comment.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }
