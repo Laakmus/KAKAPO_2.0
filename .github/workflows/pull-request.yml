@@ -20,7 +20,7 @@ jobs:
       - run: npm run lint
 
   unit-test:
-    name: Unit tests + coverage
+    name: Unit tests
     needs: lint
     runs-on: ubuntu-latest
     steps:
@@ -31,12 +31,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run test:unit -- --coverage
-      - uses: actions/upload-artifact@v4
-        if: ${{ success() }}
-        with:
-          name: vitest-coverage
-          path: coverage
+      - run: npm run test:unit
 
   e2e-test:
     name: Playwright E2E (integration)
@@ -62,9 +57,4 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run pw:install
-      - run: npm run test:e2e -- --coverage
-      - uses: actions/upload-artifact@v4
-        if: ${{ success() }}
-        with:
-          name: playwright-coverage
-          path: coverage
+      - run: npm run test:e2e
