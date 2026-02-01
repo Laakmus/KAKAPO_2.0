@@ -605,7 +605,7 @@ export function useChatsViewState(initialChatId?: string) {
             actionError: undefined,
           };
         });
-      } catch (_err) {
+      } catch {
         setState((prev) => ({
           ...prev,
           actionError: {
