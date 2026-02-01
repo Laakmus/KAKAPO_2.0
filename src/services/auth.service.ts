@@ -122,9 +122,9 @@ export class AuthService {
         if (error) {
           // Jeśli tabela `sessions` nie istnieje lub operacja nie jest wspierana przez DB,
           // uznajemy to za brak wsparcia serwerowego dla tej funkcjonalności.
-          const notImpl = new Error('NOT_IMPLEMENTED');
-          (notImpl as any).status = 501;
-          (notImpl as any).original = error;
+          const notImpl: Error & { status?: number; original?: unknown } = new Error('NOT_IMPLEMENTED');
+          notImpl.status = 501;
+          notImpl.original = error;
           throw notImpl;
         }
 
@@ -142,23 +142,23 @@ export class AuthService {
           .maybeSingle();
 
         if (error) {
-          const err = new Error('SUPABASE_QUERY_ERROR');
-          (err as any).status = 500;
-          (err as any).original = error;
+          const err: Error & { status?: number; original?: unknown } = new Error('SUPABASE_QUERY_ERROR');
+          err.status = 500;
+          err.original = error;
           throw err;
         }
 
         if (!data) {
-          const notFound = new Error('SESSION_NOT_FOUND');
-          (notFound as any).status = 404;
+          const notFound: Error & { status?: number } = new Error('SESSION_NOT_FOUND');
+          notFound.status = 404;
           throw notFound;
         }
 
         const { error: delErr } = await supabase.from('sessions').delete().eq('id', sessionId);
         if (delErr) {
-          const err: Error & { status?: number; original?: unknown } = new Error('SUPABASE_DELETE_ERROR');
-          err.status = 500;
-          err.original = delErr;
+          const err = new Error('SUPABASE_DELETE_ERROR');
+          (err as any).status = 500;
+          (err as any).original = delErr;
           throw err;
         }
 

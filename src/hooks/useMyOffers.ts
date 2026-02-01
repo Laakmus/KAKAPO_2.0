@@ -14,7 +14,7 @@ import type { OfferListItemDTO, ApiErrorViewModel } from '@/types';
  * @param statusFilter - status ofert do filtrowania ('ACTIVE' | 'REMOVED')
  */
 export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE') {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
 
   const [offers, setOffers] = useState<OfferListItemDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,7 +105,7 @@ export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE') {
         setIsRefreshing(false);
       }
     },
-    [token, user?.id, statusFilter],
+    [token, statusFilter],
   );
 
   /**

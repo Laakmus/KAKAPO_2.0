@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import type { OfferDetailViewModel, ApiErrorViewModel, OfferImageDTO } from '@/types';
+import type { OfferDetailViewModel, ApiErrorViewModel } from '@/types';
 import { MapPin, Calendar, Users, Archive, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from './ui/card';
 import { InterestToggleCTA } from './InterestToggleCTA';

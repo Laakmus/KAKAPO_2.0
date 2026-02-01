@@ -262,15 +262,13 @@ export function OfferEditForm({ offer, onSubmit, onCancel, isSubmitting }: Offer
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Anuluj
         </Button>
-        <Button type="submit" disabled={isSubmitting || (!isDirty && !imagesChanged)}>
+        <Button type="submit" disabled={isSubmitting || !isDirty}>
           {isSubmitting ? 'Zapisywanie...' : 'Zapisz zmiany'}
         </Button>
       </div>
 
       {/* Wskaźnik edycji */}
-      {(isDirty || imagesChanged) && !isSubmitting && (
-        <p className="text-xs text-muted-foreground text-center">Masz niezapisane zmiany</p>
-      )}
+      {isDirty && !isSubmitting && <p className="text-xs text-muted-foreground text-center">Masz niezapisane zmiany</p>}
     </form>
   );
 }

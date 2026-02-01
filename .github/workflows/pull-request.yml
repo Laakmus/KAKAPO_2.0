@@ -2,6 +2,7 @@ name: Pull Request Checks
 
 on:
   pull_request:
+    branches: [ main, branch_01022026 ]
     types: [ opened, reopened, synchronize, ready_for_review ]
 
 jobs:
@@ -19,7 +20,7 @@ jobs:
       - run: npm run lint
 
   unit-test:
-    name: Unit tests + coverage
+    name: Unit tests
     needs: lint
     runs-on: ubuntu-latest
     steps:
@@ -55,60 +56,5 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npx playwright install --with-deps
+      - run: npm run pw:install
       - run: npm run test:e2e
-
-  status-comment:
-    name: PR Status Comment
-    if: always()
-    needs: [lint, unit-test, e2e-test]
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    steps:
-      - name: Post status comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const botComment = comments.find(c =>
-              c.user.type === 'Bot' && c.body.includes('## PR Status')
-            );
-
-            const lint = '${{ needs.lint.result }}';
-            const unit = '${{ needs.unit-test.result }}';
-            const e2e = '${{ needs.e2e-test.result }}';
-
-            const icon = s => s === 'success' ? '✅' : s === 'skipped' ? '⏭️' : '❌';
-
-            const body = [
-              '## PR Status',
-              '',
-              '| Check | Status |',
-              '|-------|--------|',
-              `| Lint | ${icon(lint)} ${lint} |`,
-              `| Unit tests | ${icon(unit)} ${unit} |`,
-              `| E2E tests | ${icon(e2e)} ${e2e} |`,
-              '',
-              `> Updated: ${new Date().toISOString()}`,
-            ].join('\n');
-
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
