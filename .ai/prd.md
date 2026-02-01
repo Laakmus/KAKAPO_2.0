@@ -10,7 +10,7 @@ KAKAPO
 
 KAKAPO to platforma wymiany (barter) opartą na bazie danych, która umożliwia użytkownikom wymianę produktów i usług między sobą. Aplikacja łączy osoby z komplementarnymi potrzebami i umożliwia bezpośrednią komunikację poprzez wbudowany system czatu.
 
-### Wizja
+### Wizja!
 
 Stworzyć prosty, intuicyjny system wymiany, który eliminuje potrzebę pieniędzy i wspomaga lokalną wymianę towarów między mieszkańcami miast.
 
