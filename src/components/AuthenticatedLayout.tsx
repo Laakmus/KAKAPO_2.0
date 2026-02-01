@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { FeatureFlagProvider } from '@/features/FeatureFlagProvider';
+import { getDefaultFlags, type FeatureFlagRecord } from '@/features';
 import { TopNavBar, type NavItem } from './TopNavBar';
 import { MainContentContainer } from './MainContentContainer';
 import { GlobalToastArea } from './GlobalToastArea';
@@ -16,6 +18,7 @@ export type AuthenticatedLayoutProps = {
   children: ReactNode;
   currentPath: string;
   initialToken?: string;
+  flags?: FeatureFlagRecord;
 };
 
 /**
@@ -189,11 +192,14 @@ d   * Bazuje na porównaniu interests_count z "ostatnio widzianą" liczbą zaint
  *
  * @param props - Props komponentu
  */
-export function AuthenticatedLayout({ children, currentPath, initialToken }: AuthenticatedLayoutProps) {
+export function AuthenticatedLayout({ children, currentPath, initialToken, flags }: AuthenticatedLayoutProps) {
+  const resolvedFlags = flags ?? getDefaultFlags();
   return (
     <AuthProvider initialToken={initialToken}>
       <ToastProvider>
-        <AuthenticatedLayoutInner currentPath={currentPath}>{children}</AuthenticatedLayoutInner>
+        <FeatureFlagProvider flags={resolvedFlags}>
+          <AuthenticatedLayoutInner currentPath={currentPath}>{children}</AuthenticatedLayoutInner>
+        </FeatureFlagProvider>
       </ToastProvider>
     </AuthProvider>
   );
