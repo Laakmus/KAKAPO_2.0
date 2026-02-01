@@ -17,7 +17,7 @@ export type UserProfilePageLayoutProps = {
  * Łączy AuthProvider z UserProfileClient w jednej React island,
  * aby zapewnić dostęp do AuthProvider context.
  */
-export function UserProfilePageLayout({ currentPath, initialToken, userId }: UserProfilePageLayoutProps) {
+export function UserProfilePageLayout({ currentPath: _currentPath, initialToken, userId }: UserProfilePageLayoutProps) {
   return (
     <AuthProvider initialToken={initialToken}>
       <ToastProvider>

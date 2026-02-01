@@ -61,8 +61,7 @@ export function useProtectedRoute(options: ProtectedRouteOptions = {}): Protecte
         }
       }
 
-      // DEBUG: Log stan przed przekierowaniem
-      console.log('[useProtectedRoute] Przekierowuję - brak autoryzacji', {
+      console.warn('[useProtectedRoute] Przekierowuję - brak autoryzacji', {
         status: auth.status,
         isLoading: auth.isLoading,
         hasToken: !!auth.token,

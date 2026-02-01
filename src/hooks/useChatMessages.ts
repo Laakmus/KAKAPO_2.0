@@ -32,7 +32,7 @@ export function useChatMessages(
   const [error, setError] = useState<ApiErrorViewModel | undefined>();
 
   // Ref do scrollowania
-  const messagesEndRef = useRef<HTMLDivElement>(null!);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   /**
    * Funkcja fetchująca wiadomości

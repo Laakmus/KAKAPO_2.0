@@ -93,7 +93,7 @@ export function useAuthState() {
     };
 
     fetchProfile();
-  }, [auth.token, auth.user]); // Zależności: token i user
+  }, [auth.token, auth.user, auth, toast]); // Zależności: token, user, auth, toast
 
   return auth;
 }
