@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Main Branch CI
 
 on:
   push:
@@ -32,13 +32,10 @@ jobs:
       - run: npm ci
       - run: npm run test:unit
 
-  deploy:
-    name: Deploy to Cloudflare Pages
+  build:
+    name: Build
     needs: unit-test
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      deployments: write
     env:
       PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
       PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}
@@ -51,9 +48,3 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run build
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=kakapo
