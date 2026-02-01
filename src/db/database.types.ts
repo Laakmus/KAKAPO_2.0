@@ -61,14 +61,14 @@ export type Database = {
             foreignKeyName: 'archived_messages_receiver_id_fkey';
             columns: ['receiver_id'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'archived_messages_sender_id_fkey';
             columns: ['sender_id'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
@@ -100,7 +100,7 @@ export type Database = {
             foreignKeyName: 'audit_logs_actor_id_fkey';
             columns: ['actor_id'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
@@ -109,21 +109,21 @@ export type Database = {
         Row: {
           created_at: string;
           id: string;
-          status: string;
+          status: Database['public']['Enums']['chat_status'];
           user_a: string;
           user_b: string;
         };
         Insert: {
           created_at?: string;
           id?: string;
-          status?: string;
+          status?: Database['public']['Enums']['chat_status'];
           user_a: string;
           user_b: string;
         };
         Update: {
           created_at?: string;
           id?: string;
-          status?: string;
+          status?: Database['public']['Enums']['chat_status'];
           user_a?: string;
           user_b?: string;
         };
@@ -132,14 +132,14 @@ export type Database = {
             foreignKeyName: 'chats_user_a_fkey';
             columns: ['user_a'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'chats_user_b_fkey';
             columns: ['user_b'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
@@ -190,44 +190,54 @@ export type Database = {
             foreignKeyName: 'exchange_history_user_a_fkey';
             columns: ['user_a'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'exchange_history_user_b_fkey';
             columns: ['user_b'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
       };
       interests: {
         Row: {
+          chat_id: string | null;
           created_at: string;
           id: string;
           offer_id: string;
           realized_at: string | null;
-          status: string;
+          status: Database['public']['Enums']['interest_status'];
           user_id: string;
         };
         Insert: {
+          chat_id?: string | null;
           created_at?: string;
           id?: string;
           offer_id: string;
           realized_at?: string | null;
-          status?: string;
+          status?: Database['public']['Enums']['interest_status'];
           user_id: string;
         };
         Update: {
+          chat_id?: string | null;
           created_at?: string;
           id?: string;
           offer_id?: string;
           realized_at?: string | null;
-          status?: string;
+          status?: Database['public']['Enums']['interest_status'];
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'interests_chat_id_fkey';
+            columns: ['chat_id'];
+            isOneToOne: false;
+            referencedRelation: 'chats';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'interests_offer_id_fkey';
             columns: ['offer_id'];
@@ -239,7 +249,7 @@ export type Database = {
             foreignKeyName: 'interests_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
@@ -278,7 +288,42 @@ export type Database = {
             foreignKeyName: 'messages_sender_id_fkey';
             columns: ['sender_id'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      offer_images: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          image_url: string;
+          offer_id: string;
+          order_index: number;
+          thumbnail_url: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          image_url: string;
+          offer_id: string;
+          order_index?: number;
+          thumbnail_url?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          image_url?: string;
+          offer_id?: string;
+          order_index?: number;
+          thumbnail_url?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'offer_images_offer_id_fkey';
+            columns: ['offer_id'];
+            isOneToOne: false;
+            referencedRelation: 'offers';
             referencedColumns: ['id'];
           },
         ];
@@ -292,7 +337,7 @@ export type Database = {
           image_url: string | null;
           owner_id: string;
           search_vector: unknown;
-          status: string;
+          status: Database['public']['Enums']['offer_status'];
           title: string;
         };
         Insert: {
@@ -303,7 +348,7 @@ export type Database = {
           image_url?: string | null;
           owner_id: string;
           search_vector?: unknown;
-          status?: string;
+          status?: Database['public']['Enums']['offer_status'];
           title: string;
         };
         Update: {
@@ -314,7 +359,7 @@ export type Database = {
           image_url?: string | null;
           owner_id?: string;
           search_vector?: unknown;
-          status?: string;
+          status?: Database['public']['Enums']['offer_status'];
           title?: string;
         };
         Relationships: [
@@ -322,14 +367,37 @@ export type Database = {
             foreignKeyName: 'offers_owner_id_fkey';
             columns: ['owner_id'];
             isOneToOne: false;
-            referencedRelation: 'auth.users';
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
       };
     };
     Views: {
-      [_ in never]: never;
+      users: {
+        Row: {
+          created_at: string | null;
+          email: string | null;
+          first_name: string | null;
+          id: string | null;
+          last_name: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          email?: string | null;
+          first_name?: never;
+          id?: string | null;
+          last_name?: never;
+        };
+        Update: {
+          created_at?: string | null;
+          email?: string | null;
+          first_name?: never;
+          id?: string | null;
+          last_name?: never;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       admin_delete_user_account: {
@@ -339,7 +407,9 @@ export type Database = {
       archive_old_messages: { Args: { months_old?: number }; Returns: Json };
     };
     Enums: {
-      [_ in never]: never;
+      chat_status: 'ACTIVE' | 'ARCHIVED';
+      interest_status: 'PROPOSED' | 'ACCEPTED' | 'WAITING' | 'REALIZED';
+      offer_status: 'ACTIVE' | 'REMOVED';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -461,6 +531,10 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      chat_status: ['ACTIVE', 'ARCHIVED'],
+      interest_status: ['PROPOSED', 'ACCEPTED', 'WAITING', 'REALIZED'],
+      offer_status: ['ACTIVE', 'REMOVED'],
+    },
   },
 } as const;

@@ -1,0 +1,34 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { UserProfilePageLayout } from '@/components/UserProfilePageLayout';
+import { z } from 'zod';
+
+export const prerender = false;
+
+// Walidacja parametru user_id (UUID)
+const userIdSchema = z.string().uuid('Nieprawidłowy identyfikator użytkownika');
+
+// Pobierz user_id z parametrów
+const { user_id } = Astro.params;
+
+// Walidacja UUID
+let validUserId: string;
+try {
+  validUserId = userIdSchema.parse(user_id);
+} catch (error) {
+  // Nieprawidłowy UUID - redirect do strony głównej lub 404
+  return Astro.redirect('/offers');
+}
+
+const currentPath = Astro.url.pathname;
+const accessToken = undefined;
+---
+
+<Layout title={`Profil użytkownika - KAKAPO`}>
+  <UserProfilePageLayout
+    client:only="react"
+    currentPath={currentPath}
+    initialToken={accessToken}
+    userId={validUserId}
+  />
+</Layout>

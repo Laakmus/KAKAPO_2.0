@@ -1,0 +1,23 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { OffersNewPageLayout } from '@/components/OffersNewPageLayout';
+
+/**
+ * Strona dodawania nowej oferty: /offers/new
+ *
+ * Wymaga autoryzacji - nieautoryzowani użytkownicy zostaną przekierowani do /login
+ * Po pomyślnym dodaniu oferty użytkownik zostanie przekierowany do /offers/{id}
+ */
+
+// Pobierz aktualną ścieżkę z URL
+const currentPath = Astro.url.pathname;
+
+// Token jest przechowywany w localStorage po stronie klienta
+const accessToken = undefined;
+
+export const prerender = false;
+---
+
+<Layout title="Dodaj nową ofertę - KAKAPO">
+  <OffersNewPageLayout client:only="react" currentPath={currentPath} initialToken={accessToken} />
+</Layout>

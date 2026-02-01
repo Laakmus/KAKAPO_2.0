@@ -1,0 +1,37 @@
+
+> kakapo@0.0.1 dev
+> astro dev
+
+13:54:04 [WARN] [config] This project contains server-rendered routes, but no adapter is installed. This is fine for development, but an adapter will be required to build your site for production.
+13:54:04 [types] Generated 0ms
+13:54:04 [content] Syncing content
+13:54:04 [content] Synced content
+13:54:04 [vite] Port 4321 is in use, trying another one...
+
+ astro  v5.16.4 ready in 303 ms
+
+┃ Local    http://localhost:4322/
+┃ Network  use --host to expose
+
+13:54:04 watching for file changes...
+02:01:15 Configuration file updated. Restarting...
+02:01:15 [vite] Re-optimizing dependencies because vite config has changed
+02:01:16 [content] Syncing content
+02:01:16 [content] Synced content
+02:01:16 [types] Generated 120ms
+02:01:16 [vite] Re-optimizing dependencies because vite config has changed
+02:02:57 Configuration file updated. Restarting...
+02:02:57 [vite] Re-optimizing dependencies because vite config has changed
+02:02:58 [content] Syncing content
+02:02:58 [content] Astro config changed
+02:02:58 [content] Clearing content store
+02:02:58 [content] Synced content
+02:02:58 [types] Generated 73ms
+02:02:58 [vite] Re-optimizing dependencies because vite config has changed
+02:10:03 [vite] changed tsconfig file detected: /Users/jaroslawurbanowicz/Dysk E/10xDEVS/projects/KAKAPO_2.0/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+02:10:03 Configuration file updated. Restarting...
+02:10:03 [vite] Re-optimizing dependencies because lockfile has changed
+02:10:03 [content] Syncing content
+02:10:03 [content] Synced content
+02:10:03 [types] Generated 75ms
+02:10:03 [vite] Re-optimizing dependencies because vite config has changed

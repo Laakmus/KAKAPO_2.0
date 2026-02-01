@@ -1,0 +1,25 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { ChatsPageLayout } from '@/components/ChatsPageLayout';
+
+/**
+ * Strona Czatów
+ *
+ * Dostępna pod /chats
+ * Wymaga autoryzacji - pokazuje listę czatów i ich wiadomości
+ * Osadza Reactowy komponent ChatsPageLayout jako "island"
+ */
+
+export const prerender = false;
+
+// Pobierz aktualną ścieżkę z URL
+const currentPath = Astro.url.pathname;
+
+// Token jest przechowywany w localStorage po stronie klienta
+// AuthContext odczyta go automatycznie podczas inicjalizacji
+const accessToken = undefined;
+---
+
+<Layout title="KAKAPO - Czaty">
+  <ChatsPageLayout client:only="react" currentPath={currentPath} initialToken={accessToken} />
+</Layout>

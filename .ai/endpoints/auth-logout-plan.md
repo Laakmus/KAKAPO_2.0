@@ -5,6 +5,7 @@
 Cel: Bezpiecznie zakończyć sesję uwierzytelnionego użytkownika powiązaną z tokenem dostępu, unieważnić sesję po stronie serwera (jeśli istnieje), oraz zwrócić potwierdzenie wylogowania.
 
 Ten endpoint przyjmuje żądanie `POST` z nagłówkiem `Authorization: Bearer {token}` i powinien:
+
 - weryfikować token,
 - usuwać/odnawiać/oznakowywać sesję/refresh token w bazie danych (jeśli system przechowuje stan sesji),
 - opcjonalnie wyrejestrowywać token z mechanizmów sesji (np. blacklist JWT, lista aktywnych sesji w DB, Supabase session revoke),
@@ -46,11 +47,13 @@ Uwagi: typy powinny znajdować się w `src/types.ts` lub `src/db/database.types.
 ## 4. Szczegóły odpowiedzi
 
 - 200 OK
+
 ```json
 {
   "message": "Wylogowano pomyślnie"
 }
 ```
+
 - 400 Bad Request — jeśli nagłówek Authorization jest niepoprawny lub body (jeśli wymagane) nie przejdzie walidacji.
 - 401 Unauthorized — jeśli token jest nieważny/wygaśnięty lub nie podano nagłówka Authorization.
 - 404 Not Found — jeśli operacja dotyczy konkretnej sesji, a `sessionId` nie istnieje.
@@ -71,6 +74,7 @@ Przykładowy flow:
 4. Zwróć `200 OK` z potwierdzeniem.
 
 Integracje z bazą danych:
+
 - Jeżeli istnieje tabela `sessions` / `user_sessions`, wykonać `UPDATE sessions SET revoked = true WHERE id = :sessionId` lub `DELETE FROM sessions WHERE id = :sessionId`.
 - Jeśli używany Supabase Auth: wywołać odpowiednie API Supabase do usunięcia sesji/revoke token.
 
@@ -155,8 +159,9 @@ Integracje z bazą danych:
    - Zaktualizować dokumentację API (OpenAPI/Swagger) z opisem endpointu i przykładami odpowiedzi.
 
 10. Deployment i rollback:
-   - Wdrożyć zmiany na staging; uruchomić testy integracyjne; monitorować logi.
-   - Jeśli wprowadzono blacklistę/JWT stateful feature, przygotować migracje i rollout plan (migracja danych, mechanizm czyszczenia).
+
+- Wdrożyć zmiany na staging; uruchomić testy integracyjne; monitorować logi.
+- Jeśli wprowadzono blacklistę/JWT stateful feature, przygotować migracje i rollout plan (migracja danych, mechanizm czyszczenia).
 
 ## 10. Przykładowa implementacja (pseudokod)
 
@@ -166,26 +171,29 @@ Controller (pseudokod):
 // Extract token from header
 const token = getBearerToken(req.headers.authorization);
 const payload = await authService.verifyToken(token); // throws 401 if invalid
-await authService.revokeSession({ userId: payload.userId, sessionId: req.body?.sessionId, allDevices: req.body?.allDevices });
-return res.status(200).json({ message: "Wylogowano pomyślnie" });
+await authService.revokeSession({
+  userId: payload.userId,
+  sessionId: req.body?.sessionId,
+  allDevices: req.body?.allDevices,
+});
+return res.status(200).json({ message: 'Wylogowano pomyślnie' });
 ```
 
 AuthService.revokeSession (pseudokod):
 
 ```ts
 if (allDevices) {
-  await sessionsRepo.revokeAllForUser(userId)
+  await sessionsRepo.revokeAllForUser(userId);
 } else if (sessionId) {
-  const s = await sessionsRepo.findById(sessionId)
-  if (!s) throw new NotFoundError()
-  await sessionsRepo.revoke(sessionId)
+  const s = await sessionsRepo.findById(sessionId);
+  if (!s) throw new NotFoundError();
+  await sessionsRepo.revoke(sessionId);
 } else {
   // revoke session related to token payload (sessionId from payload)
-  await sessionsRepo.revoke(sessionIdFromPayload)
+  await sessionsRepo.revoke(sessionIdFromPayload);
 }
 ```
 
 ---
 
-Plik planu utworzony. Proszę o potwierdzenie, jeśli chcesz, aby obok planu dodać szablon kontrolera/servisu w repozytorium (implementacja kodowa). 
-
+Plik planu utworzony. Proszę o potwierdzenie, jeśli chcesz, aby obok planu dodać szablon kontrolera/servisu w repozytorium (implementacja kodowa).

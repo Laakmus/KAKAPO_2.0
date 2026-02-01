@@ -5,18 +5,21 @@
 - Success: 201 Created, payload zawiera `user` (id, email, email_confirmed_at) oraz `message` informujący o konieczności weryfikacji email.
 - Błędy: 400 (email istnieje, nieprawidłowy format), 422 (hasło za krótkie), 500 (błąd serwera).
 
-2) Wymagane i opcjonalne parametry:
+2. Wymagane i opcjonalne parametry:
+
 - Wymagane: `email` (string, poprawny format), `password` (string, min długość), `first_name` (string), `last_name` (string).
 - Opcjonalne: brak w specyfikacji; ewentualne pola rozszerzające (captcha, utm) — opcjonalne do dodania później.
 
-3) Niezbędne typy DTO i Command Modele:
+3. Niezbędne typy DTO i Command Modele:
+
 - `RegisterUserCommand` — już istnieje w `src/types.ts`:
   - { email: string; password: string; first_name: string; last_name: string; }
 - `SignupResponseDTO`:
   - { user: { id: string; email: string; email_confirmed_at: string | null }, message: string }
 - `ApiErrorResponse` — istnieje w `src/types.ts`.
 
-4) Ekstrakcja logiki do service:
+4. Ekstrakcja logiki do service:
+
 - Stworzyć/rozszerzyć `AuthService` (np. `src/services/auth.service.ts`) z metodą `register(command: RegisterUserCommand): Promise<SignupResponseDTO>`.
   - Odpowiedzialności serwisu:
     - Walidacja (zod) — minimalne reguły (format email, password min length, imiona).
@@ -26,31 +29,35 @@
   - Interakcje z DB:
     - Supabase Auth utworzy wpis w `auth.users`; trigger w DB (wg db-plan) może utworzyć profil w `public.users`. Serwis jedynie odczytuje zwrócone `user` id/email.
 
-5) Walidacja wejścia:
+5. Walidacja wejścia:
+
 - Użyć `zod` lub `zod`-like do walidacji request body:
   - `email`: zod.string().email()
   - `password`: zod.string().min(8) — specyfikacja wyróżnia błąd 422 gdy za krótkie
   - `first_name`, `last_name`: zod.string().min(1).max(100)
 - W przypadku błędów walidacji zwrócić `422 Unprocessable Entity` (dla hasła) lub `400 Bad Request` (dla ogólnych nieprawidłowości) — jasno rozgraniczyć komunikaty.
 
-6) Rejestrowanie błędów:
+6. Rejestrowanie błędów:
+
 - Dla krytycznych błędów serwera zapisać wpis w tabeli `audit_logs` (funkcja serwisowa używająca service_role w backend jobie) — np. gdy tworzenie użytkownika nie powiodło się z błędem 500.
 - Nie zapisywać haseł ani danych wrażliwych w `audit_logs`.
 
-7) Zagrożenia bezpieczeństwa:
+7. Zagrożenia bezpieczeństwa:
+
 - Brute-force / mass signup: na warstwie aplikacji wprowadzić rate limiting (np. per IP).
 - Captcha: rozważyć dodanie CAPTCHA/recaptcha przy podejrzanych rejestracjach.
 - Nie przechowywać `service_role` w frontendzie — backend (server route) używa env `SUPABASE_SERVICE_ROLE_KEY` tylko jeśli konieczne.
 - Walidacja email, ograniczenie długości pól, sanitization (chociaż Supabase obsługuje).
 - Logowanie minimalnych zdarzeń i monitorowanie nieudanych prób rejestracji.
 
-8) Scenariusze błędów i kody odpowiedzi:
+8. Scenariusze błędów i kody odpowiedzi:
+
 - 201 Created — pomyślnie utworzono, email wysłany do weryfikacji.
 - 400 Bad Request — niepoprawny format danych (np. brak wymaganych pól).
 - 422 Unprocessable Entity — hasło za krótkie (min 8) lub specyficzne walidacje.
 - 409 Conflict (opcjonalnie) / 400 — email już istnieje (mapować błąd Supabase na 400 z komunikatem "Email już istnieje").
 - 500 Internal Server Error — nieoczekiwany błąd serwera.
-</analysis>
+  </analysis>
 
 # API Endpoint Implementation Plan: Rejestracja użytkownika — `POST /auth/signup`
 
@@ -96,6 +103,7 @@ Endpoint `POST /auth/signup` umożliwia rejestrację nowego użytkownika z autom
 
 - 201 Created (sukces)
   - Body:
+
   ```json
   {
     "user": {
@@ -201,5 +209,3 @@ Przed implementacją: upewnić się, że `SUPABASE_URL`, `SUPABASE_ANON_KEY` i (
 ---
 
 Plik zapisany: `.ai/endpoints/auth-signup-plan.md`
-
-

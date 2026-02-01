@@ -1,0 +1,43 @@
+---
+import '../styles/global.css';
+import { AuthenticatedLayout } from '@/components/AuthenticatedLayout';
+
+/**
+ * Protected Layout - owijacz dla chronionych tras
+ *
+ * Używa AuthenticatedLayout z React do zapewnienia:
+ * - Weryfikacji autoryzacji
+ * - Nawigacji globalnej
+ * - Obszaru komunikatów
+ *
+ * Użycie w stronach:
+ * ---
+ * import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
+ * ---
+ * <ProtectedLayout>
+ *   <div>Chroniona zawartość</div>
+ * </ProtectedLayout>
+ */
+
+// Pobierz aktualną ścieżkę z URL
+const currentPath = Astro.url.pathname;
+
+// Token jest przechowywany w localStorage po stronie klienta
+// AuthContext odczyta go automatycznie podczas inicjalizacji
+const accessToken = undefined;
+---
+
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KAKAPO - Wymiana rzeczy</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <AuthenticatedLayout client:only="react" currentPath={currentPath} initialToken={accessToken}>
+      <slot />
+    </AuthenticatedLayout>
+  </body>
+</html>

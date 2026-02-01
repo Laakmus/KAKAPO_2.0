@@ -5,18 +5,21 @@
 - Success: 200 OK, payload zawiera `access_token`, `refresh_token` oraz `user` (id, email).
 - Błędy: 401 (nieprawidłowe credentials), 403 (email niezweryfikowany), 400 (błąd walidacji), 500 (błąd serwera).
 
-2) Wymagane i opcjonalne parametry:
+2. Wymagane i opcjonalne parametry:
+
 - Wymagane: `email` (string, poprawny format), `password` (string, min 6 znaków).
 - Opcjonalne: brak w specyfikacji MVP; przyszłość: 2FA token, remember_me flag.
 
-3) Niezbędne typy DTO i Command Modele:
+3. Niezbędne typy DTO i Command Modele:
+
 - `LoginUserCommand` — już istnieje w `src/types.ts`:
   - { email: string; password: string; }
 - `AuthTokensResponse` — już istnieje w `src/types.ts`:
   - { access_token: string; refresh_token: string; user: { id: string; email: string; } }
 - `ApiErrorResponse` — istnieje w `src/types.ts`.
 
-4) Ekstrakcja logiki do service:
+4. Ekstrakcja logiki do service:
+
 - Endpoint korzysta bezpośrednio z **Supabase Auth API**, więc nie wymaga dedykowanego service layer dla MVP.
 - Logika w API route:
   - Walidacja danych wejściowych (zod schema)
@@ -25,20 +28,23 @@
   - Zwrócenie tokenów i danych użytkownika
 - Przyszłość: rozważyć `AuthService` gdy dodamy 2FA, session management, login history.
 
-5) Walidacja wejścia:
+5. Walidacja wejścia:
+
 - Użyć `zod` do walidacji request body:
   - `email`: z.string().email().toLowerCase().trim()
   - `password`: z.string().min(6) — zgodnie z Supabase Auth minimum
 - W przypadku błędów walidacji zwrócić `400 Bad Request` z opisem błędu.
 - Nie ujawniać szczegółów które pole jest nieprawidłowe w błędach auth (security).
 
-6) Rejestrowanie błędów:
+6. Rejestrowanie błędów:
+
 - Endpoint Auth nie wymaga logowania w `audit_logs` — to operacja użytkownika, nie admin.
 - Logować do console/monitoring tylko nieoczekiwane błędy (500).
 - NIE logować haseł użytkowników w żadnych logach.
 - Przyszłość: rozważyć audit log dla podejrzanych prób logowania (failed attempts tracking).
 
-7) Zagrożenia bezpieczeństwa:
+7. Zagrożenia bezpieczeństwa:
+
 - **Rate limiting**: Konieczne — 10 żądań / 15 minut / IP (ochrona przed brute force).
 - **Brute force attacks**: Implementacja opóźnień po nieudanych próbach (Supabase obsługuje).
 - **Credential stuffing**: Monitoring nietypowych wzorców logowania.
@@ -48,14 +54,15 @@
 - **Error messages**: Nie ujawniać czy email istnieje w systemie — zawsze "Email lub hasło niepoprawne".
 - **CORS**: Restrykcje do dozwolonych domen aplikacji.
 
-8) Scenariusze błędów i kody odpowiedzi:
+8. Scenariusze błędów i kody odpowiedzi:
+
 - 200 OK — pomyślne logowanie, zwrot access_token + refresh_token + user data.
 - 400 Bad Request — nieprawidłowy format danych (brak pola, błędny format email, hasło za krótkie).
 - 401 Unauthorized — email lub hasło niepoprawne (nie rozróżniamy które!).
 - 403 Forbidden — email nie został zweryfikowany, instrukcja sprawdzenia skrzynki pocztowej.
 - 429 Too Many Requests — przekroczono rate limit (10/15min).
 - 500 Internal Server Error — błąd komunikacji z Supabase lub nieoczekiwany wyjątek.
-</analysis>
+  </analysis>
 
 # API Endpoint Implementation Plan: Logowanie użytkownika — `POST /auth/login`
 
@@ -96,9 +103,7 @@ export const loginSchema = z.object({
     .email('Nieprawidłowy format adresu email')
     .toLowerCase()
     .trim(),
-  password: z
-    .string({ required_error: 'Hasło jest wymagane' })
-    .min(6, 'Hasło musi mieć minimum 6 znaków')
+  password: z.string({ required_error: 'Hasło jest wymagane' }).min(6, 'Hasło musi mieć minimum 6 znaków'),
 });
 ```
 
@@ -113,6 +118,7 @@ export const loginSchema = z.object({
 ## 4. Szczegóły odpowiedzi
 
 ### 200 OK (sukces)
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -125,6 +131,7 @@ export const loginSchema = z.object({
 ```
 
 **Opis pól:**
+
 - `access_token`: JWT token do autoryzacji żądań API (krótkoterminowy: 1h)
 - `refresh_token`: Token do odnowienia access_token (długoterminowy: 30 dni)
 - `user.id`: UUID użytkownika w systemie
@@ -133,6 +140,7 @@ export const loginSchema = z.object({
 ### Błędy
 
 - **400 Bad Request** — nieprawidłowy format danych
+
   ```json
   {
     "error": {
@@ -142,9 +150,11 @@ export const loginSchema = z.object({
     }
   }
   ```
+
   Przypadki: brak pola email/password, nieprawidłowy format email, hasło za krótkie.
 
 - **401 Unauthorized** — nieprawidłowe credentials
+
   ```json
   {
     "error": {
@@ -153,9 +163,11 @@ export const loginSchema = z.object({
     }
   }
   ```
+
   **⚠️ Uwaga bezpieczeństwa**: Komunikat nie rozróżnia czy problem jest w emailu czy haśle.
 
 - **403 Forbidden** — email niezweryfikowany
+
   ```json
   {
     "error": {
@@ -166,6 +178,7 @@ export const loginSchema = z.object({
   ```
 
 - **429 Too Many Requests** — rate limit exceeded
+
   ```json
   {
     "error": {
@@ -189,19 +202,21 @@ export const loginSchema = z.object({
 
 1. **Odbiór żądania**: Astro API route odbiera POST na `/auth/login`, parsuje JSON body.
 
-2. **Walidacja danych wejściowych**: 
+2. **Walidacja danych wejściowych**:
    - Użycie Zod schema `loginSchema`
    - Sprawdzenie obecności wymaganych pól: `email`, `password`
    - Walidacja formatu email i długości hasła
    - **Jeśli błąd**: Zwrot 400 Bad Request
 
 3. **Wywołanie Supabase Auth API**:
+
    ```typescript
    const { data, error } = await supabase.auth.signInWithPassword({
      email: validatedData.email,
-     password: validatedData.password
+     password: validatedData.password,
    });
    ```
+
    **Supabase wykonuje**:
    - Sprawdzenie czy użytkownik istnieje w `auth.users`
    - Weryfikację hasła (bcrypt hash comparison)
@@ -219,43 +234,51 @@ export const loginSchema = z.object({
 ## 6. Względy bezpieczeństwa
 
 ### Rate Limiting
+
 - **Limit**: 10 żądań / 15 minut / IP address
 - **Implementacja**: Middleware Astro lub Supabase level
 - **Po przekroczeniu**: 429 Too Many Requests
 - **Cel**: Ochrona przed brute force i credential stuffing
 
 ### Email Verification
+
 - **Wymóg**: Email musi być zweryfikowany przed logowaniem (GDPR compliance)
 - **Mechanizm**: Supabase sprawdza `email_confirmed_at`
 - **Jeśli niezweryfikowany**: 403 Forbidden z instrukcją
 
 ### Komunikaty błędów
+
 **Zasada**: Nie ujawniaj informacji pomocnych dla atakujących
+
 - ✅ "Email lub hasło niepoprawne" (nie wskazujemy które pole)
 - ❌ "Email nie istnieje w systemie" (ujawnia info o kontach)
 - ❌ "Nieprawidłowe hasło dla użytkownika X"
 
 ### HTTPS i Transport Security
+
 - **Wymagane w produkcji**: Wszystkie żądania przez HTTPS
 - **Dlaczego**: Hasła przesyłane w plain text w body
 - **Dev environment**: HTTP dozwolone tylko lokalnie
 
 ### CORS
+
 ```typescript
 const ALLOWED_ORIGINS = [
   'https://kakapo.app',
   'https://www.kakapo.app',
-  process.env.DEV ? 'http://localhost:4321' : null
+  process.env.DEV ? 'http://localhost:4321' : null,
 ].filter(Boolean);
 ```
 
 ### Token Security
+
 - **Access token**: Krótkoterminowy (1 godzina)
 - **Refresh token**: Długoterminowy (30 dni)
 - **Przechowywanie**: Secure HttpOnly cookies (rekomendowane) lub localStorage
 - **Signature**: JWT podpisany kluczem `JWT_SECRET` w Supabase
 
 ### Walidacja i Sanityzacja
+
 - **Email**: trim(), toLowerCase(), format validation
 - **Password**: Walidacja długości, brak sanityzacji (hasła mogą zawierać special chars)
 - **NIE** logować haseł w żadnych logach
@@ -264,15 +287,15 @@ const ALLOWED_ORIGINS = [
 
 ### Tabela scenariuszy
 
-| Scenariusz | Kod HTTP | Error Code | Komunikat | Akcja klienta |
-|-----------|----------|------------|-----------|---------------|
-| Brak email/password | 400 | VALIDATION_ERROR | "Email jest wymagany" | Uzupełnić dane |
-| Nieprawidłowy format email | 400 | VALIDATION_ERROR | "Nieprawidłowy format adresu email" | Poprawić format |
-| Hasło za krótkie | 400 | VALIDATION_ERROR | "Hasło musi mieć minimum 6 znaków" | Użyć dłuższego hasła |
-| Nieprawidłowe credentials | 401 | UNAUTHORIZED | "Email lub hasło niepoprawne" | Sprawdzić dane |
-| Email niezweryfikowany | 403 | FORBIDDEN | "Email nie został zweryfikowany..." | Kliknąć link |
-| Rate limit | 429 | RATE_LIMIT_EXCEEDED | "Przekroczono limit prób..." | Odczekać 15 min |
-| Błąd Supabase | 500 | INTERNAL_ERROR | "Wystąpił błąd..." | Ponowić później |
+| Scenariusz                 | Kod HTTP | Error Code          | Komunikat                           | Akcja klienta        |
+| -------------------------- | -------- | ------------------- | ----------------------------------- | -------------------- |
+| Brak email/password        | 400      | VALIDATION_ERROR    | "Email jest wymagany"               | Uzupełnić dane       |
+| Nieprawidłowy format email | 400      | VALIDATION_ERROR    | "Nieprawidłowy format adresu email" | Poprawić format      |
+| Hasło za krótkie           | 400      | VALIDATION_ERROR    | "Hasło musi mieć minimum 6 znaków"  | Użyć dłuższego hasła |
+| Nieprawidłowe credentials  | 401      | UNAUTHORIZED        | "Email lub hasło niepoprawne"       | Sprawdzić dane       |
+| Email niezweryfikowany     | 403      | FORBIDDEN           | "Email nie został zweryfikowany..." | Kliknąć link         |
+| Rate limit                 | 429      | RATE_LIMIT_EXCEEDED | "Przekroczono limit prób..."        | Odczekać 15 min      |
+| Błąd Supabase              | 500      | INTERNAL_ERROR      | "Wystąpił błąd..."                  | Ponowić później      |
 
 ### Mapowanie błędów Supabase
 
@@ -282,12 +305,12 @@ if (error) {
   if (error.message.includes('Email not confirmed')) {
     return createErrorResponse('FORBIDDEN', '...', 403);
   }
-  
+
   // Nieprawidłowe credentials
   if (error.message.includes('Invalid login credentials')) {
     return createErrorResponse('UNAUTHORIZED', '...', 401);
   }
-  
+
   // Inny błąd
   console.error('Supabase login error:', error);
   return createErrorResponse('INTERNAL_ERROR', '...', 500);
@@ -297,6 +320,7 @@ if (error) {
 ### Logowanie błędów
 
 **Co logować:**
+
 - ✅ Błędy Supabase (z stack trace)
 - ✅ Nieoczekiwane wyjątki
 - ✅ Rate limit violations (z IP dla analizy)
@@ -306,6 +330,7 @@ if (error) {
 ## 8. Wydajność
 
 ### Oczekiwany czas odpowiedzi
+
 - **P50 (median)**: < 200ms
 - **P95**: < 500ms
 - **P99**: < 1000ms
@@ -326,6 +351,7 @@ if (error) {
 ### Monitoring
 
 **Metryki do śledzenia:**
+
 - Request rate (żądań/minutę)
 - Response time (P50, P95, P99)
 - Error rate (% failed requests)
@@ -333,6 +359,7 @@ if (error) {
 - Failed login attempts per IP
 
 **Narzędzia:**
+
 - Supabase Dashboard (wbudowane metryki)
 - Sentry / New Relic / LogRocket
 
@@ -367,9 +394,7 @@ export const loginSchema = z.object({
     .email('Nieprawidłowy format adresu email')
     .toLowerCase()
     .trim(),
-  password: z
-    .string({ required_error: 'Hasło jest wymagane' })
-    .min(6, 'Hasło musi mieć minimum 6 znaków')
+  password: z.string({ required_error: 'Hasło jest wymagane' }).min(6, 'Hasło musi mieć minimum 6 znaków'),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -386,41 +411,29 @@ export function createErrorResponse(
   code: string,
   message: string,
   status: number,
-  details?: { field?: string; value?: unknown }
+  details?: { field?: string; value?: unknown },
 ): Response {
   const errorBody: ApiErrorResponse = {
-    error: { code, message, ...(details && { details }) }
+    error: { code, message, ...(details && { details }) },
   };
-  
+
   return new Response(JSON.stringify(errorBody), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
 export function handleAuthError(error: { message: string }): Response {
   if (error.message.includes('Email not confirmed')) {
-    return createErrorResponse(
-      'FORBIDDEN',
-      'Email nie został zweryfikowany. Sprawdź swoją skrzynkę pocztową.',
-      403
-    );
+    return createErrorResponse('FORBIDDEN', 'Email nie został zweryfikowany. Sprawdź swoją skrzynkę pocztową.', 403);
   }
-  
+
   if (error.message.includes('Invalid login credentials')) {
-    return createErrorResponse(
-      'UNAUTHORIZED',
-      'Email lub hasło niepoprawne',
-      401
-    );
+    return createErrorResponse('UNAUTHORIZED', 'Email lub hasło niepoprawne', 401);
   }
-  
+
   console.error('[AUTH_ERROR]', error);
-  return createErrorResponse(
-    'INTERNAL_ERROR',
-    'Wystąpił błąd podczas logowania. Spróbuj ponownie później',
-    500
-  );
+  return createErrorResponse('INTERNAL_ERROR', 'Wystąpił błąd podczas logowania. Spróbuj ponownie później', 500);
 }
 ```
 
@@ -452,15 +465,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0];
-        return createErrorResponse(
-          'VALIDATION_ERROR',
-          firstError.message,
-          400,
-          {
-            field: String(firstError.path[0] || 'unknown'),
-            value: firstError.path[0] === 'password' ? undefined : requestBody?.[firstError.path[0]]
-          }
-        );
+        return createErrorResponse('VALIDATION_ERROR', firstError.message, 400, {
+          field: String(firstError.path[0] || 'unknown'),
+          value: firstError.path[0] === 'password' ? undefined : requestBody?.[firstError.path[0]],
+        });
       }
       throw error;
     }
@@ -475,7 +483,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 4. Uwierzytelnienie przez Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email: validatedData.email,
-      password: validatedData.password
+      password: validatedData.password,
     });
 
     // 5. Obsługa błędów
@@ -495,22 +503,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
       refresh_token: data.session.refresh_token,
       user: {
         id: data.user.id,
-        email: data.user.email!
-      }
+        email: data.user.email!,
+      },
     };
 
     // 8. Zwrot sukcesu
     return new Response(JSON.stringify(responseBody), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('[AUTH_LOGIN_EXCEPTION]', {
       timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     });
-    
+
     return createErrorResponse('INTERNAL_ERROR', 'Wystąpił nieoczekiwany błąd', 500);
   }
 };
@@ -540,6 +547,7 @@ declare namespace App {
 ### 7. Testowanie endpointu
 
 **Test 1**: Poprawne logowanie
+
 ```bash
 curl -X POST http://localhost:4321/auth/login \
   -H "Content-Type: application/json" \
@@ -548,6 +556,7 @@ curl -X POST http://localhost:4321/auth/login \
 ```
 
 **Test 2**: Błąd walidacji - brak email
+
 ```bash
 curl -X POST http://localhost:4321/auth/login \
   -H "Content-Type: application/json" \
@@ -556,6 +565,7 @@ curl -X POST http://localhost:4321/auth/login \
 ```
 
 **Test 3**: Nieprawidłowy format email
+
 ```bash
 curl -X POST http://localhost:4321/auth/login \
   -H "Content-Type: application/json" \
@@ -564,6 +574,7 @@ curl -X POST http://localhost:4321/auth/login \
 ```
 
 **Test 4**: Nieprawidłowe credentials
+
 ```bash
 curl -X POST http://localhost:4321/auth/login \
   -H "Content-Type: application/json" \
@@ -572,6 +583,7 @@ curl -X POST http://localhost:4321/auth/login \
 ```
 
 **Test 5**: Email niezweryfikowany
+
 ```bash
 # Użyć konta bez weryfikacji
 # Oczekiwane: 403 Forbidden

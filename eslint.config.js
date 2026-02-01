@@ -3,6 +3,7 @@ import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import prettierConfig from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
   // Ignore patterns
@@ -32,6 +33,7 @@ export default [
     plugins: {
       '@typescript-eslint': tseslint,
       prettier: prettierPlugin,
+      'react-hooks': reactHooks,
     },
     rules: {
       // Prettier integration
@@ -48,6 +50,10 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-non-null-assertion': 'warn',
+
+      // React Hooks rules
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
 
       // General rules
       'no-console': ['warn', { allow: ['warn', 'error'] }],

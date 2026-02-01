@@ -1,0 +1,60 @@
+---
+import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
+import { chatIdParamsSchema } from '@/schemas/chats.schema';
+
+// Wyłącz prerendering - strona dynamiczna
+export const prerender = false;
+
+// Walidacja parametru chat_id
+const { chat_id } = Astro.params;
+
+let isValidChatId = false;
+let validationError: string | undefined;
+
+try {
+  chatIdParamsSchema.parse({ chat_id });
+  isValidChatId = true;
+} catch (err) {
+  isValidChatId = false;
+  validationError = 'Nieprawidłowy format ID czatu';
+}
+---
+
+<ProtectedLayout>
+  {
+    !isValidChatId ? (
+      <div class="container mx-auto px-4 py-8">
+        <div class="bg-destructive/10 border border-destructive rounded-lg p-6 max-w-md mx-auto">
+          <h1 class="text-xl font-semibold text-destructive mb-2">Błędny adres</h1>
+          <p class="text-muted-foreground mb-4">{validationError}</p>
+          <a
+            href="/chats"
+            class="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            Wróć do listy czatów
+          </a>
+        </div>
+      </div>
+    ) : (
+      <div id="chat-details-page" data-chat-id={chat_id} />
+    )
+  }
+</ProtectedLayout>
+
+<script>
+  import { createElement } from 'react';
+  import { createRoot } from 'react-dom/client';
+  import { ChatDetailsPage } from '@/components/ChatDetailsPage';
+
+  // Znajdź kontener
+  const container = document.getElementById('chat-details-page');
+
+  if (container) {
+    const chatId = container.dataset.chatId;
+
+    if (chatId) {
+      const root = createRoot(container);
+      root.render(createElement(ChatDetailsPage, { chatId }));
+    }
+  }
+</script>

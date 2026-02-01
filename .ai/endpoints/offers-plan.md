@@ -23,23 +23,41 @@ Endpoint `GET /api/offers` zwraca paginowaną listę wszystkich aktywnych ofert 
 import { z } from 'zod';
 
 const ALLOWED_CITIES = [
-  'Warszawa', 'Kraków', 'Wrocław', 'Poznań', 'Gdańsk', 'Szczecin',
-  'Łódź', 'Lublin', 'Białystok', 'Olsztyn', 'Rzeszów', 'Opole',
-  'Zielona Góra', 'Gorzów Wielkopolski', 'Kielce', 'Katowice'
+  'Warszawa',
+  'Kraków',
+  'Wrocław',
+  'Poznań',
+  'Gdańsk',
+  'Szczecin',
+  'Łódź',
+  'Lublin',
+  'Białystok',
+  'Olsztyn',
+  'Rzeszów',
+  'Opole',
+  'Zielona Góra',
+  'Gorzów Wielkopolski',
+  'Kielce',
+  'Katowice',
 ] as const;
 
 export const offersListQuerySchema = z.object({
-  page: z.string().optional()
-    .transform(val => val ? parseInt(val, 10) : 1)
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 1))
     .pipe(z.number().int().min(1)),
-  limit: z.string().optional()
-    .transform(val => val ? parseInt(val, 10) : 15)
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 15))
     .pipe(z.number().int().min(1).max(50, 'Limit nie może przekraczać 50')),
-  city: z.string().optional()
-    .refine(city => !city || ALLOWED_CITIES.includes(city as any),
-      { message: 'Nieprawidłowa nazwa miasta' }),
+  city: z
+    .string()
+    .optional()
+    .refine((city) => !city || ALLOWED_CITIES.includes(city as any), { message: 'Nieprawidłowa nazwa miasta' }),
   sort: z.enum(['created_at', 'title']).optional().default('created_at'),
-  order: z.enum(['asc', 'desc']).optional().default('desc')
+  order: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 ```
 
@@ -55,6 +73,7 @@ Użyj istniejących typów z `src/types.ts`:
 ## 4. Szczegóły odpowiedzi
 
 ### 200 OK
+
 ```json
 {
   "data": [
@@ -102,10 +121,12 @@ Użyj istniejących typów z `src/types.ts`:
 // Główne query
 const { data: offers } = await supabase
   .from('offers')
-  .select(`
+  .select(
+    `
     id, owner_id, title, description, image_url, city, status, created_at,
     users!owner_id (first_name, last_name)
-  `)
+  `,
+  )
   .eq('status', 'ACTIVE')
   .eq(city ? 'city' : '', city || '')
   .order(sort, { ascending: order === 'asc' })
@@ -132,26 +153,28 @@ for (const offer of offers) {
 
 ## 7. Obsługa błędów
 
-| Scenariusz | Kod | Error Code | Komunikat |
-|-----------|-----|------------|-----------|
-| Limit > 50 | 400 | VALIDATION_ERROR | "Limit nie może przekraczać 50" |
-| Page < 1 | 400 | VALIDATION_ERROR | "Numer strony musi być >= 1" |
-| City invalid | 400 | VALIDATION_ERROR | "Nieprawidłowa nazwa miasta" |
-| Brak tokena | 401 | UNAUTHORIZED | "Brak autoryzacji" |
-| Błąd DB | 500 | INTERNAL_ERROR | "Wystąpił błąd podczas pobierania ofert" |
+| Scenariusz   | Kod | Error Code       | Komunikat                                |
+| ------------ | --- | ---------------- | ---------------------------------------- |
+| Limit > 50   | 400 | VALIDATION_ERROR | "Limit nie może przekraczać 50"          |
+| Page < 1     | 400 | VALIDATION_ERROR | "Numer strony musi być >= 1"             |
+| City invalid | 400 | VALIDATION_ERROR | "Nieprawidłowa nazwa miasta"             |
+| Brak tokena  | 401 | UNAUTHORIZED     | "Brak autoryzacji"                       |
+| Błąd DB      | 500 | INTERNAL_ERROR   | "Wystąpił błąd podczas pobierania ofert" |
 
 **Logowanie**: Tylko błędy 500 i nieoczekiwane wyjątki. Nie logować tokenów.
 
 ## 8. Wydajność
 
 ### Oczekiwany czas odpowiedzi
+
 - P50: < 300ms
 - P95: < 800ms
 - P99: < 1500ms
 
 ### Wąskie gardła
 
-**N+1 Problem dla interests_count**: 
+**N+1 Problem dla interests_count**:
+
 - MVP: Osobne query per oferta (15-50 queries)
 - Post-MVP: Materialized view lub LEFT JOIN z agregacją
 
@@ -161,16 +184,18 @@ for (const offer of offers) {
 -- Dla filtrowania z city
 idx_offers_city_status_created ON offers(city, status, created_at DESC)
 
--- Dla sortowania bez city  
+-- Dla sortowania bez city
 idx_offers_status_created ON offers(status, created_at DESC)
 ```
 
 **Brakujący indeks dla sort=title**:
+
 ```sql
 CREATE INDEX idx_offers_status_title ON offers(status, title);
 ```
 
 ### Monitoring
+
 - Request rate, response time (P50/P95/P99)
 - Error rate, DB query time
 - Narzędzia: Supabase Dashboard, Sentry
@@ -178,6 +203,7 @@ CREATE INDEX idx_offers_status_title ON offers(status, title);
 ## 9. Kroki implementacji
 
 ### Struktura plików
+
 ```
 src/
 ├── pages/api/offers/index.ts    # API route
@@ -191,19 +217,27 @@ src/
 ```typescript
 import { z } from 'zod';
 
-export const ALLOWED_CITIES = [/* 16 miast */] as const;
+export const ALLOWED_CITIES = [
+  /* 16 miast */
+] as const;
 
 export const offersListQuerySchema = z.object({
-  page: z.string().optional().transform(val => val ? parseInt(val, 10) : 1)
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 1))
     .pipe(z.number().int().min(1)),
-  limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 15)
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 15))
     .pipe(z.number().int().min(1).max(50)),
-  city: z.string().optional().refine(
-    city => !city || ALLOWED_CITIES.includes(city as any),
-    { message: 'Nieprawidłowa nazwa miasta' }
-  ),
+  city: z
+    .string()
+    .optional()
+    .refine((city) => !city || ALLOWED_CITIES.includes(city as any), { message: 'Nieprawidłowa nazwa miasta' }),
   sort: z.enum(['created_at', 'title']).optional().default('created_at'),
-  order: z.enum(['asc', 'desc']).optional().default('desc')
+  order: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 ```
 
@@ -219,38 +253,35 @@ export class OfferService {
 
   async listOffers(query: OffersListQuery): Promise<Paginated<OfferListItemDTO>> {
     const { page = 1, limit = 15, city, sort = 'created_at', order = 'desc' } = query;
-    
+
     // Base queries
-    let countQuery = this.supabase
-      .from('offers')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'ACTIVE');
-    
+    let countQuery = this.supabase.from('offers').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE');
+
     let dataQuery = this.supabase
       .from('offers')
-      .select('id, owner_id, title, description, image_url, city, status, created_at, users!owner_id(first_name, last_name)')
+      .select(
+        'id, owner_id, title, description, image_url, city, status, created_at, users!owner_id(first_name, last_name)',
+      )
       .eq('status', 'ACTIVE');
-    
+
     // City filter
     if (city) {
       countQuery = countQuery.eq('city', city);
       dataQuery = dataQuery.eq('city', city);
     }
-    
+
     // Sort & pagination
-    dataQuery = dataQuery
-      .order(sort, { ascending: order === 'asc' })
-      .range((page - 1) * limit, page * limit - 1);
-    
+    dataQuery = dataQuery.order(sort, { ascending: order === 'asc' }).range((page - 1) * limit, page * limit - 1);
+
     const [countResult, dataResult] = await Promise.all([countQuery, dataQuery]);
-    
+
     if (countResult.error || dataResult.error) {
       throw new Error('Nie udało się pobrać ofert');
     }
-    
+
     const offers = dataResult.data || [];
     const total = countResult.count || 0;
-    
+
     // Interests count (N+1 - optymalizacja post-MVP)
     const offersWithCounts = await Promise.all(
       offers.map(async (offer) => {
@@ -259,11 +290,11 @@ export class OfferService {
           .select('*', { count: 'exact', head: true })
           .eq('offer_id', offer.id);
         return { ...offer, interests_count: count || 0 };
-      })
+      }),
     );
-    
+
     // Map to DTO
-    const items: OfferListItemDTO[] = offersWithCounts.map(offer => ({
+    const items: OfferListItemDTO[] = offersWithCounts.map((offer) => ({
       id: offer.id,
       owner_id: offer.owner_id,
       owner_name: offer.users ? `${offer.users.first_name} ${offer.users.last_name}`.trim() : undefined,
@@ -273,17 +304,17 @@ export class OfferService {
       city: offer.city,
       status: offer.status,
       created_at: offer.created_at,
-      interests_count: offer.interests_count
+      interests_count: offer.interests_count,
     }));
-    
+
     return {
       data: items,
       pagination: {
         page,
         limit,
         total,
-        total_pages: Math.ceil(total / limit)
-      }
+        total_pages: Math.ceil(total / limit),
+      },
     };
   }
 }
@@ -306,7 +337,10 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     }
 
     // Auth check
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error: authError,
+    } = await supabase.auth.getSession();
     if (authError || !session) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
@@ -314,18 +348,15 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     // Parse & validate query params
     const searchParams = Object.fromEntries(url.searchParams.entries());
     let validatedQuery;
-    
+
     try {
       validatedQuery = offersListQuerySchema.parse(searchParams);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0];
-        return createErrorResponse(
-          'VALIDATION_ERROR',
-          firstError.message,
-          400,
-          { field: String(firstError.path[0] || 'unknown') }
-        );
+        return createErrorResponse('VALIDATION_ERROR', firstError.message, 400, {
+          field: String(firstError.path[0] || 'unknown'),
+        });
       }
       throw error;
     }
@@ -336,15 +367,14 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
 
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('[OFFERS_LIST_EXCEPTION]', error);
     return createErrorResponse(
       'INTERNAL_ERROR',
       'Wystąpił błąd podczas pobierania ofert. Spróbuj ponownie później',
-      500
+      500,
     );
   }
 };
@@ -389,6 +419,7 @@ curl http://localhost:4321/api/offers
 ### Post-MVP optymalizacje
 
 **Priorytet 1**: Agregacja interests_count w DB (materialized view)
+
 ```sql
 CREATE MATERIALIZED VIEW offers_with_counts AS
 SELECT o.*, COUNT(i.id) as interests_count,
@@ -401,6 +432,7 @@ GROUP BY o.id, u.first_name, u.last_name;
 ```
 
 **Priorytet 2**: Indeks dla sort=title
+
 ```sql
 CREATE INDEX idx_offers_status_title ON offers(status, title);
 ```

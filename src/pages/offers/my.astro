@@ -1,0 +1,25 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { MyOffersPageLayout } from '@/components/MyOffersPageLayout';
+
+/**
+ * Strona Moje Oferty
+ *
+ * Dostępna pod /offers/my
+ * Wymaga autoryzacji - pokazuje oferty zalogowanego użytkownika
+ * Osadza Reactowy komponent MyOffersPageLayout jako "island"
+ */
+
+export const prerender = false;
+
+// Pobierz aktualną ścieżkę z URL
+const currentPath = Astro.url.pathname;
+
+// Token jest przechowywany w localStorage po stronie klienta
+// AuthContext odczyta go automatycznie podczas inicjalizacji
+const accessToken = undefined;
+---
+
+<Layout title="KAKAPO - Moje Oferty">
+  <MyOffersPageLayout client:only="react" currentPath={currentPath} initialToken={accessToken} />
+</Layout>

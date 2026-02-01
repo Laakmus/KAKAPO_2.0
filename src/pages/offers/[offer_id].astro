@@ -1,0 +1,55 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { OfferDetailPageLayout } from '@/components/OfferDetailPageLayout';
+import { offerIdParamsSchema } from '@/schemas/offers.schema';
+
+// Wyłącz prerendering - strona dynamiczna
+export const prerender = false;
+
+// Walidacja parametru offer_id
+const { offer_id } = Astro.params;
+
+let isValidOfferId = false;
+let validationError: string | undefined;
+
+try {
+  offerIdParamsSchema.parse({ offer_id });
+  isValidOfferId = true;
+} catch (err) {
+  isValidOfferId = false;
+  validationError = 'Nieprawidłowy format ID oferty';
+}
+
+// Pobierz aktualną ścieżkę z URL
+const currentPath = Astro.url.pathname;
+
+// Token jest przechowywany w localStorage po stronie klienta
+// AuthContext odczyta go automatycznie podczas inicjalizacji
+const accessToken = undefined;
+---
+
+<Layout title="Szczegóły oferty">
+  {
+    !isValidOfferId ? (
+      <div class="container mx-auto px-4 py-8">
+        <div class="bg-destructive/10 border border-destructive rounded-lg p-6 max-w-md mx-auto">
+          <h1 class="text-xl font-semibold text-destructive mb-2">Błędny adres</h1>
+          <p class="text-muted-foreground mb-4">{validationError}</p>
+          <a
+            href="/offers"
+            class="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            Wróć do listy ofert
+          </a>
+        </div>
+      </div>
+    ) : (
+      <OfferDetailPageLayout
+        client:only="react"
+        currentPath={currentPath}
+        initialToken={accessToken}
+        offerId={offer_id!}
+      />
+    )
+  }
+</Layout>
