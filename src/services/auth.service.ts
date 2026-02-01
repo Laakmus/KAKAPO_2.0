@@ -156,9 +156,9 @@ export class AuthService {
 
         const { error: delErr } = await supabase.from('sessions').delete().eq('id', sessionId);
         if (delErr) {
-          const err = new Error('SUPABASE_DELETE_ERROR');
-          (err as any).status = 500;
-          (err as any).original = delErr;
+          const err: Error & { status?: number; original?: unknown } = new Error('SUPABASE_DELETE_ERROR');
+          err.status = 500;
+          err.original = delErr;
           throw err;
         }
 
