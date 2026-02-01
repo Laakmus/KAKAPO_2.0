@@ -113,7 +113,7 @@ export class InterestsService {
 
     // 5) Jeśli mutual match, zaktualizuj wcześniejsze zainteresowanie na ACCEPTED
     if (mutualMatch && mutualInterestId) {
-      console.log('[INTERESTS_SERVICE][MUTUAL_MATCH_DETECTED]', {
+      console.warn('[INTERESTS_SERVICE][MUTUAL_MATCH_DETECTED]', {
         mutualInterestId,
         willUpdateStatus: 'ACCEPTED',
       });
@@ -124,7 +124,7 @@ export class InterestsService {
         .eq('id', mutualInterestId)
         .select('*');
 
-      console.log('[INTERESTS_SERVICE][UPDATE_RESULT]', {
+      console.warn('[INTERESTS_SERVICE][UPDATE_RESULT]', {
         error: updateMutualError,
         updatedRows: updateResult,
       });
@@ -133,13 +133,13 @@ export class InterestsService {
         console.error('[INTERESTS_SERVICE][UPDATE_MUTUAL_INTEREST_ERROR]', updateMutualError);
         // Nie przerywamy operacji, kontynuujemy tworzenie nowego zainteresowania
       } else {
-        console.log('[INTERESTS_SERVICE][MUTUAL_INTEREST_UPDATED]', {
+        console.warn('[INTERESTS_SERVICE][MUTUAL_INTEREST_UPDATED]', {
           updatedCount: updateResult?.length ?? 0,
           updatedData: updateResult,
         });
       }
     } else {
-      console.log('[INTERESTS_SERVICE][NO_MUTUAL_MATCH]', {
+      console.warn('[INTERESTS_SERVICE][NO_MUTUAL_MATCH]', {
         mutualMatch,
         mutualInterestId,
         requesterOfferIds: (requesterOffers || []).map((r: { id: string }) => r.id),
@@ -217,7 +217,7 @@ export class InterestsService {
               // Wyczyść chat_id ze starych REALIZED interestów — nie należą do nowej wymiany
               await this.supabase
                 .from('interests')
-                .update({ chat_id: null } as any)
+                .update({ chat_id: null } as { chat_id: null })
                 .eq('chat_id', chatId)
                 .eq('status', 'REALIZED');
 
@@ -380,7 +380,8 @@ export class InterestsService {
     }
 
     // Sprawdź właściciela
-    if ((interest as any).user_id !== requesterId) {
+    const interestOwnerId = (interest as unknown as { user_id?: string }).user_id;
+    if (interestOwnerId !== requesterId) {
       const e = new Error('Brak uprawnień do anulowania tego zainteresowania');
       Object.assign(e, { code: 'FORBIDDEN' });
       throw e;
@@ -436,7 +437,7 @@ export class InterestsService {
     const { data: offer, error: offerError } = await this.supabase
       .from('offers')
       .select('id, owner_id')
-      .eq('id', (interest as any).offer_id)
+      .eq('id', (interest as unknown as { offer_id?: string }).offer_id ?? '')
       .maybeSingle();
 
     if (offerError) {
@@ -446,11 +447,12 @@ export class InterestsService {
       throw e;
     }
 
-    const offerOwnerId = (offer as any)?.owner_id as string | undefined;
+    const offerOwnerId = (offer as unknown as { owner_id?: string } | null)?.owner_id;
 
     // Sprawdź czy requestingUserId jest jedną ze stron wymiany
+    const interestUserId = (interest as unknown as { user_id?: string }).user_id;
     const isParticipant =
-      String((interest as any).user_id) === String(requestingUserId) ||
+      String(interestUserId) === String(requestingUserId) ||
       (offerOwnerId && String(offerOwnerId) === String(requestingUserId));
 
     if (!isParticipant) {
