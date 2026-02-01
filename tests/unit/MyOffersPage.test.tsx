@@ -184,6 +184,15 @@ describe('MyOffersPage', () => {
     expect(screen.getByTestId('LoadingSkeletonGrid')).toBeInTheDocument();
   });
 
+  it('renders add offer button with link to new offer page', () => {
+    render(<MyOffersPage />);
+
+    const addOfferButton = screen.getByTestId('my-offers-add-offer');
+
+    expect(addOfferButton).toHaveAttribute('href', '/offers/new');
+    expect(addOfferButton).toHaveTextContent('Dodaj ofertę');
+  });
+
   it('switches status filter to REMOVED when clicking "Usunięte"', async () => {
     const user = userEvent.setup();
 
