@@ -33,9 +33,26 @@ jobs:
       - run: npm ci
       - run: npm run test:unit
 
+  build:
+    name: Build
+    needs: lint
+    runs-on: ubuntu-latest
+    env:
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run build
+
   e2e-test:
     name: Playwright E2E (integration)
-    needs: lint
+    needs: build
     runs-on: ubuntu-latest
     env:
       NODE_ENV: integration
