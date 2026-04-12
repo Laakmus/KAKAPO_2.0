@@ -170,14 +170,16 @@ describe('OffersPageShell', () => {
     );
   });
 
-  it('uses hardNavigate when selecting an offer', async () => {
+  it('updates offerId via pushState when selecting an offer (no page reload)', async () => {
+    const pushStateSpy = vi.spyOn(window.history, 'pushState');
     const user = userEvent.setup();
 
     renderWithAuth(<OffersPageShell offerId="o1" />);
 
     await user.click(screen.getByRole('button', { name: 'select-o2' }));
 
-    expect(mocks.hardNavigate).toHaveBeenCalledWith('/offers/o2');
+    expect(pushStateSpy).toHaveBeenCalledWith({}, '', '/offers/o2');
+    pushStateSpy.mockRestore();
   });
 
   it('passes onPageChange to useUrlPagination.setPage', async () => {

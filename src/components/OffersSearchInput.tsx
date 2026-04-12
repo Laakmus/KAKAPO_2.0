@@ -59,6 +59,8 @@ export function OffersSearchInput({
 
       {/* Input */}
       <Input
+        id="offers-search"
+        name="offers-search"
         type="text"
         data-testid="offers-search-input"
         value={localValue}

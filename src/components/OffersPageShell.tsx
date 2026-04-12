@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useOfferDetail } from '@/hooks/useOfferDetail';
 import { useInterestToggle } from '@/hooks/useInterestToggle';
 import { useUrlPagination } from '@/hooks/useUrlPagination';
-import { hardNavigate } from '@/utils/navigation';
 import type { HomeFilterState, NotificationMessage } from '@/types';
 import { OffersListPanel } from '@/components/OffersListPanel';
 import { OfferDetailPanel } from '@/components/OfferDetailPanel';
@@ -26,9 +25,12 @@ type OffersPageShellProps = {
  * - Wyświetla globalne notyfikacje o sukcesie/błędzie
  * - Obsługuje routing - parametr offerId z URL
  */
-export function OffersPageShell({ offerId }: OffersPageShellProps) {
+export function OffersPageShell({ offerId: initialOfferId }: OffersPageShellProps) {
+  // Zarządzaj offerId w React state zamiast nawigacji (unikamy page reload)
+  const [currentOfferId, setCurrentOfferId] = useState(initialOfferId);
+
   // Hooks
-  const { offer, isLoading, error, refresh } = useOfferDetail(offerId);
+  const { offer, isLoading, error, refresh } = useOfferDetail(currentOfferId);
   const { actionState, expressInterest, cancelInterest, resetActionState } = useInterestToggle();
   const { page, setPage } = useUrlPagination();
   const { user } = useAuth();
@@ -119,10 +121,26 @@ export function OffersPageShell({ offerId }: OffersPageShellProps) {
 
   /**
    * Handler dla wyboru oferty z listy
-   * Nawiguje do nowej oferty
+   * Aktualizuje React state + URL bez przeładowania strony
    */
   const handleSelectOffer = useCallback((selectedOfferId: string) => {
-    hardNavigate(`/offers/${selectedOfferId}`);
+    setCurrentOfferId(selectedOfferId);
+    window.history.pushState({}, '', `/offers/${selectedOfferId}`);
+  }, []);
+
+  /**
+   * Nasłuchuj zmian URL (back/forward) by zsynchronizować offerId
+   */
+  useEffect(() => {
+    const handlePopState = () => {
+      const match = window.location.pathname.match(/^\/offers\/(.+)$/);
+      if (match) {
+        setCurrentOfferId(match[1]);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   /**
@@ -162,7 +180,7 @@ export function OffersPageShell({ offerId }: OffersPageShellProps) {
           {/* Left panel - Offers list (1/3 width on large screens) */}
           <div className="lg:col-span-1">
             <OffersListPanel
-              selectedOfferId={offerId}
+              selectedOfferId={currentOfferId}
               onSelect={handleSelectOffer}
               filter={filter}
               page={page}
