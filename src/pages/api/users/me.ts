@@ -2,49 +2,34 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { createErrorResponse } from '../../../utils/errors';
 import UserService from '../../../services/user.service';
+import { profileEditFormSchema, deleteAccountFormSchema } from '../../../schemas/profile.schema';
 
 // Wyłączenie pre-renderowania - endpoint musi działać server-side
 export const prerender = false;
-
-const passwordSchema = z.object({
-  password: z.string().min(8, 'Hasło musi mieć co najmniej 8 znaków'),
-});
-
-const updateProfileSchema = z.object({
-  first_name: z
-    .string({ required_error: 'Imię jest wymagane' })
-    .min(1, 'Imię jest wymagane')
-    .max(100, 'Imię nie może przekraczać 100 znaków'),
-  last_name: z
-    .string({ required_error: 'Nazwisko jest wymagane' })
-    .min(1, 'Nazwisko jest wymagane')
-    .max(100, 'Nazwisko nie może przekraczać 100 znaków'),
-});
 
 /**
  * GET /api/users/me
  *
  * Zwraca profil zalogowanego użytkownika.
  */
-export const GET: APIRoute = async ({ request, locals }) => {
+export const GET: APIRoute = async ({ locals }) => {
   try {
     const supabase = locals.supabase;
     if (!supabase) {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-    }
-    const token = authHeader.split(' ')[1];
-
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData?.user) {
+    const currentUser = locals.user;
+    if (!currentUser) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
 
-    const user = userData.user;
+    // Użyj authUser z middleware (cache z getUser()) - unikamy duplikatu roundtrip
+    const user = locals.authUser;
+    if (!user) {
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
+    }
+
     const userWithMeta = user as {
       user_metadata?: Record<string, unknown>;
       raw_user_meta_data?: Record<string, unknown>;
@@ -92,18 +77,10 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const currentUser = locals.user;
+    if (!currentUser) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
-    const token = authHeader.split(' ')[1];
-
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData?.user) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-    }
-
-    const user = userData.user;
 
     let requestBody: unknown;
     try {
@@ -114,7 +91,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
 
     let validatedData: { first_name: string; last_name: string };
     try {
-      validatedData = updateProfileSchema.parse(requestBody);
+      validatedData = profileEditFormSchema.parse(requestBody);
     } catch (err) {
       if (err instanceof z.ZodError) {
         const first = err.errors[0];
@@ -147,7 +124,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
       },
     });
 
-    const { data: updatedUser, error: updateError } = await adminClient.auth.admin.updateUserById(user.id, {
+    const { data: updatedUser, error: updateError } = await adminClient.auth.admin.updateUserById(currentUser.id, {
       user_metadata: {
         first_name: validatedData.first_name,
         last_name: validatedData.last_name,
@@ -162,7 +139,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
     const { count } = await supabase
       .from('offers')
       .select('id', { count: 'exact', head: true })
-      .eq('owner_id', user.id)
+      .eq('owner_id', currentUser.id)
       .eq('status', 'ACTIVE');
 
     const profile = {
@@ -199,6 +176,11 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
+    const currentUser = locals.user;
+    if (!currentUser) {
+      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
+    }
+
     let requestBody: unknown;
     try {
       requestBody = await request.json();
@@ -207,7 +189,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     }
 
     try {
-      passwordSchema.parse(requestBody);
+      deleteAccountFormSchema.parse(requestBody);
     } catch (err) {
       if (err instanceof z.ZodError) {
         const first = err.errors[0];
@@ -219,18 +201,6 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     }
 
     const { password } = requestBody as { password: string };
-
-    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-    }
-    const token = authHeader.split(' ')[1];
-
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData?.user) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-    }
-    const currentUser = userData.user;
 
     const { error: signinError } = await supabase.auth.signInWithPassword({
       email: currentUser.email ?? '',

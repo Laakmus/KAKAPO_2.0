@@ -1,5 +1,6 @@
 ---
-import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
+import Layout from '@/layouts/Layout.astro';
+import { ChatDetailsPageLayout } from '@/components/ChatDetailsPageLayout';
 import { chatIdParamsSchema } from '@/schemas/chats.schema';
 
 // Wyłącz prerendering - strona dynamiczna
@@ -18,9 +19,12 @@ try {
   isValidChatId = false;
   validationError = 'Nieprawidłowy format ID czatu';
 }
+
+const currentPath = Astro.url.pathname;
+const accessToken = undefined;
 ---
 
-<ProtectedLayout>
+<Layout title="Szczegóły czatu - KAKAPO">
   {
     !isValidChatId ? (
       <div class="container mx-auto px-4 py-8">
@@ -36,25 +40,12 @@ try {
         </div>
       </div>
     ) : (
-      <div id="chat-details-page" data-chat-id={chat_id} />
+      <ChatDetailsPageLayout
+        client:load
+        currentPath={currentPath}
+        initialToken={accessToken}
+        chatId={chat_id!}
+      />
     )
   }
-</ProtectedLayout>
-
-<script>
-  import { createElement } from 'react';
-  import { createRoot } from 'react-dom/client';
-  import { ChatDetailsPage } from '@/components/ChatDetailsPage';
-
-  // Znajdź kontener
-  const container = document.getElementById('chat-details-page');
-
-  if (container) {
-    const chatId = container.dataset.chatId;
-
-    if (chatId) {
-      const root = createRoot(container);
-      root.render(createElement(ChatDetailsPage, { chatId }));
-    }
-  }
-</script>
+</Layout>

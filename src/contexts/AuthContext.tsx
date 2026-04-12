@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import type { UserProfileDTO } from '@/types';
 
 /**
@@ -85,36 +85,43 @@ export function AuthProvider({ children, initialToken }: AuthProviderProps) {
   /**
    * Ustawia token i zapisuje w localStorage
    */
-  const setToken = (newToken?: string) => {
+  const setToken = useCallback((newToken?: string) => {
     setTokenState(newToken);
-    if (newToken) {
-      localStorage.setItem('access_token', newToken);
-    } else {
-      localStorage.removeItem('access_token');
+    if (typeof window !== 'undefined') {
+      if (newToken) {
+        localStorage.setItem('access_token', newToken);
+      } else {
+        localStorage.removeItem('access_token');
+      }
     }
-  };
+  }, []);
 
   /**
    * Resetuje sesję - czyści token, user i localStorage
    */
-  const resetSession = () => {
+  const resetSession = useCallback(() => {
     setTokenState(undefined);
     setUser(undefined);
     setStatus('unauthenticated');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-  };
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+    }
+  }, []);
 
-  const value: AuthContextValue = {
-    user,
-    token,
-    status,
-    isLoading: status === 'loading',
-    setUser,
-    setToken,
-    resetSession,
-  };
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      token,
+      status,
+      isLoading: status === 'loading',
+      setUser,
+      setToken,
+      resetSession,
+    }),
+    [user, token, status, setToken, resetSession],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

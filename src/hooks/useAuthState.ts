@@ -93,7 +93,7 @@ export function useAuthState() {
     };
 
     fetchProfile();
-  }, [auth.token, auth.user, auth, toast]); // Zależności: token, user, auth, toast
+  }, [auth.token, auth.user, auth.setUser, auth.resetSession, toast]); // Stabilne deps z memoized AuthContext
 
   return auth;
 }

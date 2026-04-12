@@ -52,7 +52,7 @@ jobs:
 
   e2e-test:
     name: Playwright E2E (integration)
-    needs: build
+    needs: lint
     runs-on: ubuntu-latest
     env:
       NODE_ENV: integration
