@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import type { OfferDetailDTO, OfferDetailViewModel, ApiErrorViewModel } from '@/types';
 
@@ -20,6 +20,7 @@ export function useOfferDetail(offerId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<ApiErrorViewModel | undefined>();
+  const hasLoadedOnce = useRef(false);
 
   /**
    * Mapuje DTO na ViewModel - dodaje pola UI
@@ -61,9 +62,11 @@ export function useOfferDetail(offerId: string) {
       }
 
       try {
-        if (isRefresh) {
+        if (isRefresh || hasLoadedOnce.current) {
+          // Zmiana oferty lub refresh: zachowaj poprzednie dane
           setIsRefreshing(true);
         } else {
+          // Pierwsze ładowanie: pokaż skeleton
           setIsLoading(true);
         }
         setError(undefined);
@@ -119,6 +122,7 @@ export function useOfferDetail(offerId: string) {
         }
         setOffer(null);
       } finally {
+        hasLoadedOnce.current = true;
         setIsLoading(false);
         setIsRefreshing(false);
       }

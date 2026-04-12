@@ -28,6 +28,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       const { data } = await supabase.auth.getUser(token);
       if (data?.user) {
         context.locals.user = { id: data.user.id, email: (data.user.email as string) ?? undefined };
+        // Cache full auth user for endpoints that need metadata (e.g. /api/users/me)
+        context.locals.authUser = data.user;
       }
     } catch {
       // ignore auth errors here; endpoints may enforce auth as required

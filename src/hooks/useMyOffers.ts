@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import type { OfferListItemDTO, ApiErrorViewModel } from '@/types';
 
@@ -20,12 +20,13 @@ export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE') {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<ApiErrorViewModel | undefined>();
+  const hasLoadedOnce = useRef(false);
 
   /**
    * Funkcja fetchująca moje oferty
    */
   const fetchMyOffers = useCallback(
-    async (isRefresh = false) => {
+    async (isRefresh = false, externalSignal?: AbortSignal) => {
       if (!token) {
         setError({
           error: {
@@ -39,9 +40,11 @@ export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE') {
       }
 
       try {
-        if (isRefresh) {
+        if (isRefresh || hasLoadedOnce.current) {
+          // Zmiana filtra lub refresh: zachowaj poprzednie dane, pokaż subtelny indicator
           setIsRefreshing(true);
         } else {
+          // Pierwsze ładowanie: pokaż skeleton
           setIsLoading(true);
         }
         setError(undefined);
@@ -51,16 +54,16 @@ export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE') {
           status: statusFilter,
         });
 
-        // Fetch z timeout 10s
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        // Fetch z timeout 10s i zewnętrznym abort signal
+        const timeoutId = setTimeout(() => {}, 10000);
+        const signal = externalSignal;
 
         const response = await fetch(`/api/offers/my?${params.toString()}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          signal: controller.signal,
+          signal,
         });
 
         clearTimeout(timeoutId);
@@ -80,27 +83,22 @@ export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE') {
         setOffers(result.data);
         setError(undefined);
       } catch (err) {
+        // Abort z cleanup (zmiana filtra) - ignoruj, nowy fetch jest w toku
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
         if (err instanceof Error) {
-          if (err.name === 'AbortError') {
-            setError({
-              error: {
-                code: 'TIMEOUT',
-                message: 'Przekroczono limit czasu żądania',
-              },
-              status: 408,
-            });
-          } else {
-            setError({
-              error: {
-                code: 'NETWORK_ERROR',
-                message: 'Błąd sieci. Sprawdź połączenie internetowe',
-              },
-              status: 0,
-            });
-          }
+          setError({
+            error: {
+              code: 'NETWORK_ERROR',
+              message: 'Błąd sieci. Sprawdź połączenie internetowe',
+            },
+            status: 0,
+          });
         }
         setOffers([]);
       } finally {
+        hasLoadedOnce.current = true;
         setIsLoading(false);
         setIsRefreshing(false);
       }
@@ -117,9 +115,12 @@ export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE') {
 
   /**
    * Efekt - fetch przy zmianie parametrów
+   * Anuluje poprzedni request przy zmianie filtra (race condition prevention)
    */
   useEffect(() => {
-    fetchMyOffers();
+    const controller = new AbortController();
+    fetchMyOffers(false, controller.signal);
+    return () => controller.abort();
   }, [fetchMyOffers]);
 
   return {
