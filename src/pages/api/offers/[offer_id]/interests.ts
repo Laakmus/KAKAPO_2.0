@@ -55,8 +55,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
     }
 
     // 4. Supabase client
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = (locals as any).supabase;
+    const supabase = locals.supabase;
     if (!supabase) {
       console.error('[GET_OFFER_INTERESTS] Supabase client missing in locals');
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);

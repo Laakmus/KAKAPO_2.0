@@ -87,10 +87,12 @@ export function AuthProvider({ children, initialToken }: AuthProviderProps) {
    */
   const setToken = useCallback((newToken?: string) => {
     setTokenState(newToken);
-    if (newToken) {
-      localStorage.setItem('access_token', newToken);
-    } else {
-      localStorage.removeItem('access_token');
+    if (typeof window !== 'undefined') {
+      if (newToken) {
+        localStorage.setItem('access_token', newToken);
+      } else {
+        localStorage.removeItem('access_token');
+      }
     }
   }, []);
 
@@ -101,9 +103,11 @@ export function AuthProvider({ children, initialToken }: AuthProviderProps) {
     setTokenState(undefined);
     setUser(undefined);
     setStatus('unauthenticated');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+    }
   }, []);
 
   const value = useMemo<AuthContextValue>(

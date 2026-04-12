@@ -9,25 +9,15 @@ export const prerender = false;
  *
  * Auth required. Only owner of the interest may cancel it.
  */
-export const DELETE: APIRoute = async ({ request, params, locals }) => {
+export const DELETE: APIRoute = async ({ params, locals }) => {
   try {
     const supabase = locals.supabase;
     if (!supabase) {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
+    const user = locals.user;
+    if (!user) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
     const userId = user.id;
@@ -65,25 +55,15 @@ export const DELETE: APIRoute = async ({ request, params, locals }) => {
  *
  * Potwierdzenie realizacji wymiany przez uczestnika.
  */
-export const PATCH: APIRoute = async ({ request, params, locals }) => {
+export const PATCH: APIRoute = async ({ params, locals }) => {
   try {
     const supabase = locals.supabase;
     if (!supabase) {
       return createErrorResponse('INTERNAL_ERROR', 'Błąd konfiguracji serwera', 500);
     }
 
-    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
+    const user = locals.user;
+    if (!user) {
       return createErrorResponse('UNAUTHORIZED', 'Brak autoryzacji', 401);
     }
     const userId = user.id;

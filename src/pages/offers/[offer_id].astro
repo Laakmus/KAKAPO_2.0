@@ -45,7 +45,7 @@ const accessToken = undefined;
       </div>
     ) : (
       <OfferDetailPageLayout
-        client:only="react"
+        client:load
         currentPath={currentPath}
         initialToken={accessToken}
         offerId={offer_id!}
