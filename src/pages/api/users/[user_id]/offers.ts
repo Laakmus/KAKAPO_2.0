@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { userIdParamSchema } from '../../../../schemas/offers.schema';
+import { userIdParamSchema } from '../../../../schemas/user.schema';
 import { createErrorResponse } from '../../../../utils/errors';
 import OfferService from '../../../../services/offer.service';
 

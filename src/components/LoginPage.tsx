@@ -20,6 +20,7 @@ import { hardNavigate } from '@/utils/navigation';
  */
 export function LoginPage() {
   const computeSafeRedirectTarget = (redirectRaw: string | null): string | null => {
+    if (typeof window === 'undefined') return null;
     if (!redirectRaw) return null;
     if (redirectRaw === '/login') return null;
 

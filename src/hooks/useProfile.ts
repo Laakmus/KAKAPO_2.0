@@ -32,7 +32,7 @@ export function useProfile() {
       });
       setIsLoading(false);
       // Redirect to login
-      window.location.href = '/login';
+      if (typeof window !== 'undefined') window.location.href = '/login';
       return;
     }
 
@@ -63,7 +63,7 @@ export function useProfile() {
         });
 
         // Jeśli 401 - redirect do loginu
-        if (response.status === 401) {
+        if (response.status === 401 && typeof window !== 'undefined') {
           window.location.href = '/login';
         }
 
