@@ -13,7 +13,6 @@ Nowoczesna aplikacja webowa do wymiany produktów i usług bez pieniędzy. Użyt
 - [Architektura](#architektura)
 - [Struktura projektu](#struktura-projektu)
 - [Zbudowane z AI](#zbudowane-z-ai)
-- [Optymalizacje wydajności](#optymalizacje-wydajności)
 - [Uruchomienie](#uruchomienie)
 - [Dostępne skrypty](#dostępne-skrypty)
 - [Testowanie](#testowanie)
@@ -71,7 +70,7 @@ Kluczowe decyzje architektoniczne:
 - **Row-Level Security** -- każda tabela chroniona politykami RLS powiązanymi z JWT uwierzytelnionego użytkownika. Brak dodatkowych sprawdzeń autoryzacji w kodzie aplikacji.
 - **Walidacja Zod** -- wszystkie granice API walidują dane wejściowe schematami Zod przed przetworzeniem.
 - **Custom hooks** -- 23 hooki React enkapsulują zarządzanie stanem, wywołania API i logikę UI.
-- **Server-side data injection** -- middleware Astro pobiera profil użytkownika i dane stron server-side, przekazując je jako props do React. Eliminuje to flash ładowania przy nawigacji.
+- **Server-side data injection** -- middleware Astro pobiera profil użytkownika i dane stron server-side, przekazując je jako props do React.
 
 ## Struktura projektu
 
@@ -129,30 +128,6 @@ Projekt został w pełni zbudowany w modelu **AI-assisted development** z wykorz
 
 - **Claude Code (CLI)** -- główne narzędzie do pisania kodu, refactoringu, debuggingu
 - **Multi-agent workflow** -- równoległe uruchamianie agentów do eksploracji kodu, planowania architektury i code review
-
-## Optymalizacje wydajności
-
-### Eliminacja loading flash przy nawigacji (server-side data injection)
-
-**Problem**: Przy nawigacji między stronami (np. kliknięcie "Moje Oferty") użytkownik widział krótki flash: spinner → skeleton → treść. Wynikało to z architektury MPA -- każda nawigacja to pełny reload strony, React mountował się od nowa i musiał fetchować dane z API.
-
-**Rozwiązanie** (zaimplementowane w 3 krokach):
-
-1. **Cookie auth** -- token JWT zapisywany jako httpOnly cookie obok localStorage. Dzięki temu middleware Astro ma dostęp do tokena przy nawigacji (przeglądarka automatycznie wysyła cookie, ale nie wysyła localStorage).
-
-2. **Server-side user profile** -- middleware czyta cookie, waliduje token i pobiera profil użytkownika z Supabase server-side. Profil przekazywany jako prop `initialUser` do komponentów React. AuthContext startuje od razu jako `authenticated` -- zero spinnerów.
-
-3. **Server-side page data** -- strony Astro (`.astro`) pobierają dane specyficzne dla strony (np. listę ofert) server-side i przekazują jako initial props. Hooki React używają tych danych jako stanu początkowego -- zero skeletonów.
-
-**Efekt**: Strony otwierają się natychmiastowo z pełną treścią, bez żadnego migania.
-
-### Pozostałe optymalizacje
-
-- **useMemo/useCallback w AuthContext** -- zapobiega kaskadowym re-renderom konsumentów `useAuth()`
-- **isRefreshing pattern w hookach** -- skeleton tylko przy pierwszym załadowaniu, subtelny wskaźnik przy odświeżaniu danych
-- **AbortController** -- anulowanie poprzednich requestów przy szybkich zmianach filtrów
-- **Opóźniony badge check** -- sprawdzanie nowych zainteresowań w nawigacji odsunięte o 2s, żeby nie konkurować z ładowaniem treści strony
-- **Migracja client:only → client:load** -- SSR rendering eliminuje biały flash przed hydracją React
 
 ## Uruchomienie
 
