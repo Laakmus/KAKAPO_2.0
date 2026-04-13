@@ -310,12 +310,6 @@ export type CreateInterestCommand = {
   offer_id: string;
 };
 
-export type CancelInterestCommand = {
-  // No body required; path param interest_id identifies the record.
-};
-
-export type RealizeInterestCommand = {};
-export type UnrealizeInterestCommand = {};
 // Response when creating an interest; on mutual match `chat_id` may be present.
 export type CreateInterestResponse = InterestListItemDTO & {
   message?: string;

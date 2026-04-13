@@ -118,7 +118,6 @@ export class ChatsService {
 
       // 8) Sprawdź czy jest aktywny mutual match
       if (!userAInterest || !userBInterest) {
-        console.warn('[ChatsService.isChatLocked] No mutual match found - locking');
         return true; // Brak mutual match -> zablokowany
       }
 
@@ -126,23 +125,16 @@ export class ChatsService {
       const offerA = userAOffers?.find((o) => o.id === userBInterest.offer_id);
       const offerB = userBOffers?.find((o) => o.id === userAInterest.offer_id);
 
-      console.warn('[ChatsService.isChatLocked] Chat:', chatId);
-      console.warn('[ChatsService.isChatLocked] Interest A:', userAInterest.status, 'Offer B:', offerB?.status);
-      console.warn('[ChatsService.isChatLocked] Interest B:', userBInterest.status, 'Offer A:', offerA?.status);
-
       // 10) Zablokuj jeśli którakolwiek oferta jest REMOVED
       if (offerA?.status === 'REMOVED' || offerB?.status === 'REMOVED') {
-        console.warn('[ChatsService.isChatLocked] Offer removed - locking');
         return true;
       }
 
       // 11) Zablokuj jeśli obie strony potwierdziły realizację
       if (userAInterest.status === 'REALIZED' && userBInterest.status === 'REALIZED') {
-        console.warn('[ChatsService.isChatLocked] Both realized - locking');
         return true;
       }
 
-      console.warn('[ChatsService.isChatLocked] Chat active');
       return false;
     } catch (err) {
       console.error('[ChatsService.isChatLocked] unexpected error:', err);

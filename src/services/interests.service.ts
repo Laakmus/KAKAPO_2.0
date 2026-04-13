@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../db/database.types';
-import type { InterestStatus } from '../db/enums';
 import type { CreateInterestCommand, CreateInterestResponse } from '../types';
 
 /**
@@ -45,7 +44,7 @@ export class InterestsService {
       throw e;
     }
 
-    const offerOwnerId = (offer as { owner_id: string }).owner_id;
+    const offerOwnerId = offer.owner_id;
 
     // 2) Nie pozwalaj na zainteresowanie własną ofertą
     if (offerOwnerId === requesterId) {
@@ -86,7 +85,7 @@ export class InterestsService {
       throw new Error('Błąd pobierania ofert requestera');
     }
 
-    const requesterOfferIds = (requesterOffers || []).map((r: { id: string }) => r.id) as string[];
+    const requesterOfferIds = (requesterOffers || []).map((r) => r.id);
 
     let mutualMatch = false;
     let mutualInterestId: string | null = null;
@@ -107,43 +106,22 @@ export class InterestsService {
 
       mutualMatch = Array.isArray(mutual) && mutual.length > 0;
       if (mutualMatch && mutual.length > 0) {
-        mutualInterestId = (mutual[0] as { id: string }).id;
+        mutualInterestId = mutual[0].id;
       }
     }
 
     // 5) Jeśli mutual match, zaktualizuj wcześniejsze zainteresowanie na ACCEPTED
     if (mutualMatch && mutualInterestId) {
-      console.warn('[INTERESTS_SERVICE][MUTUAL_MATCH_DETECTED]', {
-        mutualInterestId,
-        willUpdateStatus: 'ACCEPTED',
-      });
-
-      const { data: updateResult, error: updateMutualError } = await this.supabase
+      const { error: updateMutualError } = await this.supabase
         .from('interests')
         .update({ status: 'ACCEPTED' })
         .eq('id', mutualInterestId)
         .select('*');
 
-      console.warn('[INTERESTS_SERVICE][UPDATE_RESULT]', {
-        error: updateMutualError,
-        updatedRows: updateResult,
-      });
-
       if (updateMutualError) {
         console.error('[INTERESTS_SERVICE][UPDATE_MUTUAL_INTEREST_ERROR]', updateMutualError);
         // Nie przerywamy operacji, kontynuujemy tworzenie nowego zainteresowania
-      } else {
-        console.warn('[INTERESTS_SERVICE][MUTUAL_INTEREST_UPDATED]', {
-          updatedCount: updateResult?.length ?? 0,
-          updatedData: updateResult,
-        });
       }
-    } else {
-      console.warn('[INTERESTS_SERVICE][NO_MUTUAL_MATCH]', {
-        mutualMatch,
-        mutualInterestId,
-        requesterOfferIds: (requesterOffers || []).map((r: { id: string }) => r.id),
-      });
     }
 
     // 6) Utwórz interest (domyślnie PROPOSED, lub ACCEPTED jeśli mutual match)
@@ -162,15 +140,14 @@ export class InterestsService {
     if (insertError) {
       console.error('[INTERESTS_SERVICE][INSERT_ERROR]', insertError);
       // RLS violation
-      const insertErrorCode = (insertError as unknown as { code?: string }).code;
-      if (insertErrorCode === '42501') {
+      if (insertError.code === '42501') {
         const e = new Error('RLS_VIOLATION');
         Object.assign(e, { code: 'RLS_VIOLATION' });
         throw e;
       }
 
       // Unique constraint / conflict - translate to DUPLICATE
-      if (insertErrorCode === '23505') {
+      if (insertError.code === '23505') {
         const e = new Error('Już wyraziłeś zainteresowanie tą ofertą');
         Object.assign(e, { code: 'DUPLICATE' });
         throw e;
@@ -198,8 +175,7 @@ export class InterestsService {
 
         if (chatError) {
           // UNIQUE conflict — czat między tymi użytkownikami już istnieje, reaktywuj go
-          const chatErrorCode = (chatError as unknown as { code?: string }).code;
-          if (chatErrorCode === '23505') {
+          if (chatError.code === '23505') {
             const [existingUserA, existingUserB] = [requesterId, offerOwnerId].sort();
             const { data: existingChat } = await this.supabase
               .from('chats')
@@ -209,7 +185,7 @@ export class InterestsService {
               .maybeSingle();
 
             if (existingChat) {
-              chatId = (existingChat as unknown as { id: string }).id;
+              chatId = existingChat.id;
 
               // Reaktywuj zarchiwizowany czat
               await this.supabase.from('chats').update({ status: 'ACTIVE' }).eq('id', chatId);
@@ -217,17 +193,16 @@ export class InterestsService {
               // Wyczyść chat_id ze starych REALIZED interestów — nie należą do nowej wymiany
               await this.supabase
                 .from('interests')
-                .update({ chat_id: null } as { chat_id: null })
+                .update({ chat_id: null })
                 .eq('chat_id', chatId)
                 .eq('status', 'REALIZED');
 
               // Ustaw chat_id na nowych interestach
-              const insertedAny = insertedInterest as unknown as { id: string } | null;
-              if (insertedAny?.id) {
+              if (insertedInterest?.id) {
                 await this.supabase
                   .from('interests')
                   .update({ status: 'ACCEPTED', chat_id: chatId })
-                  .eq('id', insertedAny.id);
+                  .eq('id', insertedInterest.id);
               }
               if (mutualInterestId) {
                 await this.supabase.from('interests').update({ chat_id: chatId }).eq('id', mutualInterestId);
@@ -236,31 +211,27 @@ export class InterestsService {
           } else {
             console.error('[INTERESTS_SERVICE][CHAT_INSERT_ERROR]', chatError);
           }
-        } else {
-          const chatAny = chat as unknown as { id?: string } | null;
-          if (chatAny?.id) {
-            chatId = chatAny.id;
-            // Aktualizuj oba interests (nowe i wcześniejsze), ustaw chat_id
-            const insertedAny = insertedInterest as unknown as { id: string } | null;
-            const { error: updateError } = await this.supabase
+        } else if (chat?.id) {
+          chatId = chat.id;
+          // Aktualizuj oba interests (nowe i wcześniejsze), ustaw chat_id
+          const { error: updateError } = await this.supabase
+            .from('interests')
+            .update({ status: 'ACCEPTED', chat_id: chatId })
+            .eq('id', insertedInterest?.id ?? '');
+
+          if (updateError) {
+            console.error('[INTERESTS_SERVICE][INTEREST_UPDATE_ERROR]', updateError);
+          }
+
+          // Aktualizuj wcześniejsze zainteresowanie chat_id
+          if (mutualInterestId) {
+            const { error: updateMutualChatError } = await this.supabase
               .from('interests')
-              .update({ status: 'ACCEPTED', chat_id: chatId })
-              .eq('id', insertedAny?.id ?? '');
+              .update({ chat_id: chatId })
+              .eq('id', mutualInterestId);
 
-            if (updateError) {
-              console.error('[INTERESTS_SERVICE][INTEREST_UPDATE_ERROR]', updateError);
-            }
-
-            // Aktualizuj wcześniejsze zainteresowanie chat_id
-            if (mutualInterestId) {
-              const { error: updateMutualChatError } = await this.supabase
-                .from('interests')
-                .update({ chat_id: chatId })
-                .eq('id', mutualInterestId);
-
-              if (updateMutualChatError) {
-                console.error('[INTERESTS_SERVICE][UPDATE_MUTUAL_CHAT_ERROR]', updateMutualChatError);
-              }
+            if (updateMutualChatError) {
+              console.error('[INTERESTS_SERVICE][UPDATE_MUTUAL_CHAT_ERROR]', updateMutualChatError);
             }
           }
         }
@@ -270,20 +241,12 @@ export class InterestsService {
     }
 
     // Przygotuj response DTO
-    const insertedAny = insertedInterest as unknown as {
-      id: string;
-      offer_id: string;
-      user_id: string;
-      status: InterestStatus;
-      created_at: string;
-    };
-
     const response: CreateInterestResponse = {
-      id: insertedAny.id,
-      offer_id: insertedAny.offer_id,
-      user_id: insertedAny.user_id,
-      status: insertedAny.status,
-      created_at: insertedAny.created_at,
+      id: insertedInterest.id,
+      offer_id: insertedInterest.offer_id,
+      user_id: insertedInterest.user_id,
+      status: insertedInterest.status,
+      created_at: insertedInterest.created_at,
       message: mutualMatch ? 'Wzajemne zainteresowanie! Chat został otwarty' : 'Zainteresowanie zostało wyrażone',
       chat_id: chatId ?? null,
     };
@@ -380,8 +343,7 @@ export class InterestsService {
     }
 
     // Sprawdź właściciela
-    const interestOwnerId = (interest as unknown as { user_id?: string }).user_id;
-    if (interestOwnerId !== requesterId) {
+    if (interest.user_id !== requesterId) {
       const e = new Error('Brak uprawnień do anulowania tego zainteresowania');
       Object.assign(e, { code: 'FORBIDDEN' });
       throw e;
@@ -437,7 +399,7 @@ export class InterestsService {
     const { data: offer, error: offerError } = await this.supabase
       .from('offers')
       .select('id, owner_id')
-      .eq('id', (interest as unknown as { offer_id?: string }).offer_id ?? '')
+      .eq('id', interest.offer_id)
       .maybeSingle();
 
     if (offerError) {
@@ -447,12 +409,11 @@ export class InterestsService {
       throw e;
     }
 
-    const offerOwnerId = (offer as unknown as { owner_id?: string } | null)?.owner_id;
+    const offerOwnerId = offer?.owner_id;
 
     // Sprawdź czy requestingUserId jest jedną ze stron wymiany
-    const interestUserId = (interest as unknown as { user_id?: string }).user_id;
     const isParticipant =
-      String(interestUserId) === String(requestingUserId) ||
+      String(interest.user_id) === String(requestingUserId) ||
       (offerOwnerId && String(offerOwnerId) === String(requestingUserId));
 
     if (!isParticipant) {
@@ -462,32 +423,32 @@ export class InterestsService {
     }
 
     // Jeśli już zrealizowane -> konflikt
-    if ((interest as any).status === 'REALIZED') {
+    if (interest.status === 'REALIZED') {
       const e = new Error('Zainteresowanie zostało już zrealizowane');
       Object.assign(e, { code: 'ALREADY_REALIZED' });
       throw e;
     }
 
     // Jeśli już WAITING -> już potwierdzone przez tę stronę
-    if ((interest as any).status === 'WAITING') {
+    if (interest.status === 'WAITING') {
       const e = new Error('Potwierdzenie już zostało złożone, oczekiwanie na drugą stronę');
       Object.assign(e, { code: 'ALREADY_REALIZED' });
       throw e;
     }
 
     // Status must be ACCEPTED to allow realize
-    if ((interest as any).status !== 'ACCEPTED') {
+    if (interest.status !== 'ACCEPTED') {
       const e = new Error('Status musi być ACCEPTED aby potwierdzić realizację');
       Object.assign(e, { code: 'BAD_STATUS' });
       throw e;
     }
 
     const realizedAt = new Date().toISOString();
-    const chatId = (interest as any).chat_id as string | null | undefined;
+    const chatId = interest.chat_id;
 
     // Sprawdź czy druga strona już WAITING (czeka na nas)
     let otherIsWaiting = false;
-    let other: any = null;
+    let other: { id: string; user_id: string; status: string; offer_id: string } | null = null;
 
     if (chatId) {
       const { data: otherData, error: otherError } = await this.supabase
@@ -501,9 +462,9 @@ export class InterestsService {
 
       if (otherError) {
         console.error('[INTERESTS_SERVICE][CHECK_OTHER_WAITING_ERROR]', otherError);
-      } else {
+      } else if (otherData) {
         other = otherData;
-        otherIsWaiting = other && (other as any).status === 'WAITING';
+        otherIsWaiting = otherData.status === 'WAITING';
       }
     }
 
@@ -512,7 +473,7 @@ export class InterestsService {
       const { error: updateBothError } = await this.supabase
         .from('interests')
         .update({ status: 'REALIZED', realized_at: realizedAt })
-        .in('id', [interestId, (other as any).id]);
+        .in('id', [interestId, other.id]);
 
       if (updateBothError) {
         console.error('[INTERESTS_SERVICE][UPDATE_BOTH_REALIZED_ERROR]', updateBothError);
@@ -524,48 +485,46 @@ export class InterestsService {
       // Obie strony REALIZED — utwórz exchange_history i archiwizuj czat
       let exchangeHistoryId: string | undefined = undefined;
       try {
-        const offerIds = [(interest as any).offer_id, (other as any).offer_id].filter(Boolean) as string[];
+        const offerIds = [interest.offer_id, other.offer_id].filter(Boolean);
         const { data: offersData, error: offersError } = await this.supabase
           .from('offers')
           .select('id, title, owner_id')
-          .in('id', offerIds as string[]);
+          .in('id', offerIds);
 
         if (offersError) {
           console.error('[INTERESTS_SERVICE][OFFERS_FETCH_FOR_HISTORY_ERROR]', offersError);
         } else {
           const offerMap = new Map<string, { id: string; title: string; owner_id: string }>();
-          (offersData || []).forEach((o: any) => offerMap.set(o.id, o));
+          (offersData || []).forEach((o) => offerMap.set(o.id, o));
 
-          const offerA = offerMap.get((interest as any).offer_id);
-          const offerB = offerMap.get((other as any).offer_id);
-
-          const insertPayload: any = {
-            chat_id: chatId ?? null,
-            offer_a_id: offerA?.id ?? null,
-            offer_a_title: offerA?.title ?? '',
-            offer_b_id: offerB?.id ?? null,
-            offer_b_title: offerB?.title ?? '',
-            realized_at: realizedAt,
-            user_a: (interest as any).user_id ?? null,
-            user_b: (other as any).user_id ?? null,
-          };
+          const offerA = offerMap.get(interest.offer_id);
+          const offerB = offerMap.get(other.offer_id);
 
           const { data: history, error: historyError } = await this.supabase
             .from('exchange_history')
-            .insert(insertPayload)
+            .insert({
+              chat_id: chatId,
+              offer_a_id: offerA?.id ?? null,
+              offer_a_title: offerA?.title ?? '',
+              offer_b_id: offerB?.id ?? null,
+              offer_b_title: offerB?.title ?? '',
+              realized_at: realizedAt,
+              user_a: interest.user_id,
+              user_b: other.user_id,
+            })
             .select('id')
             .single();
 
           if (historyError) {
             console.error('[INTERESTS_SERVICE][EXCHANGE_HISTORY_INSERT_ERROR]', historyError);
-          } else if (history && (history as any).id) {
-            exchangeHistoryId = (history as any).id;
+          } else if (history?.id) {
+            exchangeHistoryId = history.id;
 
             // Archiwizuj czat — wymiana zakończona
             const { error: archiveError } = await this.supabase
               .from('chats')
               .update({ status: 'ARCHIVED' })
-              .eq('id', chatId);
+              .eq('id', chatId as string);
 
             if (archiveError) {
               console.error('[INTERESTS_SERVICE][ARCHIVE_CHAT_ERROR]', archiveError);
@@ -639,14 +598,14 @@ export class InterestsService {
     }
 
     // Ze statusu REALIZED cofnięcie niemożliwe (obie strony potwierdziły)
-    if ((interest as any).status === 'REALIZED') {
+    if (interest.status === 'REALIZED') {
       const e = new Error('Nie można cofnąć potwierdzenia — wymiana została zrealizowana przez obie strony');
       Object.assign(e, { code: 'ALREADY_REALIZED' });
       throw e;
     }
 
     // Cofnięcie możliwe tylko ze statusu WAITING
-    if ((interest as any).status !== 'WAITING') {
+    if (interest.status !== 'WAITING') {
       const e = new Error('Status musi być WAITING aby cofnąć potwierdzenie');
       Object.assign(e, { code: 'BAD_STATUS' });
       throw e;
@@ -656,7 +615,7 @@ export class InterestsService {
     const { data: offer, error: offerError } = await this.supabase
       .from('offers')
       .select('id, owner_id')
-      .eq('id', (interest as any).offer_id)
+      .eq('id', interest.offer_id)
       .maybeSingle();
 
     if (offerError) {
@@ -666,11 +625,10 @@ export class InterestsService {
       throw e;
     }
 
-    const offerOwnerId = (offer as any)?.owner_id as string | undefined;
+    const offerOwnerId = offer?.owner_id;
 
     const isParticipant =
-      String((interest as any).user_id) === String(actorId) ||
-      (offerOwnerId && String(offerOwnerId) === String(actorId));
+      String(interest.user_id) === String(actorId) || (offerOwnerId && String(offerOwnerId) === String(actorId));
 
     if (!isParticipant) {
       const e = new Error('Brak uprawnień do cofnięcia potwierdzenia');
@@ -681,7 +639,7 @@ export class InterestsService {
     // Cofnij: WAITING → ACCEPTED, wyczyść realized_at
     const { error: updateError } = await this.supabase
       .from('interests')
-      .update({ status: 'ACCEPTED', realized_at: null } as any)
+      .update({ status: 'ACCEPTED', realized_at: null })
       .eq('id', interestId);
 
     if (updateError) {

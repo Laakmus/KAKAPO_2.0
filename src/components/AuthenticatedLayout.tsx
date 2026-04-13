@@ -18,6 +18,7 @@ export type AuthenticatedLayoutProps = {
   children: ReactNode;
   currentPath: string;
   initialToken?: string;
+  initialUser?: import('@/types').UserProfileDTO;
   flags?: FeatureFlagRecord;
 };
 
@@ -57,46 +58,53 @@ d   * Bazuje na porównaniu interests_count z "ostatnio widzianą" liczbą zaint
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-    fetch('/api/offers/my?status=ACTIVE', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-    })
-      .then(async (res) => {
-        if (!res.ok) return null;
-        return (await res.json()) as { data?: Array<{ id: string; interests_count?: number }> };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        const offers = payload?.data ?? [];
-        let seenMap: Record<string, number> = {};
-        if (typeof window !== 'undefined') {
-          try {
-            const raw = window.localStorage.getItem('kakapo_seen_interests_count_by_offer_id');
-            const parsed = raw ? (JSON.parse(raw) as Record<string, number>) : {};
-            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-              seenMap = parsed;
-            }
-          } catch {
-            seenMap = {};
-          }
-        }
+    // Opóźnienie 2s — badge check to niskopriorytetowy UI sygnał,
+    // nie powinien konkurować z ładowaniem właściwej treści strony
+    const delayId = setTimeout(() => {
+      if (cancelled) return;
 
-        const hasNew = offers.some((o) => (o.interests_count ?? 0) > (seenMap[o.id] ?? 0));
-        setMyOffersHasUpdates(hasNew);
+      fetch('/api/offers/my?status=ACTIVE', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
       })
-      .catch(() => {
-        if (cancelled) return;
-        setMyOffersHasUpdates(false);
-      })
-      .finally(() => {
-        clearTimeout(timeoutId);
-      });
+        .then(async (res) => {
+          if (!res.ok) return null;
+          return (await res.json()) as { data?: Array<{ id: string; interests_count?: number }> };
+        })
+        .then((payload) => {
+          if (cancelled) return;
+          const offers = payload?.data ?? [];
+          let seenMap: Record<string, number> = {};
+          if (typeof window !== 'undefined') {
+            try {
+              const raw = window.localStorage.getItem('kakapo_seen_interests_count_by_offer_id');
+              const parsed = raw ? (JSON.parse(raw) as Record<string, number>) : {};
+              if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                seenMap = parsed;
+              }
+            } catch {
+              seenMap = {};
+            }
+          }
+
+          const hasNew = offers.some((o) => (o.interests_count ?? 0) > (seenMap[o.id] ?? 0));
+          setMyOffersHasUpdates(hasNew);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setMyOffersHasUpdates(false);
+        })
+        .finally(() => {
+          clearTimeout(timeoutId);
+        });
+    }, 2000);
 
     return () => {
       cancelled = true;
+      clearTimeout(delayId);
       clearTimeout(timeoutId);
       controller.abort();
     };
@@ -192,10 +200,16 @@ d   * Bazuje na porównaniu interests_count z "ostatnio widzianą" liczbą zaint
  *
  * @param props - Props komponentu
  */
-export function AuthenticatedLayout({ children, currentPath, initialToken, flags }: AuthenticatedLayoutProps) {
+export function AuthenticatedLayout({
+  children,
+  currentPath,
+  initialToken,
+  initialUser,
+  flags,
+}: AuthenticatedLayoutProps) {
   const resolvedFlags = flags ?? getDefaultFlags();
   return (
-    <AuthProvider initialToken={initialToken}>
+    <AuthProvider initialToken={initialToken} initialUser={initialUser}>
       <ToastProvider>
         <FeatureFlagProvider flags={resolvedFlags}>
           <AuthenticatedLayoutInner currentPath={currentPath}>{children}</AuthenticatedLayoutInner>

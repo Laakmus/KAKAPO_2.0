@@ -115,64 +115,60 @@ export class AuthService {
       throw err;
     }
 
-    try {
-      // Jeśli system wspiera "revoke all devices" - spróbuj usunąć wpisy z tabeli `sessions`
-      if (allDevices) {
-        const { error } = await supabase.from('sessions').delete().eq('user_id', userId);
-        if (error) {
-          // Jeśli tabela `sessions` nie istnieje lub operacja nie jest wspierana przez DB,
-          // uznajemy to za brak wsparcia serwerowego dla tej funkcjonalności.
-          const notImpl: Error & { status?: number; original?: unknown } = new Error('NOT_IMPLEMENTED');
-          notImpl.status = 501;
-          notImpl.original = error;
-          throw notImpl;
-        }
-
-        return;
+    // Jeśli system wspiera "revoke all devices" - spróbuj usunąć wpisy z tabeli `sessions`
+    if (allDevices) {
+      const { error } = await supabase.from('sessions').delete().eq('user_id', userId);
+      if (error) {
+        // Jeśli tabela `sessions` nie istnieje lub operacja nie jest wspierana przez DB,
+        // uznajemy to za brak wsparcia serwerowego dla tej funkcjonalności.
+        const notImpl: Error & { status?: number; original?: unknown } = new Error('NOT_IMPLEMENTED');
+        notImpl.status = 501;
+        notImpl.original = error;
+        throw notImpl;
       }
 
-      // Jeśli podano konkretne sessionId - spróbuj znaleźć i usunąć
-      if (sessionId) {
-        const { data, error } = await supabase
-          .from('sessions')
-          .select('id, user_id')
-          .eq('id', sessionId)
-          .eq('user_id', userId)
-          .limit(1)
-          .maybeSingle();
+      return;
+    }
 
-        if (error) {
-          const err: Error & { status?: number; original?: unknown } = new Error('SUPABASE_QUERY_ERROR');
-          err.status = 500;
-          err.original = error;
-          throw err;
-        }
+    // Jeśli podano konkretne sessionId - spróbuj znaleźć i usunąć
+    if (sessionId) {
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('id, user_id')
+        .eq('id', sessionId)
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle();
 
-        if (!data) {
-          const notFound: Error & { status?: number } = new Error('SESSION_NOT_FOUND');
-          notFound.status = 404;
-          throw notFound;
-        }
-
-        const { error: delErr } = await supabase.from('sessions').delete().eq('id', sessionId);
-        if (delErr) {
-          const err = new Error('SUPABASE_DELETE_ERROR') as Error & { status?: number; original?: unknown };
-          err.status = 500;
-          err.original = delErr;
-          throw err;
-        }
-
-        return;
+      if (error) {
+        const err: Error & { status?: number; original?: unknown } = new Error('SUPABASE_QUERY_ERROR');
+        err.status = 500;
+        err.original = error;
+        throw err;
       }
 
-      // Fallback: spróbuj usunąć rekordy sesji powiązane z userId jeśli tabela istnieje.
-      const { error: fallbackError } = await supabase.from('sessions').delete().eq('user_id', userId);
-      if (fallbackError) {
-        // Brak tabeli `sessions` lub inny problem -> nie ma globalnego revoke, traktujemy jako no-op
-        return;
+      if (!data) {
+        const notFound: Error & { status?: number } = new Error('SESSION_NOT_FOUND');
+        notFound.status = 404;
+        throw notFound;
       }
-    } catch (err) {
-      throw err;
+
+      const { error: delErr } = await supabase.from('sessions').delete().eq('id', sessionId);
+      if (delErr) {
+        const err = new Error('SUPABASE_DELETE_ERROR') as Error & { status?: number; original?: unknown };
+        err.status = 500;
+        err.original = delErr;
+        throw err;
+      }
+
+      return;
+    }
+
+    // Fallback: spróbuj usunąć rekordy sesji powiązane z userId jeśli tabela istnieje.
+    const { error: fallbackError } = await supabase.from('sessions').delete().eq('user_id', userId);
+    if (fallbackError) {
+      // Brak tabeli `sessions` lub inny problem -> nie ma globalnego revoke, traktujemy jako no-op
+      return;
     }
   }
 }

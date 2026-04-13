@@ -22,6 +22,7 @@ try {
 
 const currentPath = Astro.url.pathname;
 const accessToken = undefined;
+const userProfile = Astro.locals.userProfile;
 ---
 
 <Layout title={`Profil użytkownika - KAKAPO`}>
@@ -29,6 +30,7 @@ const accessToken = undefined;
     client:load
     currentPath={currentPath}
     initialToken={accessToken}
+    initialUser={userProfile}
     userId={validUserId}
   />
 </Layout>

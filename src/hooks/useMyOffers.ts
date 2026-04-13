@@ -13,14 +13,16 @@ import type { OfferListItemDTO, ApiErrorViewModel } from '@/types';
  *
  * @param statusFilter - status ofert do filtrowania ('ACTIVE' | 'REMOVED')
  */
-export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE') {
+export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE', initialOffers?: OfferListItemDTO[]) {
   const { token } = useAuth();
 
-  const [offers, setOffers] = useState<OfferListItemDTO[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Użyj server-side data jako initial state (tylko dla domyślnego filtra ACTIVE)
+  const hasInitialData = !!(initialOffers && statusFilter === 'ACTIVE');
+  const [offers, setOffers] = useState<OfferListItemDTO[]>(hasInitialData ? initialOffers : []);
+  const [isLoading, setIsLoading] = useState(!hasInitialData);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<ApiErrorViewModel | undefined>();
-  const hasLoadedOnce = useRef(false);
+  const hasLoadedOnce = useRef(hasInitialData);
 
   /**
    * Funkcja fetchująca moje oferty
@@ -117,7 +119,14 @@ export function useMyOffers(statusFilter: 'ACTIVE' | 'REMOVED' = 'ACTIVE') {
    * Efekt - fetch przy zmianie parametrów
    * Anuluje poprzedni request przy zmianie filtra (race condition prevention)
    */
+  const skipInitialFetch = useRef(hasInitialData);
+
   useEffect(() => {
+    // Pomij fetch jeśli mamy dane z server-side injection
+    if (skipInitialFetch.current) {
+      skipInitialFetch.current = false;
+      return;
+    }
     const controller = new AbortController();
     fetchMyOffers(false, controller.signal);
     return () => controller.abort();

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import type {
   OfferListItemViewModel,
@@ -21,12 +21,24 @@ import type {
  * @param filter - filtry i sortowanie
  * @param page - numer strony (1-based)
  */
-export function useOffersList(filter: HomeFilterState, page: number) {
+export function useOffersList(filter: HomeFilterState, page: number, initialData?: Paginated<OfferListItemDTO>) {
   const { token, user } = useAuth();
 
-  const [offers, setOffers] = useState<OfferListItemViewModel[]>([]);
-  const [pagination, setPagination] = useState<OffersPaginationMeta | undefined>();
-  const [isLoading, setIsLoading] = useState(true);
+  // Użyj server-side data jako initial state (tylko dla domyślnych filtrów, strona 1)
+  const hasInitialData = !!(initialData && page === 1 && !filter.search && !filter.city);
+  const [offers, setOffers] = useState<OfferListItemViewModel[]>(() => {
+    if (hasInitialData) {
+      return initialData.data.map((offer) => ({
+        ...offer,
+        isOwnOffer: user?.id === offer.owner_id,
+      }));
+    }
+    return [];
+  });
+  const [pagination, setPagination] = useState<OffersPaginationMeta | undefined>(
+    hasInitialData ? initialData.pagination : undefined,
+  );
+  const [isLoading, setIsLoading] = useState(!hasInitialData);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<ApiErrorViewModel | undefined>();
 
@@ -144,10 +156,16 @@ export function useOffersList(filter: HomeFilterState, page: number) {
     fetchOffers(true);
   }, [fetchOffers]);
 
+  const skipInitialFetch = useRef(hasInitialData);
+
   /**
    * Efekt - fetch przy zmianie parametrów
    */
   useEffect(() => {
+    if (skipInitialFetch.current) {
+      skipInitialFetch.current = false;
+      return;
+    }
     fetchOffers();
   }, [fetchOffers]);
 

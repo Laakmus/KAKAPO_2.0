@@ -7,6 +7,8 @@ import { HomeOffersPage } from './HomeOffersPage';
 export type HomeOffersPageLayoutProps = {
   currentPath: string;
   initialToken?: string;
+  initialUser?: import('@/types').UserProfileDTO;
+  initialOffersData?: import('@/types').Paginated<import('@/types').OfferListItemDTO>;
 };
 
 /**
@@ -15,10 +17,15 @@ export type HomeOffersPageLayoutProps = {
  * Łączy AuthenticatedLayout z HomeOffersPage w jednej React island,
  * aby zapewnić dostęp do AuthProvider context.
  */
-export function HomeOffersPageLayout({ currentPath, initialToken }: HomeOffersPageLayoutProps) {
+export function HomeOffersPageLayout({
+  currentPath,
+  initialToken,
+  initialUser,
+  initialOffersData,
+}: HomeOffersPageLayoutProps) {
   return (
-    <AuthenticatedLayout currentPath={currentPath} initialToken={initialToken}>
-      <HomeOffersPage />
+    <AuthenticatedLayout currentPath={currentPath} initialToken={initialToken} initialUser={initialUser}>
+      <HomeOffersPage initialOffersData={initialOffersData} />
     </AuthenticatedLayout>
   );
 }

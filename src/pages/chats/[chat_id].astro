@@ -22,6 +22,7 @@ try {
 
 const currentPath = Astro.url.pathname;
 const accessToken = undefined;
+const userProfile = Astro.locals.userProfile;
 ---
 
 <Layout title="Szczegóły czatu - KAKAPO">
@@ -44,6 +45,7 @@ const accessToken = undefined;
         client:load
         currentPath={currentPath}
         initialToken={accessToken}
+        initialUser={userProfile}
         chatId={chat_id!}
       />
     )

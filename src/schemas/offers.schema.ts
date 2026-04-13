@@ -6,15 +6,6 @@ export const offerIdParamsSchema = z.object({
 });
 
 export type OfferIdParams = z.infer<typeof offerIdParamsSchema>;
-/**
- * Walidacja parametru ścieżki `user_id` dla endpointu:
- * GET /api/users/{user_id}/offers
- */
-export const userIdParamSchema = z.object({
-  user_id: z.string().uuid({ message: 'Nieprawidłowy format ID użytkownika' }).describe('UUID użytkownika'),
-});
-
-export type UserIdParam = z.infer<typeof userIdParamSchema>;
 
 /* ========================
   Schemas dla ofert

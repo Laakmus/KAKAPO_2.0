@@ -8,6 +8,7 @@ import { ChatsViewPage } from '@/components/ChatsViewPage';
 export type ChatsPageLayoutProps = {
   currentPath: string;
   initialToken?: string;
+  initialUser?: import('@/types').UserProfileDTO;
 };
 
 /**
@@ -16,7 +17,7 @@ export type ChatsPageLayoutProps = {
  * Łączy AuthenticatedLayout z ChatsViewPage w jednej React island,
  * aby zapewnić dostęp do AuthProvider i ToastProvider context.
  */
-export function ChatsPageLayout({ currentPath, initialToken }: ChatsPageLayoutProps) {
+export function ChatsPageLayout({ currentPath, initialToken, initialUser }: ChatsPageLayoutProps) {
   const [initialChatId, setInitialChatId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export function ChatsPageLayout({ currentPath, initialToken }: ChatsPageLayoutPr
   }, []);
 
   return (
-    <AuthenticatedLayout currentPath={currentPath} initialToken={initialToken}>
+    <AuthenticatedLayout currentPath={currentPath} initialToken={initialToken} initialUser={initialUser}>
       <div className="h-[calc(100vh-10rem)]">
         <ChatsViewPage initialChatId={initialChatId} />
       </div>

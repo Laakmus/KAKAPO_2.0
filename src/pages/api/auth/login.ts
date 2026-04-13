@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { loginSchema } from '../../../schemas/auth.schema';
 import { createErrorResponse, handleAuthError } from '../../../utils/errors';
+import { setAuthCookie } from '../../../utils/auth-cookie';
 import type { LoginUserCommand, AuthTokensResponse } from '../../../types';
 
 // Wyłączenie pre-renderowania - endpoint musi działać w trybie server-side
@@ -100,11 +101,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
     };
 
-    // 8. Zwrot sukcesu z tokenami i danymi użytkownika
-    return new Response(JSON.stringify(responseBody), {
+    // 8. Zwrot sukcesu z tokenami i danymi użytkownika + cookie
+    const response = new Response(JSON.stringify(responseBody), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+    return setAuthCookie(response, data.session.access_token, data.session.expires_in);
   } catch (error) {
     // Obsługa nieoczekiwanych wyjątków
     console.error('[AUTH_LOGIN_EXCEPTION]', {

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import AuthService from '../../../services/auth.service';
 import { createErrorResponse } from '../../../utils/errors';
+import { clearAuthCookie } from '../../../utils/auth-cookie';
 
 // Wyłączenie pre-renderowania - endpoint musi działać w trybie server-side
 export const prerender = false;
@@ -67,7 +68,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Weryfikacja tokena przez Supabase
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData?.user) {
-      return createErrorResponse('UNAUTHORIZED', 'Token nieprawidłowy lub wygasł', 401);
+      return clearAuthCookie(createErrorResponse('UNAUTHORIZED', 'Token nieprawidłowy lub wygasł', 401));
     }
 
     const userId = userData.user.id;
@@ -86,10 +87,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return createErrorResponse('INTERNAL_ERROR', 'Wystąpił błąd podczas wylogowywania', 500);
     }
 
-    return new Response(JSON.stringify({ message: 'Wylogowano pomyślnie' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return clearAuthCookie(
+      new Response(JSON.stringify({ message: 'Wylogowano pomyślnie' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
   } catch (error) {
     console.error('[AUTH_LOGOUT_EXCEPTION]', error);
     return createErrorResponse('INTERNAL_ERROR', 'Wystąpił nieoczekiwany błąd', 500);

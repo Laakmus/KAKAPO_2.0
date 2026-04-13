@@ -18,8 +18,9 @@ const currentPath = Astro.url.pathname;
 // Token jest przechowywany w localStorage po stronie klienta
 // AuthContext odczyta go automatycznie podczas inicjalizacji
 const accessToken = undefined;
+const userProfile = Astro.locals.userProfile;
 ---
 
 <Layout title="KAKAPO - Czaty">
-  <ChatsPageLayout client:load currentPath={currentPath} initialToken={accessToken} />
+  <ChatsPageLayout client:load currentPath={currentPath} initialToken={accessToken} initialUser={userProfile} />
 </Layout>

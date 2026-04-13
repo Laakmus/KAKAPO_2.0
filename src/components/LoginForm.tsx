@@ -81,9 +81,7 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
   // Watchdog: jeśli isRedirecting jest true dłużej niż 2.5s, wymuszamy hard reload
   useEffect(() => {
     if (isRedirecting) {
-      console.warn('[LoginForm] Ustawiono isRedirecting=true, uruchamiam watchdog (2.5s)');
       redirectTimeoutRef.current = setTimeout(() => {
-        console.error('[LoginForm] Watchdog: nawigacja nie nastąpiła w 2.5s — wymuszam reload');
         // Ostateczny fallback: hard reload lub redirect do /offers
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get('redirect');
@@ -129,11 +127,9 @@ export function LoginForm({ onSuccess, onError, initialValues, showFooterLink = 
 
     if (result.success) {
       // Sukces - zablokuj formularz i pozwól stronie przekierować
-      console.warn('[LoginForm] Logowanie udane, ustawiam isRedirecting=true');
       setIsRedirecting(true);
       // Sukces - wywołaj callback z tokenami
       try {
-        console.warn('[LoginForm] Wywołuję onSuccess callback');
         onSuccess?.(result.data);
       } catch (e) {
         // Safety fallback - jeśli callback rzuci wyjątek, spróbuj prostego przekierowania

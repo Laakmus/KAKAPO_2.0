@@ -1,25 +1,26 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { MyOffersPageLayout } from '@/components/MyOffersPageLayout';
-
-/**
- * Strona Moje Oferty
- *
- * Dostępna pod /offers/my
- * Wymaga autoryzacji - pokazuje oferty zalogowanego użytkownika
- * Osadza Reactowy komponent MyOffersPageLayout jako "island"
- */
+import { OfferService } from '@/services/offer.service';
 
 export const prerender = false;
 
-// Pobierz aktualną ścieżkę z URL
 const currentPath = Astro.url.pathname;
-
-// Token jest przechowywany w localStorage po stronie klienta
-// AuthContext odczyta go automatycznie podczas inicjalizacji
 const accessToken = undefined;
+const userProfile = Astro.locals.userProfile;
+
+// Fetch ofert server-side — eliminuje loading flash
+let initialOffers = undefined;
+if (Astro.locals.user?.id && Astro.locals.supabase) {
+  try {
+    const offerService = new OfferService(Astro.locals.supabase);
+    initialOffers = await offerService.getMyOffers(Astro.locals.user.id, 'ACTIVE');
+  } catch {
+    // Fallback: React pobierze dane client-side
+  }
+}
 ---
 
 <Layout title="KAKAPO - Moje Oferty">
-  <MyOffersPageLayout client:load currentPath={currentPath} initialToken={accessToken} />
+  <MyOffersPageLayout client:load currentPath={currentPath} initialToken={accessToken} initialUser={userProfile} initialOffers={initialOffers} />
 </Layout>

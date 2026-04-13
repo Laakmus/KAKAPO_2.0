@@ -7,6 +7,7 @@ import { OffersNewPage } from './OffersNewPage';
 export type OffersNewPageLayoutProps = {
   currentPath: string;
   initialToken?: string;
+  initialUser?: import('@/types').UserProfileDTO;
 };
 
 /**
@@ -15,9 +16,9 @@ export type OffersNewPageLayoutProps = {
  * Łączy AuthenticatedLayout z OffersNewPage w jednej React island,
  * aby zapewnić dostęp do AuthProvider context.
  */
-export function OffersNewPageLayout({ currentPath, initialToken }: OffersNewPageLayoutProps) {
+export function OffersNewPageLayout({ currentPath, initialToken, initialUser }: OffersNewPageLayoutProps) {
   return (
-    <AuthenticatedLayout currentPath={currentPath} initialToken={initialToken}>
+    <AuthenticatedLayout currentPath={currentPath} initialToken={initialToken} initialUser={initialUser}>
       <OffersNewPage />
     </AuthenticatedLayout>
   );

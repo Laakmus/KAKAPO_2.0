@@ -1,25 +1,31 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { HomeOffersPageLayout } from '@/components/HomeOffersPageLayout';
-
-/**
- * Strona główna - lista ofert
- *
- * Dostępna pod / i /offers
- * Wymaga autoryzacji (ProtectedLayout)
- * Osadza Reactowy komponent HomeOffersPageLayout jako "islandę"
- */
+import { OfferService } from '@/services/offer.service';
 
 export const prerender = false;
 
-// Pobierz aktualną ścieżkę z URL
 const currentPath = Astro.url.pathname;
-
-// Token jest przechowywany w localStorage po stronie klienta
-// AuthContext odczyta go automatycznie podczas inicjalizacji
 const accessToken = undefined;
+const userProfile = Astro.locals.userProfile;
+
+// Fetch ofert server-side — eliminuje loading flash
+let initialOffersData = undefined;
+if (Astro.locals.supabase) {
+  try {
+    const offerService = new OfferService(Astro.locals.supabase);
+    initialOffersData = await offerService.listOffers({
+      page: 1,
+      limit: 15,
+      sort: 'created_at',
+      order: 'desc',
+    });
+  } catch {
+    // Fallback: React pobierze dane client-side
+  }
+}
 ---
 
 <Layout title="KAKAPO - Oferty">
-  <HomeOffersPageLayout client:load currentPath={currentPath} initialToken={accessToken} />
+  <HomeOffersPageLayout client:load currentPath={currentPath} initialToken={accessToken} initialUser={userProfile} initialOffersData={initialOffersData} />
 </Layout>

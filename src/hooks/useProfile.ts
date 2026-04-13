@@ -12,10 +12,11 @@ import type { UserProfileDTO, ApiErrorViewModel } from '@/types';
  * - Automatyczne przekierowanie na /login przy błędzie 401
  */
 export function useProfile() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
-  const [profile, setProfile] = useState<UserProfileDTO | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Użyj auth.user jako initial data jeśli dostępny (z server-side injection)
+  const [profile, setProfile] = useState<UserProfileDTO | null>(user ?? null);
+  const [isLoading, setIsLoading] = useState(!user);
   const [error, setError] = useState<ApiErrorViewModel | undefined>();
 
   /**
@@ -109,10 +110,13 @@ export function useProfile() {
 
   /**
    * Efekt - fetch przy montowaniu lub zmianie tokena
+   * Pomija fetch jeśli profil już załadowany z server-side injection
    */
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (!profile) {
+      fetchProfile();
+    }
+  }, [fetchProfile, profile]);
 
   return {
     profile,

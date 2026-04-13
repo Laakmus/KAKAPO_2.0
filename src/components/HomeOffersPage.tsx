@@ -18,7 +18,11 @@ import { ErrorBanner } from './ErrorBanner';
  * - Zarządzanie stanem (loading, error, empty)
  * - Obsługa interakcji (filtrowanie, paginacja, odświeżanie)
  */
-export function HomeOffersPage() {
+export function HomeOffersPage({
+  initialOffersData,
+}: {
+  initialOffersData?: import('@/types').Paginated<import('@/types').OfferListItemDTO>;
+}) {
   // Stan filtra
   const [filter, setFilter] = useState<HomeFilterState>({
     sort: 'created_at',
@@ -30,7 +34,11 @@ export function HomeOffersPage() {
   const { page, setPage } = useUrlPagination();
 
   // Fetchowanie ofert
-  const { offers, pagination, isLoading, isRefreshing, error, refetch } = useOffersList(filter, page);
+  const { offers, pagination, isLoading, isRefreshing, error, refetch } = useOffersList(
+    filter,
+    page,
+    initialOffersData,
+  );
 
   /**
    * Handler zmiany wyszukiwania

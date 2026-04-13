@@ -16,9 +16,9 @@ import { Card } from './ui/card';
  * - Umożliwia filtrowanie po statusie (ACTIVE/REMOVED)
  * - Deleguje renderowanie do ActiveOffersList / RemovedOffersView
  */
-export function MyOffersPage() {
+export function MyOffersPage({ initialOffers }: { initialOffers?: import('@/types').OfferListItemDTO[] }) {
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'REMOVED'>('ACTIVE');
-  const { offers, isLoading, isRefreshing, error, refetch } = useMyOffers(statusFilter);
+  const { offers, isLoading, isRefreshing, error, refetch } = useMyOffers(statusFilter, initialOffers);
 
   const handleStatusChange = (newStatus: 'ACTIVE' | 'REMOVED') => {
     setStatusFilter(newStatus);

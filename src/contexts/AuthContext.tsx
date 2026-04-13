@@ -39,6 +39,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 type AuthProviderProps = {
   children: ReactNode;
   initialToken?: string;
+  initialUser?: UserProfileDTO;
 };
 
 /**
@@ -51,7 +52,7 @@ type AuthProviderProps = {
  *
  * Token jest odczytywany z localStorage przy inicjalizacji.
  */
-export function AuthProvider({ children, initialToken }: AuthProviderProps) {
+export function AuthProvider({ children, initialToken, initialUser }: AuthProviderProps) {
   // Odczytaj token synchronicznie podczas inicjalizacji stanu
   const [token, setTokenState] = useState<string | undefined>(() => {
     if (initialToken) {
@@ -64,8 +65,12 @@ export function AuthProvider({ children, initialToken }: AuthProviderProps) {
     return undefined;
   });
 
-  const [user, setUser] = useState<UserProfileDTO | undefined>();
-  const [status, setStatus] = useState<SessionStatus>('loading');
+  const [user, setUser] = useState<UserProfileDTO | undefined>(initialUser);
+  const [status, setStatus] = useState<SessionStatus>(() => {
+    if (initialUser) return 'authenticated';
+    if (typeof window !== 'undefined' && localStorage.getItem('access_token')) return 'loading';
+    return 'unauthenticated';
+  });
 
   /**
    * Aktualizuj status gdy zmienia się token lub user

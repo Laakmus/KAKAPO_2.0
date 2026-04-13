@@ -14,10 +14,11 @@ const currentPath = Astro.url.pathname;
 
 // Token jest przechowywany w localStorage po stronie klienta
 const accessToken = undefined;
+const userProfile = Astro.locals.userProfile;
 
 export const prerender = false;
 ---
 
 <Layout title="Dodaj nową ofertę - KAKAPO">
-  <OffersNewPageLayout client:load currentPath={currentPath} initialToken={accessToken} />
+  <OffersNewPageLayout client:load currentPath={currentPath} initialToken={accessToken} initialUser={userProfile} />
 </Layout>

@@ -7,6 +7,7 @@ import { ProfilePage } from './ProfilePage';
 export type ProfilePageLayoutProps = {
   currentPath: string;
   initialToken?: string;
+  initialUser?: import('@/types').UserProfileDTO;
 };
 
 /**
@@ -15,9 +16,9 @@ export type ProfilePageLayoutProps = {
  * Łączy AuthenticatedLayout z ProfilePage w jednej React island,
  * aby zapewnić dostęp do AuthProvider context.
  */
-export function ProfilePageLayout({ currentPath, initialToken }: ProfilePageLayoutProps) {
+export function ProfilePageLayout({ currentPath, initialToken, initialUser }: ProfilePageLayoutProps) {
   return (
-    <AuthenticatedLayout currentPath={currentPath} initialToken={initialToken}>
+    <AuthenticatedLayout currentPath={currentPath} initialToken={initialToken} initialUser={initialUser}>
       <ProfilePage />
     </AuthenticatedLayout>
   );

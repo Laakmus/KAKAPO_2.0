@@ -8,6 +8,7 @@ import { UserProfileClient } from './UserProfileClient';
 export type UserProfilePageLayoutProps = {
   currentPath: string;
   initialToken?: string;
+  initialUser?: import('@/types').UserProfileDTO;
   userId: string;
 };
 
@@ -17,9 +18,14 @@ export type UserProfilePageLayoutProps = {
  * Łączy AuthProvider z UserProfileClient w jednej React island,
  * aby zapewnić dostęp do AuthProvider context.
  */
-export function UserProfilePageLayout({ currentPath: _currentPath, initialToken, userId }: UserProfilePageLayoutProps) {
+export function UserProfilePageLayout({
+  currentPath: _currentPath,
+  initialToken,
+  initialUser,
+  userId,
+}: UserProfilePageLayoutProps) {
   return (
-    <AuthProvider initialToken={initialToken}>
+    <AuthProvider initialToken={initialToken} initialUser={initialUser}>
       <ToastProvider>
         <UserProfileClient userId={userId} />
       </ToastProvider>
